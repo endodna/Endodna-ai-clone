@@ -1,0 +1,95 @@
+import { createClient, RedisClientType } from 'redis';
+import { logger } from '../helpers/logger.helper';
+
+class RedisHandler {
+  private client: RedisClientType;
+  private isConnected: boolean = false;
+
+  constructor() {
+    this.client = createClient({
+      url: process.env.REDIS_URL || 'redis://localhost:6379'
+    });
+
+    this.client.on('error', (err) => {
+      logger.error('Redis Client Error:', err);
+      this.isConnected = false;
+    });
+
+    this.client.on('connect', () => {
+      logger.debug('Redis Client Connected');
+      this.isConnected = true;
+    });
+
+    this.client.on('disconnect', () => {
+      logger.debug('Redis Client Disconnected');
+      this.isConnected = false;
+    });
+  }
+
+  async connect(): Promise<void> {
+    if (!this.isConnected) {
+      await this.client.connect();
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.isConnected) {
+      await this.client.disconnect();
+    }
+  }
+
+  async set(key: string, value: string, expireInSeconds?: number): Promise<void> {
+    await this.connect();
+    if (expireInSeconds) {
+      await this.client.setEx(key, expireInSeconds, value);
+    } else {
+      await this.client.set(key, value);
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    await this.connect();
+    return await this.client.get(key);
+  }
+
+  async del(key: string): Promise<number> {
+    await this.connect();
+    return await this.client.del(key);
+  }
+
+  async exists(key: string): Promise<number> {
+    await this.connect();
+    return await this.client.exists(key);
+  }
+
+  async expire(key: string, seconds: number): Promise<boolean> {
+    await this.connect();
+    return await this.client.expire(key, seconds);
+  }
+
+  async ttl(key: string): Promise<number> {
+    await this.connect();
+    return await this.client.ttl(key);
+  }
+
+  async flushAll(): Promise<void> {
+    await this.connect();
+    await this.client.flushAll();
+  }
+
+  async ping(): Promise<string> {
+    await this.connect();
+    return await this.client.ping();
+  }
+
+  getClient(): RedisClientType {
+    return this.client;
+  }
+
+  isClientConnected(): boolean {
+    return this.isConnected;
+  }
+}
+
+export const redis = new RedisHandler();
+export default redis;

@@ -1,2 +1,2 @@
-# EndoDNA-AI
-Repository for EndoDNA-AI Platform
+# BiosAI
+Repository for BiosAI Platform
