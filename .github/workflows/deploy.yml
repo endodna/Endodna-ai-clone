@@ -89,16 +89,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
           
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm install
+        run: yarn install --frozen-lockfile
         
       - name: Build frontend
         working-directory: ./frontend
-        run: npm run build
+        run: yarn build
+        
+      - name: Debug environment access
+        run: |
+          echo "Checking environment secrets and variables..."
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "AWS_ACCESS_KEY_ID secret is available"
+          else
+            echo "✗ AWS_ACCESS_KEY_ID secret is missing"
+          fi
+          if [ -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "AWS_SECRET_ACCESS_KEY secret is available"
+          else
+            echo "AWS_SECRET_ACCESS_KEY secret is missing"
+          fi
+          if [ -n "${{ vars.FRONTEND_S3_BUCKET }}" ]; then
+            echo "FRONTEND_S3_BUCKET variable is available"
+          else
+            echo "FRONTEND_S3_BUCKET variable is missing"
+          fi
         
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -110,7 +129,7 @@ jobs:
       - name: Deploy to S3
         working-directory: ./frontend
         run: |
-          S3_BUCKET="${{ github.event.inputs.frontend_s3_bucket || env.FRONTEND_S3_BUCKET }}"
+          S3_BUCKET="${{ github.event.inputs.frontend_s3_bucket || vars.FRONTEND_S3_BUCKET }}"
           if [ -z "$S3_BUCKET" ]; then
             echo "Error: S3 bucket not specified. Please provide frontend_s3_bucket input or set FRONTEND_S3_BUCKET environment variable."
             exit 1
@@ -120,7 +139,7 @@ jobs:
           
       - name: Invalidate CloudFront
         run: |
-          CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || env.CLOUDFRONT_DISTRIBUTION_ID }}"
+          CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || vars.CLOUDFRONT_DISTRIBUTION_ID }}"
           if [ -n "$CLOUDFRONT_ID" ]; then
             echo "Invalidating CloudFront cache..."
             aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths "/*"
@@ -144,8 +163,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache: 'yarn'
+          cache-dependency-path: backend/yarn.lock
           
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -154,11 +173,11 @@ jobs:
           
       - name: Install dependencies
         working-directory: ./backend
-        run: npm install
+        run: yarn install --frozen-lockfile
         
       - name: Build backend
         working-directory: ./backend
-        run: npm run build
+        run: yarn build
         
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -170,7 +189,7 @@ jobs:
       - name: Create deployment package
         working-directory: ./backend
         run: |
-          APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
+          APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
           if [ -z "$APP_NAME" ]; then
             echo "Error: App name not specified. Please provide backend_app_name input or set BACKEND_APP_NAME environment variable."
             exit 1
@@ -180,7 +199,7 @@ jobs:
       - name: Generate version label
         id: version
         run: |
-          APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
+          APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
           TIMESTAMP=$(date +%s)
           VERSION_LABEL="${APP_NAME}-${{ github.event.inputs.environment }}-${TIMESTAMP}"
           echo "version_label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
@@ -190,7 +209,7 @@ jobs:
       - name: Upload to S3
         working-directory: ./backend
         run: |
-          S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || env.BACKEND_S3_BUCKET }}"
+          S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || vars.BACKEND_S3_BUCKET }}"
           if [ -z "$S3_BUCKET" ]; then
             echo "Error: S3 bucket not specified. Please provide backend_s3_bucket input or set BACKEND_S3_BUCKET environment variable."
             exit 1
@@ -199,8 +218,8 @@ jobs:
           
       - name: Create Elastic Beanstalk application version
         run: |
-          APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
-          S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || env.BACKEND_S3_BUCKET }}"
+          APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
+          S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || vars.BACKEND_S3_BUCKET }}"
           aws elasticbeanstalk create-application-version \
             --application-name "$APP_NAME" \
             --version-label "${{ steps.version.outputs.version_label }}" \
@@ -211,7 +230,7 @@ jobs:
             
       - name: Deploy to Elastic Beanstalk
         run: |
-          APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
+          APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
           ENVIRONMENT_NAME="${APP_NAME}-${{ github.event.inputs.environment }}"
           aws elasticbeanstalk update-environment \
             --environment-name "$ENVIRONMENT_NAME" \
@@ -222,7 +241,7 @@ jobs:
         if: always()
         working-directory: ./backend
         run: |
-          APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
+          APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
           if [ -f "${APP_NAME}.zip" ]; then
             rm "${APP_NAME}.zip"
           fi
@@ -235,10 +254,10 @@ jobs:
     steps:
       - name: Deployment Summary
         run: |
-          FRONTEND_S3_BUCKET="${{ github.event.inputs.frontend_s3_bucket || env.FRONTEND_S3_BUCKET }}"
-          CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || env.CLOUDFRONT_DISTRIBUTION_ID }}"
-          BACKEND_APP_NAME="${{ github.event.inputs.backend_app_name || env.BACKEND_APP_NAME }}"
-          BACKEND_S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || env.BACKEND_S3_BUCKET }}"
+          FRONTEND_S3_BUCKET="${{ github.event.inputs.frontend_s3_bucket || vars.FRONTEND_S3_BUCKET }}"
+          CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || vars.CLOUDFRONT_DISTRIBUTION_ID }}"
+          BACKEND_APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
+          BACKEND_S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || vars.BACKEND_S3_BUCKET }}"
           
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.event.inputs.branch }}" >> $GITHUB_STEP_SUMMARY
@@ -263,7 +282,7 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment Variables Used" >> $GITHUB_STEP_SUMMARY
-          echo "- **FRONTEND_S3_BUCKET**: ${{ env.FRONTEND_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **CLOUDFRONT_DISTRIBUTION_ID**: ${{ env.CLOUDFRONT_DISTRIBUTION_ID }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **BACKEND_APP_NAME**: ${{ env.BACKEND_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **BACKEND_S3_BUCKET**: ${{ env.BACKEND_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **FRONTEND_S3_BUCKET**: ${{ vars.FRONTEND_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **CLOUDFRONT_DISTRIBUTION_ID**: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **BACKEND_APP_NAME**: ${{ vars.BACKEND_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **BACKEND_S3_BUCKET**: ${{ vars.BACKEND_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
