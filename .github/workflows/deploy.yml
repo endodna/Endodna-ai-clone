@@ -231,7 +231,7 @@ jobs:
       - name: Deploy to Elastic Beanstalk
         run: |
           APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
-          ENVIRONMENT_NAME="${APP_NAME}-${{ github.event.inputs.environment }}"
+          ENVIRONMENT_NAME="${APP_NAME}"
           aws elasticbeanstalk update-environment \
             --environment-name "$ENVIRONMENT_NAME" \
             --version-label "${{ steps.version.outputs.version_label }}" \
