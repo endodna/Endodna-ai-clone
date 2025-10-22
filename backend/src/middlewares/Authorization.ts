@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { sendResponse } from '../helpers/response.helper';
 import { logger } from '../helpers/logger.helper';
 import { AuthenticatedRequest, StatusCode, UserType } from '../types';
@@ -18,9 +18,9 @@ export const PatientAuthorization = async (
     }
     next();
   } catch (err) {
-    logger.error('User authorization error', { 
+    logger.error('User authorization error', {
       traceId: req.traceId,
-      error: String(err) 
+      error: String(err)
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
@@ -30,13 +30,13 @@ export const PatientAuthorization = async (
   }
 };
 
-export const AdminAuthorization = async (
+export const DoctorAuthorization = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    if (req.user?.userType !== 'ADMIN') {
+    if (req.user?.userType !== UserType.DOCTOR) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
@@ -45,9 +45,37 @@ export const AdminAuthorization = async (
     }
     next();
   } catch (err) {
-    logger.error('Admin authorization error', { 
+    logger.error('Doctor authorization error', {
       traceId: req.traceId,
-      error: String(err) 
+      error: String(err)
+    });
+    return sendResponse(res, {
+      status: StatusCode.INTERNAL_SERVER_ERROR,
+      error: true,
+      message: 'Authorization error'
+    });
+  }
+};
+
+
+export const AdminAuthorization = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (req.user?.userType !== UserType.ADMIN) {
+      return sendResponse(res, {
+        status: StatusCode.UNAUTHORIZED,
+        error: true,
+        message: 'Unauthorized'
+      });
+    }
+    next();
+  } catch (err) {
+    logger.error('Admin authorization error', {
+      traceId: req.traceId,
+      error: String(err)
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
@@ -72,9 +100,9 @@ export const SAdminAuthorization = async (
     }
     next();
   } catch (err) {
-    logger.error('Super Admin authorization error', { 
+    logger.error('Super Admin authorization error', {
       traceId: req.traceId,
-      error: String(err) 
+      error: String(err)
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,

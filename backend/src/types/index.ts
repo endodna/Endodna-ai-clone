@@ -15,6 +15,7 @@ export interface AuthenticatedRequest extends Request {
     userId: string;
     userType: UserType;
     sessionId: string;
+    organizationId?: string;
   };
 }
 

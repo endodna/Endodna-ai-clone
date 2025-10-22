@@ -114,8 +114,9 @@ model User {
   email                   String?                   @unique
   middleName              String?
   photo                   String?
+  isPasswordSet           Boolean                   @default(false)
   status                  Status                    @default(PENDING)
-  userType                UserType?                  @default(PATIENT)
+  userType                UserType?                 @default(PATIENT)
   logins                  UserLogin[]
   auditLogs               UserAuditLog[]
   organizationUsers       OrganizationUser[]

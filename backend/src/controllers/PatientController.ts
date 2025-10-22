@@ -1,7 +1,6 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { sendResponse } from '../helpers/response.helper';
 import { AuthenticatedRequest, StatusCode } from '../types';
-import { prisma } from '../lib/prisma';
 
 class PatientController {
   public static async getProfile(req: AuthenticatedRequest, res: Response) {

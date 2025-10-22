@@ -12,5 +12,6 @@ authRouter.post('/login', validate(loginSchema), AuthController.login);
 authRouter.post('/service/login', validate(loginSchema), SAdminController.login);
 authRouter.post('/logout', Authentication, AuthController.signOut);
 authRouter.get('/profile', Authentication, AuthController.getProfile);
+authRouter.post('/set-password', Authentication, AuthController.setPassword);
 
 export default authRouter;

@@ -1,65 +1,157 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { sendResponse } from '../helpers/response.helper';
 import { AuthenticatedRequest, StatusCode } from '../types';
-import { prisma } from '../lib/prisma';
-import { logger } from '../helpers/logger.helper';
-import { supabase } from '../lib/supabase';
+import { Priority, UserType as PrismaUserType } from '@prisma/client';
+import { CreateAdminSchema, CreateDoctorSchema, CreatePatientSchema } from '../schemas';
+import { UserService } from '../services/user.service';
 
 class AdminController {
   public static async createAdmin(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
-      // await supabase.auth.admin.createUser({
-       
-      //   email_confirm: true
-      // });
+      const { userId, organizationId } = req.user!;
+      const { email, password, firstName, lastName, middleName } = req.body as CreateAdminSchema;
+
+      const result = await UserService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        middleName,
+        userType: PrismaUserType.ADMIN,
+        organizationId: organizationId!
+      });
+
+      await UserService.createUserAuditLog({
+        userId: userId,
+        description: 'Organization admin create attempt',
+        metadata: {
+          body: req.body
+        },
+        priority: Priority.HIGH
+      })
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error
+        });
+      }
+
       sendResponse(res, {
         status: StatusCode.OK,
-        data: user,
-        message: 'User fetched successfully'
+        data: {
+          ...req.body,
+          password: undefined,
+        },
+        message: 'Organization admin created successfully'
       });
     }
     catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Failed to fetch user'
+        message: 'Failed to create organization admin'
       });
     }
   }
 
   public static async createDoctor(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { userId, organizationId } = req.user!;
+      const { email, password, firstName, lastName, middleName } = req.body as CreateDoctorSchema;
+
+      const result = await UserService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        middleName,
+        userType: PrismaUserType.DOCTOR,
+        organizationId: organizationId!
+      });
+
+      await UserService.createUserAuditLog({
+        userId: userId,
+        description: 'Organization doctor create attempt',
+        metadata: {
+          body: req.body
+        },
+        priority: Priority.HIGH
+      })
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error
+        });
+      }
+
       sendResponse(res, {
         status: StatusCode.OK,
-        data: user,
-        message: 'User fetched successfully'
+        data: {
+          ...req.body,
+          password: undefined,
+        },
+        message: 'Organization doctor created successfully'
       });
     }
     catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Failed to fetch user'
+        message: 'Failed to create organization doctor'
       });
     }
   }
 
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { userId, organizationId } = req.user!;
+      const { email, password, firstName, lastName, middleName } = req.body as CreatePatientSchema;
+
+      const result = await UserService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        middleName,
+        userType: PrismaUserType.PATIENT,
+        organizationId: organizationId!
+      });
+
+      await UserService.createUserAuditLog({
+        userId: userId,
+        description: 'Organization patient create attempt',
+        metadata: {
+          body: req.body
+        },
+        priority: Priority.HIGH
+      })
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error
+        });
+      }
+
       sendResponse(res, {
         status: StatusCode.OK,
-        data: user,
-        message: 'User fetched successfully'
+        data: {
+          ...req.body,
+          password: undefined,
+        },
+        message: 'Organization patient created successfully'
       });
     }
     catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Failed to fetch user'
+        message: 'Failed to create organization patient'
       });
     }
   }

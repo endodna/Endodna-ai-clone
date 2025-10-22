@@ -1,7 +1,6 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { sendResponse } from '../helpers/response.helper';
-import { AuthenticatedRequest, StatusCode, UserType } from '../types';
-import { prisma } from '../lib/prisma';
+import { AuthenticatedRequest, StatusCode } from '../types';
 import { logger } from '../helpers/logger.helper';
 import { getMenu } from '../helpers/menu.helper';
 

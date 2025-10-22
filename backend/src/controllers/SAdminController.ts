@@ -8,9 +8,10 @@ import { Priority, Status, UserType as PrismaUserType } from '@prisma/client';
 import { UserType } from '../types';
 import redis from '../lib/redis';
 import { SESSION_KEY } from '../utils/constants';
-import { CreateSuperAdminSchema, LoginSchema, ProvisionOrganizationSchema } from '../schemas';
+import { CreateOrganizationAdminSchema, CreateSuperAdminSchema, LoginSchema, ProvisionOrganizationSchema } from '../schemas';
 import { UserResponse } from '@supabase/supabase-js';
 import { buildRedisSession } from '../helpers/misc.helper';
+import { UserService } from '../services/user.service';
 
 class SAdminController {
   public static async createSuperAdmin(req: AuthenticatedRequest, res: Response) {
@@ -264,7 +265,8 @@ class SAdminController {
             lastName: admin.lastName,
             middleName: admin.middleName,
             email: admin.email,
-            status: Status.ACTIVE
+            status: Status.ACTIVE,
+            userType: PrismaUserType.ADMIN,
           }
         })]);
 
@@ -312,14 +314,49 @@ class SAdminController {
 
   public static async createOrganizationAdmin(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { userId } = req.user!;
+      const { email, password, organizationId, firstName, lastName, middleName } = req.body as CreateOrganizationAdminSchema;
+
+
+      const result = await UserService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        middleName,
+        userType: PrismaUserType.ADMIN,
+        organizationId
+      });
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminId: userId,
+          description: 'Organization admin create attempt',
+          metadata: {
+            body: req.body
+          },
+          priority: Priority.HIGH
+        }
+      })
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error
+        });
+      }
+
       sendResponse(res, {
         status: StatusCode.OK,
-        data: user,
+        data: {
+          ...req.body,
+          password: undefined,
+        },
         message: 'Organization admin created successfully'
       });
     } catch (err) {
-      logger.error("Error");
+      console.log(err)
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err instanceof Error,
@@ -336,6 +373,53 @@ class SAdminController {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: 'Failed to get profile'
+      });
+    }
+  }
+
+  public static async getOrganizations(req: AuthenticatedRequest, res: Response) {
+    try {
+      const organizations = await prisma.organization.findMany({
+        select: {
+          uuid: true,
+          name: true,
+          isPrimary: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          createdByAdmin: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            }
+          }
+        }
+      })
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: organizations,
+        message: 'Organizations fetched successfully'
+      });
+    } catch (err) {
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: 'Failed to get organizations'
+      });
+
+    }
+  }
+
+  public static async getUsers(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { user } = req;
+    } catch (err) {
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: 'Failed to get users'
       });
     }
   }

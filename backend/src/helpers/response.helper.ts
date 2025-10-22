@@ -95,7 +95,7 @@ export const sendResponse = (
   let response = { data, error, message };
   if (error) {
     logger.error('Request error', {
-      traceId: req.traceId,
+      traceId: req?.traceId,
       error: String(error)
     });
   }

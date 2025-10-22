@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../lib/supabase';
-import { UserType } from '../types';
 
 export const signJWTToken = (payload: any): string => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
