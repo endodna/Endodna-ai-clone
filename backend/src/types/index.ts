@@ -12,8 +12,9 @@ export interface AuthenticatedRequest extends Request {
   traceId?: string;
   startTime?: number;
   user?: {
-    user_id: string;
-    user_type: UserType;
+    userId: string;
+    userType: UserType;
+    sessionId: string;
   };
 }
 
@@ -95,7 +96,7 @@ export interface ResponseHeader {
 
 export interface ResponseOptions {
   status: StatusCode;
-  error?: Object | boolean;
+  error?: any;
   data?: Object | null;
   message?: string;
 }

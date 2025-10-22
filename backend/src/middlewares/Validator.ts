@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
+import _ from 'lodash';
 import { sendResponse } from '../helpers/response.helper';
 import { StatusCode } from '../types';
+
 
 export const validate = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -10,9 +12,10 @@ export const validate = (schema: ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.errors.map(err => ({
+        const flattenedErrors = _.flattenDeep(error.errors);
+        const errorMessages = flattenedErrors.map(err => ({
           field: err.path.join('.'),
-          message: err.message
+          message: err.message as string
         }));
         
         return sendResponse(res, {

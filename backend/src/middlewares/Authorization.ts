@@ -9,7 +9,7 @@ export const PatientAuthorization = async (
   next: NextFunction
 ) => {
   try {
-    if (req.user?.user_type !== UserType.PATIENT) {
+    if (req.user?.userType !== UserType.PATIENT) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
@@ -36,7 +36,7 @@ export const AdminAuthorization = async (
   next: NextFunction
 ) => {
   try {
-    if (req.user?.user_type !== 'ADMIN') {
+    if (req.user?.userType !== 'ADMIN') {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
@@ -63,7 +63,7 @@ export const SAdminAuthorization = async (
   next: NextFunction
 ) => {
   try {
-    if (req.user?.user_type !== 'ADMIN') {
+    if (req.user?.userType !== UserType.SUPER_ADMIN) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
@@ -72,7 +72,7 @@ export const SAdminAuthorization = async (
     }
     next();
   } catch (err) {
-    logger.error('Admin authorization error', { 
+    logger.error('Super Admin authorization error', { 
       traceId: req.traceId,
       error: String(err) 
     });

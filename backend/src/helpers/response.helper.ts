@@ -78,7 +78,7 @@ export const sendResponse = (
   options: ResponseOptions,
   req?: any
 ): Response => {
-  const { status, error = false, data = null, message = "" } = options;
+  const { status, error , data = null, message = "" } = options;
   const statusMessages: Record<StatusCode, string> = {
     [StatusCode.OK]: StatusMessage.SUCCESSFUL,
     [StatusCode.CREATED]: StatusMessage.CREATED_SUCCESSFULLY,
@@ -94,6 +94,9 @@ export const sendResponse = (
   let response = { data, error, message };
   if (process.env.NODE_ENV === "production" && error) {
     response.error = true;
+  }
+  else {
+    response.error = error ? String(error) : false;
   }
   response.message = message ? message : statusMessages[status];
 

@@ -15,7 +15,7 @@ v1Router.use('/auth', rateLimiter.authentication_rate_limiter, authRouter);
 // Protected routes
 v1Router.use('/patient', patientRouter);
 v1Router.use('/admin', adminRouter);
-v1Router.use('/sadmin', sAdminRouter);
+v1Router.use('/service', sAdminRouter);
 v1Router.use('/misc', miscRouter);
 
 

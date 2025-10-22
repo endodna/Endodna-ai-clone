@@ -9,7 +9,7 @@ class MiscController {
   public static async getMenu(req: AuthenticatedRequest, res: Response) {
     try {
       const { user } = req;
-      const menu = getMenu(UserType.ADMIN);
+      const menu = getMenu(user?.userType!);
       sendResponse(res, {
         status: StatusCode.OK,
         data: menu,

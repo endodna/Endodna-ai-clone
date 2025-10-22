@@ -3,6 +3,8 @@ import { getSupabaseClaims, verifySupabaseToken } from '../helpers/encryption.he
 import { sendResponse } from '../helpers/response.helper';
 import { logger } from '../helpers/logger.helper';
 import { AuthenticatedRequest, StatusCode, UserType } from '../types';
+import redis from '../lib/redis';
+import { SESSION_KEY, SESSION_BLACKLIST_KEY } from '../utils/constants';
 
 export const Authentication = async (
   req: AuthenticatedRequest,
@@ -10,37 +12,49 @@ export const Authentication = async (
   next: NextFunction
 ) => {
   try {
-    let auth = req.headers.authorization;
-    let token = auth && auth.split(' ').length === 2 ? auth.split(' ')[1] : null;
+    const auth = req.headers.authorization;
+    const token = auth && auth.split(' ').length === 2 ? auth.split(' ')[1] : null;
     if (token) {
-      let claims = await getSupabaseClaims(token);
-      const sessionId = claims?.claims.session_id;
-      let user = await verifySupabaseToken(token);
-      // check if session is valid
-      // store session in redis with ttl of expiry time of session
-      // if session is not valid, return unauthorized
-      // if not in redis, return unauthorized, get session from supabase and store in redis
-      // auth.api.signOut(JWT: string)
-      // logout api should add sessionid to redis as blacklist with ttl of 1 day
+      const claims = await getSupabaseClaims(token);
+      const user = await verifySupabaseToken(token);
 
-      if (user && user.id) {
-        req.user = {
-          user_type: UserType.PATIENT,
-          user_id: user.id
-        }
-        next();
-      } else {
-        sendResponse(res, {
+      if (!user || !user.id || !claims?.claims.session_id) {
+        return sendResponse(res, {
           status: StatusCode.UNAUTHORIZED,
           error: true,
-          message: 'Invalid token'
+          message: 'InvalidToken'
         });
       }
+      const sessionId = claims?.claims.session_id;
+      const session = await redis.get(SESSION_KEY(sessionId));
+      const isBlacklisted = await redis.get(SESSION_BLACKLIST_KEY(sessionId));
+
+      if (!session) {
+        return sendResponse(res, {
+          status: StatusCode.UNAUTHORIZED,
+          error: true,
+          message: 'InvalidSession'
+        });
+      }
+      if (isBlacklisted) {
+        return sendResponse(res, {
+          status: StatusCode.UNAUTHORIZED,
+          error: true,
+          message: 'SessionLogout'
+        });
+      }
+
+      const sessionData = JSON.parse(session);
+      const ttl = claims?.claims.exp - Math.floor(Date.now() / 1000);
+      await redis.set(SESSION_KEY(sessionId), session, ttl);
+      req.user = sessionData;
+
+      next();
     } else {
       sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'No token provided'
+        message: 'Invalid token'
       });
     }
   } catch (e) {

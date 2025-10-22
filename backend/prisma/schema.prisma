@@ -11,13 +11,171 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Admin {
+  id                   String          @id @unique
+  firstName            String
+  lastName             String
+  middleName           String?
+  email                String?         @unique
+  photo                String?
+  status               Status          @default(PENDING)
+  adminLogins          AdminLogin[]
+  adminAuditLogs       AdminAuditLog[]
+  organizationsCreated Organization[]
+  sessions             AdminSession[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model AdminLogin {
+  id         Int      @id @default(autoincrement())
+  adminId    String
+  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  ip         String?
+  appVersion String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AdminAuditLog {
+  id          Int      @id @default(autoincrement())
+  adminId     String
+  admin       Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  description String
+  priority    Priority
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdminSession {
+  id        Int       @id @default(autoincrement())
+  adminId   String
+  admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  isValid   Boolean   @default(true)
+  sessionId String    @unique
+  logoutAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Organization {
+  id                      Int                        @id @default(autoincrement())
+  uuid                    String                     @default(uuid())
+  name                    String
+  isPrimary               Boolean                    @default(false)
+  createdBy               String
+  createdByAdmin          Admin?                     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  customizations          OrganizationCustomization?
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  organizationUser        OrganizationUser[]
+  organizationUserInvites OrganizationUserInvites[]
+}
+
+model OrganizationCustomization {
+  id             Int          @id @default(autoincrement())
+  organizationId Int          @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model OrganizationUser {
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+}
+
+model OrganizationUserInvites {
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedById    String
+  invitedBy      User?        @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  email          String
+  token          String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, email])
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  firstName String?
-  lastName  String?
-  userType  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                      String                    @id @unique
+  firstName               String
+  lastName                String
+  email                   String?                   @unique
+  middleName              String?
+  photo                   String?
+  status                  Status                    @default(PENDING)
+  userType                UserType                  @default(PATIENT)
+  logins                  UserLogin[]
+  auditLogs               UserAuditLog[]
+  organizationUsers       OrganizationUser[]
+  organizationUserInvites OrganizationUserInvites[]
+  sessions                UserSession[]
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+}
+
+model UserLogin {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip         String?
+  appVersion String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model UserAuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description String
+  priority    Priority
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserSession {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isValid   Boolean   @default(true)
+  sessionId String    @unique
+  logoutAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  PENDING
+  DEACTIVATED
+  BLOCKED
+  DELETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum UserType {
+  PATIENT
+  ADMIN
+  SUPER_ADMIN
+  DOCTOR
 }
