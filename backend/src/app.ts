@@ -21,6 +21,10 @@ const app = express();
 // MiddleWares
 app.use(requestLogger);
 app.use(bodyParser.urlencoded({ extended: false }));
+if(process.env.NODE_ENV === 'production'){
+  app.set('trust proxy', 1);
+}
+
 // app.use(
 //   // bodyParser.json({
 //   //   verify: function (req: Request, res, buf) {

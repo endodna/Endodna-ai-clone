@@ -10,6 +10,7 @@ import redis from '../lib/redis';
 import { SESSION_KEY } from '../utils/constants';
 import { buildRedisSession } from '../utils';
 import { CreateSuperAdminSchema, LoginSchema, ProvisionOrganizationSchema } from '../schemas';
+import { UserResponse } from '@supabase/supabase-js';
 
 class SAdminController {
   public static async createSuperAdmin(req: AuthenticatedRequest, res: Response) {
@@ -225,9 +226,19 @@ class SAdminController {
         });
       }
 
-
-      // maybe create a new user in supabase with the email and password for testing?
-      const newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(admin.email);
+      let newSupabaseUser: UserResponse | null = null;
+      if (admin.password) {
+        newSupabaseUser = await supabase.auth.admin.createUser({
+          email: admin.email,
+          password: admin.password,
+          email_confirm: true
+        });
+      }
+      else {
+        newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(admin.email, {
+          redirectTo: `${process.env.FRONTEND_URL}/auth/callback`
+        });
+      }
 
       if (!newSupabaseUser.data.user?.id) {
         return sendResponse(res, {
