@@ -87,6 +87,7 @@ model OrganizationUser {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userType       UserType     @default(PATIENT)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -114,7 +115,7 @@ model User {
   middleName              String?
   photo                   String?
   status                  Status                    @default(PENDING)
-  userType                UserType                  @default(PATIENT)
+  userType                UserType?                  @default(PATIENT)
   logins                  UserLogin[]
   auditLogs               UserAuditLog[]
   organizationUsers       OrganizationUser[]

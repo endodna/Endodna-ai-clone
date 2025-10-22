@@ -239,6 +239,29 @@ resource "aws_s3_bucket_policy" "private_update" {
   depends_on = [module.cloudfront_private]
 }
 
+# ElastiCache Module
+module "elasticache" {
+  source = "../../modules/elasticache"
+
+  name_prefix = "biosai"
+  environment = var.environment
+  vpc_id      = module.vpc.vpc_id
+  vpc_cidr    = module.vpc.vpc_cidr_block
+  subnet_ids  = module.vpc.private_subnet_ids
+
+  # Security configuration - allow access from EB instances
+  allowed_security_group_ids = [module.security_groups.eb_security_group_id]
+
+  # Cost-optimized configuration for Valkey
+  node_type                  = "cache.t3.small"  
+  num_cache_nodes            = 1                 
+  snapshot_retention_days     = 0               
+  enable_encryption_at_rest  = false            
+  enable_encryption_in_transit = false          
+
+  tags = local.common_tags
+}
+
 # Elastic Beanstalk for backend
 module "elastic_beanstalk" {
   source = "../../modules/elastic-beanstalk"
@@ -256,7 +279,23 @@ module "elastic_beanstalk" {
   min_instances      = var.backend_min_instances
   max_instances      = var.backend_max_instances
   enable_deletion_protection = var.backend_enable_deletion_protection
-  environment_variables = var.backend_environment_variables
+  
+  # Use Terraform output for Redis URL
+  environment_variables = merge(var.backend_environment_variables, {
+    REDIS_URL = module.elasticache.redis_url
+  })
+  
   eb_security_group_id = module.security_groups.eb_security_group_id
   tags               = local.common_tags
+}
+
+# Outputs
+output "redis_url" {
+  description = "Redis URL for application configuration"
+  value       = module.elasticache.redis_url
+}
+
+output "valkey_endpoint" {
+  description = "Valkey primary endpoint (Redis-compatible)"
+  value       = module.elasticache.primary_endpoint
 }

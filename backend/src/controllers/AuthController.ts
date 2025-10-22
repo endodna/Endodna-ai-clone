@@ -142,6 +142,18 @@ class AuthController {
       });
     }
   }
+
+  public static async getProfile(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { user } = req;
+    } catch (err) {
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: 'Failed to get profile'
+      });
+    }
+  }
 }
 
 export default AuthController;

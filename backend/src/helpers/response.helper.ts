@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { ResponseHeader, ResponseOptions, StatusCode, StatusMessage } from "../types";
+import { logger } from "./logger.helper";
 
 class ResponseHelper {
   private responseHeaders: ResponseHeader[] = [
@@ -78,7 +79,7 @@ export const sendResponse = (
   options: ResponseOptions,
   req?: any
 ): Response => {
-  const { status, error , data = null, message = "" } = options;
+  const { status, error, data = null, message = "" } = options;
   const statusMessages: Record<StatusCode, string> = {
     [StatusCode.OK]: StatusMessage.SUCCESSFUL,
     [StatusCode.CREATED]: StatusMessage.CREATED_SUCCESSFULLY,
@@ -92,6 +93,12 @@ export const sendResponse = (
   };
 
   let response = { data, error, message };
+  if (error) {
+    logger.error('Request error', {
+      traceId: req.traceId,
+      error: String(error)
+    });
+  }
   if (process.env.NODE_ENV === "production" && error) {
     response.error = true;
   }

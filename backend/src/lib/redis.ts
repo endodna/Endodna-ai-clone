@@ -6,8 +6,12 @@ class RedisHandler {
   private isConnected: boolean = false;
 
   constructor() {
+    // Use different Redis URLs based on environment
+    const redisUrl = process.env.REDIS_URL || 
+      (process.env.NODE_ENV === 'production' ? 'redis://redis:6379' : 'redis://localhost:6379');
+    
     this.client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
+      url: redisUrl
     });
 
     this.client.on('error', (err) => {

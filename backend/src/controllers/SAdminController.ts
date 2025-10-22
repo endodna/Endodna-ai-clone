@@ -8,9 +8,9 @@ import { Priority, Status, UserType as PrismaUserType } from '@prisma/client';
 import { UserType } from '../types';
 import redis from '../lib/redis';
 import { SESSION_KEY } from '../utils/constants';
-import { buildRedisSession } from '../utils';
 import { CreateSuperAdminSchema, LoginSchema, ProvisionOrganizationSchema } from '../schemas';
 import { UserResponse } from '@supabase/supabase-js';
+import { buildRedisSession } from '../helpers/misc.helper';
 
 class SAdminController {
   public static async createSuperAdmin(req: AuthenticatedRequest, res: Response) {
@@ -264,8 +264,7 @@ class SAdminController {
             lastName: admin.lastName,
             middleName: admin.middleName,
             email: admin.email,
-            status: Status.ACTIVE,
-            userType: PrismaUserType.ADMIN,
+            status: Status.ACTIVE
           }
         })]);
 
@@ -290,6 +289,7 @@ class SAdminController {
           data: {
             organizationId: organization.id,
             userId: newUserId,
+            userType: PrismaUserType.ADMIN,
           }
         })
       ])
@@ -324,6 +324,18 @@ class SAdminController {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err instanceof Error,
         message: 'Failed to create organization admin'
+      });
+    }
+  }
+
+  public static async getProfile(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { user } = req;
+    } catch (err) {
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: 'Failed to get profile'
       });
     }
   }
