@@ -33,6 +33,7 @@ class AuthController {
           id: true,
           email: true,
           status: true,
+          isPasswordSet: true,
           firstName: true,
           lastName: true,
           middleName: true,
