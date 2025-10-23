@@ -22,10 +22,10 @@ export default function LoginForm() {
 
             <div className="relative z-10 flex w-full max-w-lg flex-col gap-6">
                 <div className="flex flex-col gap-6">
-                    <Card className="px-4 py-4 bg-linear-65 from-neutral-50 to-neutral-100 flex flex-col gap-4">
+                    <Card className="px-4 py-4 bg-gradient-to-r from-white/100 to-gray-100/100 flex flex-col gap-4">
                         <CardHeader>
                             <CardTitle className="flex flex-col gap-6">
-                                <div className="-ml-2 flex items-center justify-between">
+                                <div className="flex items-center justify-between">
                                     <img src={carePlus} alt="Care Plus" className="w-20 h-auto" />
                                     <img src={poweredByEndoDNA} alt="Powered by EndoDNA" className="w-20 h-auto" />
                                 </div>
@@ -45,6 +45,7 @@ export default function LoginForm() {
                                         <div className="grid gap-2">
                                             <Label htmlFor="email">Email</Label>
                                             <Input
+                                                className="focus:border-violet-600"
                                                 id="email"
                                                 type="email"
                                                 placeholder="user@mail.com"
@@ -55,7 +56,12 @@ export default function LoginForm() {
                                             <div className="flex items-center">
                                                 <Label htmlFor="password">Password</Label>
                                             </div>
-                                            <Input id="password" type="password" required />
+                                            <Input 
+                                                className="focus:border-violet-600"
+                                                id="password" 
+                                                type="password" 
+                                                required 
+                                            />
                                         </div>
                                         <Button disabled type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-600">
                                             Login

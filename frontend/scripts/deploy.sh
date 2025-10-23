@@ -39,7 +39,7 @@ echo "Deploying to S3 bucket: $BUCKET_NAME"
 aws s3 sync dist/ s3://$BUCKET_NAME --delete --region $AWS_REGION
 
 # Invalidate CloudFront if distribution ID is provided
-if [ "$CLOUDFRONT_DISTRIBUTION_ID" = "" ]; then
+if [ "$CLOUDFRONT_DISTRIBUTION_ID" != "" ]; then
     echo "Invalidating CloudFront cache..."
     aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
 fi
