@@ -19,7 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!hasAccess(location.pathname)) {
-    return <Navigate to="/unauthorized" replace />
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>
