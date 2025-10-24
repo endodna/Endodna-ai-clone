@@ -19,7 +19,6 @@ interface UserConfig {
   middleName: string | null;
 }
 
-// localStorage helper functions
 const USER_CONFIG_KEY = "userConfig";
 
 const loadUserConfigFromStorage = (): UserConfig => {
@@ -42,7 +41,11 @@ const loadUserConfigFromStorage = (): UserConfig => {
 
 const saveUserConfigToStorage = (userConfig: UserConfig): void => {
   try {
-    localStorage.setItem(USER_CONFIG_KEY, JSON.stringify(userConfig));
+    if(userConfig.userType) {
+      localStorage.setItem(USER_CONFIG_KEY, JSON.stringify(userConfig));
+    } else {
+      clearUserConfigFromStorage();
+    }
   } catch (error) {
     console.error("Error saving userConfig to localStorage:", error);
   }

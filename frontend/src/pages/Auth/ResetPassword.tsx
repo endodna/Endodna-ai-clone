@@ -3,9 +3,10 @@ import { ReusableForm, FormField } from "@/components/forms";
 import { PasswordValidation } from "@/components/forms/PasswordValidation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import AuthContainer from "@/components/auth/AuthContainer";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 const schema = z
     .object({
@@ -47,6 +48,7 @@ const formFields: FormField[] = [
 
 export default function ResetPasswordForm() {
     const navigate = useNavigate();
+    const location = useLocation();
     const auth = useAuth();
 
     const defaultValues = {
@@ -55,20 +57,31 @@ export default function ResetPasswordForm() {
     };
 
     const [fields, setFields] = useState(formFields);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [success, setSuccess] = useState(false);
+    
+    const [isPasswordRecovery, setIsPasswordRecovery] = useState(location.state?.isPasswordRecovery || false);
 
     useEffect(() => {
         const now = new Date();
         const sessionExpiry = new Date(auth?.session?.expires_at || 0);
 
         if (auth?.userConfig?.isPasswordSet || sessionExpiry > now) {
-            navigate("/");
+            navigate("/dashboard");
         }
         return () => { };
     }, [auth.session, auth.userConfig.isPasswordSet]);
+
+    useEffect(() => {
+        supabase.auth.onAuthStateChange(async (event) => {
+            if (event == "PASSWORD_RECOVERY") {
+                setIsPasswordRecovery(true);
+            }
+            setIsLoading(false);
+        })
+    }, [])
 
     const handleFieldChange = (fieldName: string, value: any) => {
         if (fieldName === "password") {
@@ -132,7 +145,7 @@ export default function ResetPasswordForm() {
         );
     }
 
-    if (!auth.user) {
+    if(!isLoading && !isPasswordRecovery) {
         return <Navigate to="/" replace />;
     }
 
