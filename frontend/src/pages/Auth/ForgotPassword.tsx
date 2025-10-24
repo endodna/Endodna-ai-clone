@@ -75,10 +75,15 @@ export default function LoginForm() {
                 header={
                     <div className="flex flex-col gap-4">
                         <div className="text-4xl pt-4 text-neutral-700 font-semibold">
-                            Password reset link sent successfully
+                            Instructions Sent!
                         </div>
                         <div className="text-xs text-neutral-700">
-                            <span>Please check your email for the password reset link</span>
+                            <p>
+                                You’ll receive an email shortly to help you create a new password.
+                            </p>
+                            <p>
+                                Don’t forget to check your spam folder.
+                            </p>
                         </div>
                     </div>
                 }

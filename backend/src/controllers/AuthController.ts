@@ -259,8 +259,21 @@ class AuthController {
 
   public static async setPassword(req: AuthenticatedRequest, res: Response) {
     try {
-      const { userId, sessionId } = req.user!;
       const { password } = req.body as SetPasswordSchema;
+      const auth = req.headers.authorization;
+      const token =
+      auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
+      const verifyToken = await verifySupabaseToken(token!);
+
+      if (!verifyToken) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Invalid token",
+        });
+      }
+
+      const userId = verifyToken.id;
 
       const supasbasPasswordUpdate = await supabase.auth.admin.updateUserById(
         userId,
@@ -275,15 +288,6 @@ class AuthController {
           message: "FailedToUpdatePassword",
         });
       }
-
-      const ttl = await redis.ttl(SESSION_KEY(sessionId));
-      const session = buildRedisSession({
-        ...req.user!,
-        isPasswordSet: true,
-      });
-
-      await redis.set(SESSION_KEY(sessionId), session, ttl);
-
       await Promise.all([
         prisma.user.update({
           where: {

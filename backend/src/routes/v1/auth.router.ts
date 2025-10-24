@@ -28,7 +28,6 @@ authRouter.post("/logout", Authentication, AuthController.signOut);
 authRouter.get("/profile", Authentication, AuthController.getProfile);
 authRouter.post(
   "/set-password",
-  Authentication,
   validate(setPasswordSchema),
   AuthController.setPassword,
 );
