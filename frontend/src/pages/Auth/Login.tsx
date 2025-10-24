@@ -85,14 +85,14 @@ export default function LoginForm() {
           <div className="text-4xl pt-4 text-neutral-700 font-semibold">
             Welcome Back
           </div>
-          <div className="text-xs text-neutral-700">
+          {/* <div className="text-xs text-neutral-700">
             <span>
               Don't have an account?
               <a href="#" className="ml-1 text-violet-500">
                 Create an account
               </a>
             </span>
-          </div>
+          </div> */}
         </div>
       }
     >

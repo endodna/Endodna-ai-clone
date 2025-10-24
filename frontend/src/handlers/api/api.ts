@@ -11,7 +11,7 @@ export interface ApiResponse<T = any> {
 export const authApi = {
   login: async (
     token: string,
-  ): Promise<ApiResponse<{ user: Record<string, any>; token: string }>> => {
+  ): Promise<ApiResponse> => {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN_TOKEN, {
         token,

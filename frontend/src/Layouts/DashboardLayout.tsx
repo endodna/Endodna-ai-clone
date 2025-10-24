@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardLayout() {
@@ -23,30 +23,30 @@ export default function DashboardLayout() {
         <aside className="w-64 bg-white shadow-sm min-h-screen">
           <div className="p-6">
             <nav className="space-y-2">
-              <a
-                href="/dashboard"
+              <Link
+                to="/dashboard"
                 className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Dashboard
-              </a>
-              <a
-                href="/dashboard/doctor"
+              </Link>
+              <Link
+                to="/dashboard/doctor"
                 className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Doctor
-              </a>
-              <a
-                href="/dashboard/patients"
+              </Link>
+              <Link
+                to="/dashboard/patients"
                 className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Patients
-              </a>
-              <a
-                href="/dashboard/settings"
+              </Link>
+              <Link
+                to="/dashboard/settings"
                 className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Settings
-              </a>
+              </Link>
               <Button
                 onClick={() => {
                   auth.signOut();

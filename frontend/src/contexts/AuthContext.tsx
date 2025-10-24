@@ -19,6 +19,43 @@ interface UserConfig {
   middleName: string | null;
 }
 
+// localStorage helper functions
+const USER_CONFIG_KEY = "userConfig";
+
+const loadUserConfigFromStorage = (): UserConfig => {
+  try {
+    const stored = localStorage.getItem(USER_CONFIG_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error("Error loading userConfig from localStorage:", error);
+  }
+  return {
+    userType: null,
+    isPasswordSet: null,
+    firstName: null,
+    lastName: null,
+    middleName: null,
+  };
+};
+
+const saveUserConfigToStorage = (userConfig: UserConfig): void => {
+  try {
+    localStorage.setItem(USER_CONFIG_KEY, JSON.stringify(userConfig));
+  } catch (error) {
+    console.error("Error saving userConfig to localStorage:", error);
+  }
+};
+
+const clearUserConfigFromStorage = (): void => {
+  try {
+    localStorage.removeItem(USER_CONFIG_KEY);
+  } catch (error) {
+    console.error("Error clearing userConfig from localStorage:", error);
+  }
+};
+
 interface AuthContextType {
   user: User | null;
   userConfig: UserConfig;
@@ -62,15 +99,13 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userConfig, setUserConfig] = useState<UserConfig>({
-    firstName: null,
-    lastName: null,
-    middleName: null,
-    userType: null,
-    isPasswordSet: null,
-  });
+  const [userConfig, setUserConfig] = useState<UserConfig>(loadUserConfigFromStorage());
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    saveUserConfigToStorage(userConfig);
+  }, [userConfig]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -84,8 +119,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastName: null,
           middleName: null,
         });
+        clearUserConfigFromStorage();
       }
-      setLoading(false);
     });
 
     const {
@@ -101,6 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastName: null,
           middleName: null,
         });
+        clearUserConfigFromStorage();
       }
       if (_event === "SIGNED_IN" || _event === "PASSWORD_RECOVERY") {
         setSession(session);
@@ -141,7 +177,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (apiError) {
         return { error: apiMessage };
       }
-
       setUserConfig({
         userType: apiData?.user?.userType,
         isPasswordSet: apiData?.user?.isPasswordSet,
@@ -149,8 +184,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastName: apiData?.user?.lastName,
         middleName: apiData?.user?.middleName,
       });
-
-      await getProfile();
 
       return { error: apiError ? apiMessage : null, data: apiData };
     } catch (error: any) {
@@ -201,10 +234,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastName: null,
           middleName: null,
         });
+        clearUserConfigFromStorage();
       }
     } catch (error) {
       console.error("Logout error:", error);
       await supabase.auth.signOut();
+      clearUserConfigFromStorage();
     } finally {
       toast.success("Logged out!");
     }
