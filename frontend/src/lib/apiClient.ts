@@ -50,10 +50,13 @@ apiClient.interceptors.response.use(
     // Handle 401 errors
     if (error.response?.status === 401) {
       console.log('Unauthorized access detected, logging out user')
-      // await supabase.auth.signOut()
-
-      // Redirect to login or home page
-      // window.location.href = '/'
+      try{
+        await supabase.auth.signOut()
+      } catch (error) {
+        console.error('Error signing out:', error)
+      }
+     
+      window.location.replace("/")
     }
 
     return Promise.reject(error)

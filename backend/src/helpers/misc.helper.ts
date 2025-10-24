@@ -5,11 +5,12 @@ export const generateTraceId = (): string => {
     return randomUUID();
 };
 
-export const buildRedisSession = ({ userType, userId, sessionId, data, organizationId }: {
+export const buildRedisSession = ({ userType, userId, sessionId, data, organizationId, isPasswordSet }: {
     userType: UserType;
     userId: string;
     sessionId: string;
     organizationId?: string;
+    isPasswordSet?: boolean;
     data?: Record<string, any>;
 }) => {
     return JSON.stringify({
@@ -17,6 +18,7 @@ export const buildRedisSession = ({ userType, userId, sessionId, data, organizat
         userId,
         sessionId,
         data,
-        organizationId
+        organizationId,
+        isPasswordSet
     })
 }

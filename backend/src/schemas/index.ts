@@ -68,3 +68,17 @@ export const createPatientSchema = z.object({
   middleName: z.string().optional(),
 }).strict();
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
+
+export const validateLoginSchema = z.object({
+  token: z.string().min(1, 'Token is required')
+}).strict();
+export type ValidateLoginSchema = z.infer<typeof validateLoginSchema>;
+
+export const setPasswordSchema = z.object({
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+export type SetPasswordSchema = z.infer<typeof setPasswordSchema>;  

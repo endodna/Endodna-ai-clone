@@ -27,13 +27,13 @@ export const MenuProvider: React.FC<MenuProviderProps> = ({ children }) => {
     const fetchMenu = async () => {
         try {
             setLoading(true)
-            const result = await api.misc.getMenu()
-            if (result.data.success) {
-                setMenuItems(result.data || [])
-            } else {
-                console.error('Failed to fetch menu:', result.error)
-                setMenuItems([])
-            }
+            // const result = await api.misc.getMenu()
+            // if (result.data.success) {
+            //     setMenuItems(result.data || [])
+            // } else {
+            //     console.error('Failed to fetch menu:', result.error)
+            //     setMenuItems([])
+            // }
         } catch (error) {
             console.error('Menu fetch error:', error)
             setMenuItems([])

@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom'
-import ProtectedRoute from './components/ProtectedRoute'
-import LoginPage from './pages/Auth/Login'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import LoginPage from '@/pages/Auth/Login'
+import DashboardLayout from '@/Layouts/DashboardLayout'
+import ResetPasswordForm from './pages/Auth/ResetPassword'
 
 export const router = createBrowserRouter([
     {
@@ -10,22 +12,49 @@ export const router = createBrowserRouter([
     {
         path: "/dashboard",
         Component: () => (
-            <ProtectedRoute >
-                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-                    test
-                </div>
-            </ProtectedRoute >
+            <ProtectedRoute>
+                <DashboardLayout />
+            </ProtectedRoute>
         ),
         children: [
             {
-                path: "/dashboard/doctor",
-                Component: () => <div className="p-8"><h1 className="text-2xl font-bold">Dashboard</h1></div>,
+                index: true,
+                Component: () => <div>Dashboard</div>,
+            },
+            {
+                path: "doctor",
+                Component: () => <div>Doctor Dashboard</div>,
+            },
+            {
+                path: "patients",
+                Component: () => <div>Patients</div>,
+            },
+            {
+                path: "settings",
+                Component: () => <div>Settings</div>,
             },
         ],
     },
     {
-        path: "/auth/callback",
-        Component: () => <div className="p-8"><h1 className="text-2xl font-bold">Callback</h1></div>,
+        path: "/auth",
+        children: [
+            {
+                path: "callback",
+                   Component: () => <div>Callback</div>,
+            },
+            {
+                path: "reset-password",
+                Component: () => <ResetPasswordForm />,
+            },
+            {
+                path: "forgot-password",
+                Component: () => <div>Forgot Password</div>,
+            },
+            {
+                path: "signup",
+                Component: () => <div>Signup</div>,
+            }
+        ]
     },
     {
         path: "/unauthorized",

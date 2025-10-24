@@ -1,81 +1,112 @@
-import { Button } from "@/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import loginBackground from "@/assets/login_background.jpg"
-import carePlus from "@/assets/care_plus.svg"
-import poweredByEndoDNA from "@/assets/powered_by_endodna.svg"
+import { z } from 'zod'
+import { ReusableForm, FormField } from '@/components/forms'
+import { useAuth } from '@/contexts/AuthContext'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import AuthContainer from '@/components/auth/AuthContainer'
+
+const loginSchema = z.object({
+    email: z.email('Please enter a valid email format (e.g. yourname@example.com)'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+})
+
+const loginFormFields: FormField[] = [
+    {
+        name: 'email',
+        type: 'email',
+        label: 'Email',
+        placeholder: 'user@mail.com',
+        required: true,
+    },
+    {
+        name: 'password',
+        type: 'password',
+        label: 'Password',
+        placeholder: 'Enter your password',
+        required: true,
+    },
+]
 
 export default function LoginForm() {
+    const navigate = useNavigate()
+    const auth = useAuth()
+
+    const defaultValues = {
+        email: "",
+        password: ""
+    }
+
+    const [fields, setFields] = useState(loginFormFields)
+    const [isLoading, setIsLoading] = useState(false)
+
+    const handleApiError = (fieldName: string, errorMessage: string) => {
+        setFields(prevFields => 
+            prevFields.map(field =>
+                field.name === fieldName
+                    ? { ...field, customError: errorMessage }
+                    : field
+            )
+        )
+    }
+
+    const handleClearAllCustomErrors = () => {
+        setFields(prevFields => 
+            prevFields.map(field => ({
+                ...field,
+                customError: undefined
+            }))
+        )
+    }
+
+    const handleLogin = async (data: z.infer<typeof loginSchema>) => {
+        setIsLoading(true)
+        const { error, data: response } = await auth.signIn({
+            email: data.email,
+            password: data.password,
+        })
+        setIsLoading(false)
+
+        if (error) {
+            handleApiError('password', error)
+            return
+        }
+
+        if (response.user?.id) {
+            navigate('/dashboard')
+        }
+    }
+
     return (
-        <div
-            className="relative bg-cover bg-center flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10"
-            style={{ backgroundImage: `url(${loginBackground})` }}
-        >
-            <div className="absolute inset-0 bg-background/20 backdrop-blur-sm"></div>
-
-            <div className="relative z-10 flex w-full max-w-lg flex-col gap-6">
-                <div className="flex flex-col gap-6">
-                    <Card className="px-4 py-4 bg-gradient-to-r from-white/100 to-gray-100/100 flex flex-col gap-4">
-                        <CardHeader>
-                            <CardTitle className="flex flex-col gap-6">
-                                <div className="flex items-center justify-between">
-                                    <img src={carePlus} alt="Care Plus" className="w-20 h-auto" />
-                                    <img src={poweredByEndoDNA} alt="Powered by EndoDNA" className="w-20 h-auto" />
-                                </div>
-                                <div className="text-4xl pt-4 text-neutral-700 font-semibold">
-                                    Welcome Back
-                                </div>
-
-                            </CardTitle>
-                            <CardDescription className="text-xs text-neutral-700">
-                                <span>Don't have an account?</span> <a href="#" className="text-violet-500">Create an account</a>
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form>
-                                <div className="grid gap-6">
-                                    <div className="grid gap-6">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="email">Email</Label>
-                                            <Input
-                                                className="focus:border-violet-600"
-                                                id="email"
-                                                type="email"
-                                                placeholder="user@mail.com"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <div className="flex items-center">
-                                                <Label htmlFor="password">Password</Label>
-                                            </div>
-                                            <Input 
-                                                className="focus:border-violet-600"
-                                                id="password" 
-                                                type="password" 
-                                                required 
-                                            />
-                                        </div>
-                                        <Button disabled type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-600">
-                                            Login
-                                        </Button>
-                                    </div>
-                                    <div className="text-xs text-neutral-700">
-                                        <span>Forgot your login details?</span> <a href="#" className="text-violet-500">Reset password</a>
-                                    </div>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
+        <AuthContainer header={
+            <div>
+                <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+                    Welcome Back
+                </div>
+                <div className="text-xs text-neutral-700">
+                    <span>
+                        Don't have an account?
+                        <a href="#" className="ml-1 text-violet-500">
+                            Create an account
+                        </a>
+                    </span>
+                </div>
+            </div>}>
+            <div>
+                <ReusableForm
+                    defaultValues={defaultValues}
+                    schema={loginSchema}
+                    fields={fields}
+                    onSubmit={handleLogin}
+                    submitText="Login"
+                    showReset={false}
+                    isLoading={isLoading}
+                    onClearAllCustomErrors={handleClearAllCustomErrors}
+                />
+                <div className="text-xs text-neutral-700 mt-4">
+                    <span>Forgot your login details?</span> <Link to={"/auth/forgot-password"} className="text-violet-500">Reset password</Link>
                 </div>
             </div>
-        </div>
+        </AuthContainer>
+
     )
 }

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useMenu } from '../contexts/MenuContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -8,6 +9,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { hasAccess, loading } = useMenu()
+  const {userConfig } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -18,9 +20,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     )
   }
 
-  if (!hasAccess(location.pathname)) {
+  if (!userConfig?.userType) {
     return <Navigate to="/" replace />
   }
+
+  if(!userConfig?.isPasswordSet) {
+    return <Navigate to="/auth/reset-password" replace />
+  }
+
+
+  // if (!hasAccess(location.pathname)) {
+  //   return <Navigate to="/" replace />
+  // }
 
   return <>{children}</>
 }

@@ -6,7 +6,7 @@ const menu: MenuItem[] = [
         id: 'dashboard',
         label: 'Dashboard',
         icon: 'dashboard',
-        path: '/dashboard',
+        path: 'dashboard',
         feature: Feature.DASHBOARD,
         permission: PermissionAction.VIEW,
     },

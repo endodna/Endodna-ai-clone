@@ -1,8 +1,10 @@
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/login',
+    LOGIN_TOKEN: '/auth/login/token',
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
+    SET_PASSWORD: '/auth/set-password',
+    GET_PROFILE: '/auth/profile',
   },
 
   MISC: {

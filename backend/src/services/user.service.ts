@@ -1,7 +1,11 @@
 import { prisma } from '../lib/prisma';
 import { supabase } from '../lib/supabase';
-import { Status, UserType as PrismaUserType, Priority } from '@prisma/client';
+import { Status, UserType as PrismaUserType, Priority, User } from '@prisma/client';
 import { UserResponse } from '@supabase/supabase-js';
+import { AuthenticatedRequest, StatusCode, UserType } from '../types';
+import { buildRedisSession } from '../helpers/misc.helper';
+import { SESSION_KEY } from '../utils/constants';
+import redis from '../lib/redis';
 
 export interface CreateUserParams {
     email: string;
@@ -168,5 +172,127 @@ export class UserService {
                 ...params,
             }
         });
+    }
+
+    public static async completeUserLogin({ accessToken, req }: { accessToken: string, req: AuthenticatedRequest }): Promise<{
+        status?: StatusCode;
+        error?: boolean;
+        message?: string;
+        user?: Partial<User>;
+        accessToken?: string;
+    }> {
+        const claims = await supabase.auth.getClaims(accessToken);
+        if (claims.error || !claims?.data?.claims?.session_id) {
+            return {
+                status: StatusCode.BAD_REQUEST,
+                error: true,
+                message: 'Invalid credentials'
+            };
+        }
+
+        const user = await prisma.user.findUnique({
+            where: {
+                id: claims.data?.claims?.sub,
+            },
+            select: {
+                id: true,
+                email: true,
+                status: true,
+                isPasswordSet: true,
+                firstName: true,
+                lastName: true,
+                middleName: true,
+                photo: true,
+                userType: true,
+                organizationUsers: {
+                    select: {
+                        organizationId: true,
+                        organization: {
+                            select: {
+                                uuid: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        if (!user) {
+            return {
+                status: StatusCode.BAD_REQUEST,
+                error: true,
+                message: 'Invalid credentials'
+            };
+        }
+
+        const checkSession = await prisma.userSession.findUnique({
+            where: {
+                sessionId: claims.data?.claims?.session_id
+            }
+        });
+
+
+        if (checkSession) {
+            user.organizationUsers = [];
+            return {
+                user,
+                status: StatusCode.OK,
+                error: false,
+                message: 'Session already exists'
+            }
+        }
+
+        const ttl = claims.data?.claims.exp - Math.floor(Date.now() / 1000);
+        const sessionId = claims?.data?.claims?.session_id;
+
+        const session = buildRedisSession({
+            userType: user.userType as UserType,
+            userId: user.id,
+            sessionId,
+            isPasswordSet: user.isPasswordSet,
+            organizationId: user.organizationUsers[0].organization.uuid!
+        })
+
+        await redis.set(SESSION_KEY(sessionId), session, ttl);
+
+        user.organizationUsers = [];
+        try {
+            await Promise.all([
+                ,
+                prisma.userSession.create({
+                    data: {
+                        userId: user.id,
+                        sessionId
+                    }
+                }),
+                prisma.userLogin.create({
+                    data: {
+                        userId: user.id,
+                        ip: req.ip,
+                        appVersion: req.headers['user-agent'],
+                    }
+                }),
+                prisma.userAuditLog.create({
+                    data: {
+                        userId: user.id,
+                        description: 'User logged in',
+                        priority: Priority.HIGH
+                    }
+                })
+            ])
+        } catch (error) {
+            console.error('Error creating user session:', error);
+            return {
+                status: StatusCode.INTERNAL_SERVER_ERROR,
+                error: true,
+                message: 'Failed to create user session'
+            };
+        }
+
+        return {
+            user,
+            status: StatusCode.OK,
+            error: false,
+            message: 'Login successful',
+        }
     }
 }

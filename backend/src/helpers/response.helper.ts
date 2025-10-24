@@ -103,7 +103,7 @@ export const sendResponse = (
     response.error = true;
   }
   else {
-    response.error = error ? String(error) : false;
+    response.error = error ? error : false;
   }
   response.message = message ? message : statusMessages[status];
 
