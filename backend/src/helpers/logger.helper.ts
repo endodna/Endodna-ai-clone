@@ -1,13 +1,17 @@
 import { LogContext, LogLevel } from "../types";
 
 class Logger {
-  private formatLog(level: LogLevel, message: string, context?: LogContext): string {
+  private formatLog(
+    level: LogLevel,
+    message: string,
+    context?: LogContext,
+  ): string {
     const timestamp = new Date().toISOString();
     const logData = {
       timestamp,
       level,
       message,
-      traceId: context?.traceId || '00000000-0000-0000-0000-000000000000',
+      traceId: context?.traceId || "00000000-0000-0000-0000-000000000000",
       ...context,
     };
     return JSON.stringify(logData);
@@ -26,11 +30,10 @@ class Logger {
   }
 
   debug(message: string, context?: LogContext): void {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
       console.debug(this.formatLog(LogLevel.DEBUG, message, context));
     }
   }
 }
 
 export const logger = new Logger();
-

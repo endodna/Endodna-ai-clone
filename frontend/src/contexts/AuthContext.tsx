@@ -1,90 +1,145 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import { authApi } from '@/handlers/api/api'
-import { UserType } from '@/types'
-import { toast } from 'sonner'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { authApi } from "@/handlers/api/api";
+import { UserType } from "@/types";
+import { toast } from "sonner";
 
 interface UserConfig {
-  userType: UserType | null
-  isPasswordSet: boolean | null
-  firstName: string | null
-  lastName: string | null
-  middleName: string | null
+  userType: UserType | null;
+  isPasswordSet: boolean | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
 }
 
 interface AuthContextType {
-  user: User | null
-  userConfig: UserConfig
-  session: Session | null
-  loading: boolean
-  signIn: ({ email, password }: { email: string, password: string }) => Promise<{ error: any, data?: any }>
-  signUp: ({ email, password }: { email: string, password: string }) => Promise<{ error: any }>
-  signOut: () => Promise<void>,
-  getProfile: () => Promise<{ error: any, data?: any }>
-  setPassword: ({ password, confirmPassword }: { password: string, confirmPassword: string }) => Promise<{ error: any, data?: any }>
+  user: User | null;
+  userConfig: UserConfig;
+  session: Session | null;
+  loading: boolean;
+  signIn: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => Promise<{ error: any; data?: any }>;
+  signUp: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+  getProfile: () => Promise<{ error: any; data?: any }>;
+  setPassword: ({
+    password,
+    confirmPassword,
+  }: {
+    password: string;
+    confirmPassword: string;
+  }) => Promise<{ error: any; data?: any }>;
+  forgotPassword: ({
+    email,
+  }: {
+    email: string;
+  }) => Promise<{ error: any; data?: any }>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null);
   const [userConfig, setUserConfig] = useState<UserConfig>({
     firstName: null,
     lastName: null,
     middleName: null,
     userType: null,
-    isPasswordSet: null
-  })
-  const [session, setSession] = useState<Session | null>(null)
+    isPasswordSet: null,
+  });
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+      setSession(session);
+      setUser(session?.user ?? null);
       if (!session?.user) {
         setUserConfig({
           userType: null,
           isPasswordSet: null,
           firstName: null,
           lastName: null,
-          middleName: null
-        })
-        
+          middleName: null,
+        });
       }
-      setLoading(false)
-    })
+      setLoading(false);
+    });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+      if (_event === "SIGNED_OUT") {
+        setSession(null);
+        setUser(null);
+        setUserConfig({
+          userType: null,
+          isPasswordSet: null,
+          firstName: null,
+          lastName: null,
+          middleName: null,
+        });
+      }
+      if (_event === "SIGNED_IN" || _event === "PASSWORD_RECOVERY") {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+      if (_event === "USER_UPDATED") {
+        getProfile();
+      }
+      setLoading(false);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
-  const signIn = async ({ email, password }: { email: string, password: string }) => {
+  const signIn = async ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => {
     try {
-      const { error: supabaseError, data: supabaseData } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { error: supabaseError, data: supabaseData } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (supabaseError) {
-        return { error: supabaseError.message }
+        return { error: supabaseError.message };
       }
 
-      const { error: apiError, message: apiMessage, data: apiData } = await authApi.login(supabaseData.session?.access_token)
+      const {
+        error: apiError,
+        message: apiMessage,
+        data: apiData,
+      } = await authApi.login(supabaseData.session?.access_token);
       if (apiError) {
-        return { error: apiMessage }
+        return { error: apiMessage };
       }
 
       setUserConfig({
@@ -92,90 +147,129 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isPasswordSet: apiData?.user?.isPasswordSet,
         firstName: apiData?.user?.firstName,
         lastName: apiData?.user?.lastName,
-        middleName: apiData?.user?.middleName
-      })
+        middleName: apiData?.user?.middleName,
+      });
 
-      await getProfile()
+      await getProfile();
 
-      return { error: apiError ? apiMessage : null, data: apiData }
+      return { error: apiError ? apiMessage : null, data: apiData };
     } catch (error: any) {
-      return { error: { message: error.message } }
+      return { error: { message: error.message } };
     }
-  }
+  };
 
-  const signUp = async ({ email, password }: { email: string, password: string }) => {
+  const signUp = async ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => {
     try {
       const { error: supabaseError } = await supabase.auth.signUp({
         email,
         password,
-      })
+      });
 
       if (supabaseError) {
-        return { error: supabaseError }
+        return { error: supabaseError };
       }
 
-      return { error: null }
+      return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message } }
+      return { error: { message: error.message } };
     }
-  }
+  };
 
   const signOut = async () => {
     try {
-      const { error: apiError, message: apiMessage, data: apiData } = await authApi.logout()
+      const {
+        error: apiError,
+        message: apiMessage,
+        data: apiData,
+      } = await authApi.logout();
       if (apiError) {
-        console.error('Logout API error:', apiMessage)
+        console.error("Logout API error:", apiMessage);
       }
       if (apiData) {
         await supabase.auth.signOut();
-        setUser(null)
+        setUser(null);
         setUserConfig({
           userType: null,
           isPasswordSet: null,
           firstName: null,
           lastName: null,
-          middleName: null
-        })
+          middleName: null,
+        });
       }
     } catch (error) {
-      console.error('Logout error:', error)
-      await supabase.auth.signOut()
+      console.error("Logout error:", error);
+      await supabase.auth.signOut();
+    } finally {
+      toast.success("Logged out!");
     }
-    finally {
-      toast.success('Logged out!')
-    }
-  }
+  };
 
   const getProfile = async () => {
     try {
-      const { error: apiError, message: apiMessage, data: apiData } = await authApi.getProfile()
+      const {
+        error: apiError,
+        message: apiMessage,
+        data: apiData,
+      } = await authApi.getProfile();
       if (apiError) {
-        return { error: apiError }
+        return { error: apiError };
       }
       setUserConfig({
         userType: apiData.userType,
         isPasswordSet: apiData.isPasswordSet,
         firstName: apiData.firstName,
         lastName: apiData.lastName,
-        middleName: apiData.middleName
-      })
-      return { error: apiError ? apiMessage : null, data: apiData }
+        middleName: apiData.middleName,
+      });
+      return { error: apiError ? apiMessage : null, data: apiData };
     } catch (error: any) {
-      return { error: { message: error.message } }
+      return { error: { message: error.message } };
     }
-  }
+  };
 
-  const setPassword = async ({ password, confirmPassword }: { password: string, confirmPassword: string }) => {
+  const setPassword = async ({
+    password,
+    confirmPassword,
+  }: {
+    password: string;
+    confirmPassword: string;
+  }) => {
     try {
-      const { error: apiError, message: apiMessage, data: apiData } = await authApi.setPassword({ password, confirmPassword })
+      const {
+        error: apiError,
+        message: apiMessage,
+        data: apiData,
+      } = await authApi.setPassword({ password, confirmPassword });
       if (apiError) {
-        return { error: apiMessage }
+        return { error: apiMessage };
       }
-      return { error: apiError ? apiMessage : null, data: apiData }
+      return { error: apiError ? apiMessage : null, data: apiData };
     } catch (error: any) {
-      return { error: error.message }
+      return { error: error.message };
     }
-  }
+  };
+
+  const forgotPassword = async ({ email }: { email: string }) => {
+    try {
+      const {
+        error: apiError,
+        message: apiMessage,
+        data: apiData,
+      } = await authApi.forgotPassword({ email });
+      if (apiError) {
+        return { error: apiMessage };
+      }
+      return { error: apiError ? apiMessage : null, data: apiData };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
 
   const value = {
     user,
@@ -187,15 +281,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     getProfile,
     setPassword,
-  }
+    forgotPassword,
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
-}
+  return context;
+};

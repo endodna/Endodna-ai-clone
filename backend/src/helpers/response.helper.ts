@@ -1,33 +1,38 @@
 import { Response } from "express";
-import { ResponseHeader, ResponseOptions, StatusCode, StatusMessage } from "../types";
+import {
+  ResponseHeader,
+  ResponseOptions,
+  StatusCode,
+  StatusMessage,
+} from "../types";
 import { logger } from "./logger.helper";
 
 class ResponseHelper {
   private responseHeaders: ResponseHeader[] = [
     {
-      name: 'X-Trace-ID',
-      value: (req: any) => req.traceId || ''
+      name: "X-Trace-ID",
+      value: (req: any) => req.traceId || "",
     },
     {
-      name: 'X-Request-ID',
-      value: (req: any) => req.traceId || ''
+      name: "X-Request-ID",
+      value: (req: any) => req.traceId || "",
     },
     {
-      name: 'Content-Type',
-      value: 'application/json'
+      name: "Content-Type",
+      value: "application/json",
     },
     {
-      name: 'X-Content-Type-Options',
-      value: 'nosniff'
+      name: "X-Content-Type-Options",
+      value: "nosniff",
     },
     {
-      name: 'X-Frame-Options',
-      value: 'DENY'
+      name: "X-Frame-Options",
+      value: "DENY",
     },
     {
-      name: 'X-XSS-Protection',
-      value: '1; mode=block'
-    }
+      name: "X-XSS-Protection",
+      value: "1; mode=block",
+    },
   ];
 
   addResponseHeader(header: ResponseHeader): void {
@@ -35,11 +40,18 @@ class ResponseHelper {
   }
 
   removeResponseHeader(headerName: string): void {
-    this.responseHeaders = this.responseHeaders.filter(h => h.name !== headerName);
+    this.responseHeaders = this.responseHeaders.filter(
+      (h) => h.name !== headerName,
+    );
   }
 
-  setResponseHeader(headerName: string, value: string | ((req: any) => string)): void {
-    const existingIndex = this.responseHeaders.findIndex(h => h.name === headerName);
+  setResponseHeader(
+    headerName: string,
+    value: string | ((req: any) => string),
+  ): void {
+    const existingIndex = this.responseHeaders.findIndex(
+      (h) => h.name === headerName,
+    );
     if (existingIndex >= 0) {
       this.responseHeaders[existingIndex].value = value;
     } else {
@@ -50,10 +62,9 @@ class ResponseHelper {
   getResponseHeaders(req: any): Record<string, string> {
     const headers: Record<string, string> = {};
 
-    this.responseHeaders.forEach(header => {
-      const value = typeof header.value === 'function'
-        ? header.value(req)
-        : header.value;
+    this.responseHeaders.forEach((header) => {
+      const value =
+        typeof header.value === "function" ? header.value(req) : header.value;
 
       if (value) {
         headers[header.name] = value;
@@ -77,7 +88,7 @@ export const responseHelper = new ResponseHelper();
 export const sendResponse = (
   res: Response,
   options: ResponseOptions,
-  req?: any
+  req?: any,
 ): Response => {
   const { status, error, data = null, message = "" } = options;
   const statusMessages: Record<StatusCode, string> = {
@@ -94,15 +105,14 @@ export const sendResponse = (
 
   let response = { data, error, message };
   if (error) {
-    logger.error('Request error', {
+    logger.error("Request error", {
       traceId: req?.traceId,
-      error: String(error)
+      error: String(error),
     });
   }
   if (process.env.NODE_ENV === "production" && error) {
     response.error = true;
-  }
-  else {
+  } else {
     response.error = error ? error : false;
   }
   response.message = message ? message : statusMessages[status];

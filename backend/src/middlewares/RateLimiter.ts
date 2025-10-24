@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit from "express-rate-limit";
 
 export const rateLimiter = {
   regular: rateLimit({
@@ -7,7 +7,7 @@ export const rateLimiter = {
   }),
   authentication_rate_limiter: rateLimit({
     windowMs: 1000, // 1 second
-    max: 7, // limit
+    max: 20, // limit
   }),
   strict_rate_limiter: rateLimit({
     windowMs: 1000, // 1 second

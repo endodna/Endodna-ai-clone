@@ -1,12 +1,12 @@
-import { Router } from 'express';
-import PatientController from '../../controllers/PatientController';
-import { Authentication } from '../../middlewares/Authentication';
-import { PatientAuthorization } from '../../middlewares/Authorization';
-import { validate } from '../../middlewares/Validator';
+import { Router } from "express";
+import PatientController from "../../controllers/PatientController";
+import { Authentication } from "../../middlewares/Authentication";
+import { PatientAuthorization } from "../../middlewares/Authorization";
+import { validate } from "../../middlewares/Validator";
 
-const patientRouter = Router().use('/', Authentication, PatientAuthorization);
+const patientRouter = Router().use("/", Authentication, PatientAuthorization);
 
 // Routes
-patientRouter.get('/profile', PatientController.getProfile);
+patientRouter.get("/profile", PatientController.getProfile);
 
 export default patientRouter;

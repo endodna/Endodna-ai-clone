@@ -1,28 +1,32 @@
-import React, { createContext, useContext, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import React, { createContext, useContext, ReactNode } from "react";
+import { supabase } from "../lib/supabase";
 
 interface SupabaseContextType {
-  supabase: typeof supabase
+  supabase: typeof supabase;
 }
 
-const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
+const SupabaseContext = createContext<SupabaseContextType | undefined>(
+  undefined,
+);
 
 interface SupabaseProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
-export const SupabaseProvider: React.FC<SupabaseProviderProps> = ({ children }) => {
+export const SupabaseProvider: React.FC<SupabaseProviderProps> = ({
+  children,
+}) => {
   return (
     <SupabaseContext.Provider value={{ supabase }}>
       {children}
     </SupabaseContext.Provider>
-  )
-}
+  );
+};
 
 export const useSupabase = () => {
-  const context = useContext(SupabaseContext)
+  const context = useContext(SupabaseContext);
   if (context === undefined) {
-    throw new Error('useSupabase must be used within a SupabaseProvider')
+    throw new Error("useSupabase must be used within a SupabaseProvider");
   }
-  return context
-}
+  return context;
+};

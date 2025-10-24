@@ -1,9 +1,9 @@
-import jwt from 'jsonwebtoken';
-import { supabase } from '../lib/supabase';
+import jwt from "jsonwebtoken";
+import { supabase } from "../lib/supabase";
 
 export const signJWTToken = (payload: any): string => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: '7d'
+    expiresIn: "7d",
   });
 };
 
@@ -12,17 +12,22 @@ export const verifyJWTToken = (token: string): any => {
 };
 
 export const getSupabaseClaims = async (token: string) => {
-  const { data, error } = await supabase.auth.getClaims(token, { allowExpired: false });
+  const { data, error } = await supabase.auth.getClaims(token, {
+    allowExpired: false,
+  });
   if (error) {
     throw error;
   }
   return data;
-}
+};
 
 export const verifySupabaseToken = async (token: string) => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if(error){
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+    if (error) {
       throw error;
     }
     if (!user) {
@@ -30,7 +35,7 @@ export const verifySupabaseToken = async (token: string) => {
     }
     return user;
   } catch (error) {
-    console.error('Supabase token verification error:', error);
+    console.error("Supabase token verification error:", error);
     return null;
   }
 };

@@ -1,12 +1,12 @@
-import { RouterProvider } from 'react-router-dom'
-import { SupabaseProvider } from './contexts/SupabaseContext'
-import { AuthProvider } from './contexts/AuthContext'
-import { MenuProvider } from './contexts/MenuContext'
-import { router } from './router'
-import { Toaster } from 'sonner'
+import { RouterProvider } from "react-router-dom";
+import { SupabaseProvider } from "./contexts/SupabaseContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { MenuProvider } from "./contexts/MenuContext";
+import { router } from "./router";
+import { Toaster } from "sonner";
 
 function AppContent() {
-  return <RouterProvider router={router} />
+  return <RouterProvider router={router} />;
 }
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
         </MenuProvider>
       </AuthProvider>
     </SupabaseProvider>
-  )
+  );
 }
 
-export default App
+export default App;

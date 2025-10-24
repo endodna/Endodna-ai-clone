@@ -1,31 +1,40 @@
-import { Request, Response } from 'express';
-import { sendResponse } from '../helpers/response.helper';
-import { AuthenticatedRequest, StatusCode } from '../types';
-import { prisma } from '../lib/prisma';
-import { logger } from '../helpers/logger.helper';
-import { supabase } from '../lib/supabase';
-import { Priority, Status, UserType as PrismaUserType } from '@prisma/client';
-import { UserType } from '../types';
-import redis from '../lib/redis';
-import { SESSION_KEY } from '../utils/constants';
-import { CreateOrganizationAdminSchema, CreateSuperAdminSchema, LoginSchema, ProvisionOrganizationSchema } from '../schemas';
-import { UserResponse } from '@supabase/supabase-js';
-import { buildRedisSession } from '../helpers/misc.helper';
-import { UserService } from '../services/user.service';
+import { Request, Response } from "express";
+import { sendResponse } from "../helpers/response.helper";
+import { AuthenticatedRequest, StatusCode } from "../types";
+import { prisma } from "../lib/prisma";
+import { logger } from "../helpers/logger.helper";
+import { supabase } from "../lib/supabase";
+import { Priority, Status, UserType as PrismaUserType } from "@prisma/client";
+import { UserType } from "../types";
+import redis from "../lib/redis";
+import { SESSION_KEY } from "../utils/constants";
+import {
+  CreateOrganizationAdminSchema,
+  CreateSuperAdminSchema,
+  LoginSchema,
+  ProvisionOrganizationSchema,
+} from "../schemas";
+import { UserResponse } from "@supabase/supabase-js";
+import { buildRedisSession } from "../helpers/misc.helper";
+import { UserService } from "../services/user.service";
 
 class SAdminController {
-  public static async createSuperAdmin(req: AuthenticatedRequest, res: Response) {
+  public static async createSuperAdmin(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
     try {
-      const { email, password, firstName, lastName, middleName } = req.body as CreateSuperAdminSchema;
+      const { email, password, firstName, lastName, middleName } =
+        req.body as CreateSuperAdminSchema;
       const supabaseUser = await supabase.auth.admin.createUser({
         email,
-        password
+        password,
       });
       if (!supabaseUser.data.user?.id) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'Failed to create super admin'
+          message: "Failed to create super admin",
         });
       }
       const superAdmin = await prisma.admin.create({
@@ -35,8 +44,8 @@ class SAdminController {
           lastName,
           middleName,
           email,
-          status: Status.ACTIVE
-        }
+          status: Status.ACTIVE,
+        },
       });
 
       await Promise.all([
@@ -44,35 +53,35 @@ class SAdminController {
           data: {
             adminId: superAdmin.id,
             ip: req.ip,
-            appVersion: req.headers['user-agent'],
+            appVersion: req.headers["user-agent"],
             metadata: {
               ip: req.ip,
-              userAgent: req.headers['user-agent']
-            }
-          }
+              userAgent: req.headers["user-agent"],
+            },
+          },
         }),
         prisma.adminAuditLog.create({
           data: {
             adminId: superAdmin.id,
-            description: 'Super admin created',
-            priority: Priority.HIGH
-          }
-        })
-      ])
+            description: "Super admin created",
+            priority: Priority.HIGH,
+          },
+        }),
+      ]);
       sendResponse(res, {
         status: StatusCode.OK,
         data: superAdmin,
-        message: 'Super admin created successfully'
+        message: "Super admin created successfully",
       });
     } catch (err) {
-      logger.error('Create super admin failed', {
+      logger.error("Create super admin failed", {
         traceId: req.traceId,
-        error: String(err)
+        error: String(err),
       });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err instanceof Error,
-        message: 'Failed to create super admin'
+        message: "Failed to create super admin",
       });
     }
   }
@@ -82,13 +91,13 @@ class SAdminController {
       const { email, password } = req.body as LoginSchema;
       const supabaseUser = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
       if (!supabaseUser.data.user?.id) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'Invalid credentials'
+          message: "Invalid credentials",
         });
       }
       const admin = await prisma.admin.findUnique({
@@ -101,22 +110,24 @@ class SAdminController {
           lastName: true,
           status: true,
           createdAt: true,
-        }
+        },
       });
       if (!admin) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'Invalid credentials'
+          message: "Invalid credentials",
         });
       }
 
-      const claims = await supabase.auth.getClaims(supabaseUser.data.session?.access_token);
+      const claims = await supabase.auth.getClaims(
+        supabaseUser.data.session?.access_token,
+      );
       if (claims.error || !claims?.data?.claims?.session_id) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'Invalid credentials'
+          message: "Invalid credentials",
         });
       }
 
@@ -127,87 +138,91 @@ class SAdminController {
         userType: UserType.SUPER_ADMIN,
         userId: admin.id,
         sessionId,
-      })
+      });
 
       await Promise.all([
         redis.set(SESSION_KEY(sessionId), session, ttl),
         prisma.adminSession.create({
           data: {
             adminId: admin.id,
-            sessionId
-          }
+            sessionId,
+          },
         }),
         prisma.adminLogin.create({
           data: {
             adminId: admin.id,
             ip: req.ip,
-            appVersion: req.headers['user-agent'],
-          }
+            appVersion: req.headers["user-agent"],
+          },
         }),
         prisma.adminAuditLog.create({
           data: {
             adminId: admin.id,
-            description: 'Admin logged in',
-            priority: Priority.HIGH
-          }
-        })
-      ])
+            description: "Admin logged in",
+            priority: Priority.HIGH,
+          },
+        }),
+      ]);
 
       return sendResponse(res, {
         status: StatusCode.OK,
         data: {
           token: supabaseUser.data.session?.access_token,
-          admin: admin
+          admin: admin,
         },
-        message: 'Login successful'
+        message: "Login successful",
       });
-
     } catch (err) {
-      logger.error('Login failed', {
+      logger.error("Login failed", {
         traceId: req.traceId,
-        error: String(err)
+        error: String(err),
       });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
-        message: 'Failed to login'
+        message: "Failed to login",
       });
     }
   }
 
-  public static async provisionOrganization(req: AuthenticatedRequest, res: Response) {
+  public static async provisionOrganization(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
     try {
       const user = req.user!;
-      const { name, isPrimary, admin } = req.body as ProvisionOrganizationSchema;
+      const { name, isPrimary, admin } =
+        req.body as ProvisionOrganizationSchema;
 
-      const [checkName, checkIfPrimary, checkAdminEmail, checkSuperAdminEmail] = await Promise.all([
-        prisma.organization.findFirst({
-          where: {
-            name
-          }
-        }),
-        prisma.organization.findFirst({
-          where: {
-            isPrimary: true
-          }
-        }),
-        prisma.user.findFirst({
-          where: {
-            email: admin.email
-          }
-        }),
-        prisma.admin.findFirst({
-          where: {
-            email: admin.email
-          }
-        })
-      ])
+      const [checkName, checkIfPrimary, checkAdminEmail, checkSuperAdminEmail] =
+        await Promise.all([
+          prisma.organization.findFirst({
+            where: {
+              name,
+            },
+          }),
+          prisma.organization.findFirst({
+            where: {
+              isPrimary: true,
+            },
+          }),
+          prisma.user.findFirst({
+            where: {
+              email: admin.email,
+            },
+          }),
+          prisma.admin.findFirst({
+            where: {
+              email: admin.email,
+            },
+          }),
+        ]);
 
       if (checkName) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'OrganizationAlreadyExists'
+          message: "OrganizationAlreadyExists",
         });
       }
 
@@ -215,7 +230,7 @@ class SAdminController {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'PrimaryOrganizationExists'
+          message: "PrimaryOrganizationExists",
         });
       }
 
@@ -223,7 +238,7 @@ class SAdminController {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: 'AdminEmailAlreadyExists'
+          message: "AdminEmailAlreadyExists",
         });
       }
 
@@ -232,20 +247,22 @@ class SAdminController {
         newSupabaseUser = await supabase.auth.admin.createUser({
           email: admin.email,
           password: admin.password,
-          email_confirm: true
+          email_confirm: true,
         });
-      }
-      else {
-        newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(admin.email, {
-          redirectTo: `${process.env.FRONTEND_URL}/auth/callback`
-        });
+      } else {
+        newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(
+          admin.email,
+          {
+            redirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
+          },
+        );
       }
 
       if (!newSupabaseUser.data.user?.id) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: newSupabaseUser.error?.code,
-          message: 'FailedToCreateAdmin'
+          message: "FailedToCreateAdmin",
         });
       }
 
@@ -256,7 +273,7 @@ class SAdminController {
             name,
             isPrimary,
             createdBy: user?.userId,
-          }
+          },
         }),
         prisma.user.create({
           data: {
@@ -267,56 +284,65 @@ class SAdminController {
             email: admin.email,
             status: Status.ACTIVE,
             userType: PrismaUserType.ADMIN,
-          }
-        })]);
-
+          },
+        }),
+      ]);
 
       await Promise.all([
         prisma.adminAuditLog.create({
           data: {
             adminId: user.userId,
-            description: 'Organization provisioned',
+            description: "Organization provisioned",
             metadata: {
-              body: req.body
+              body: req.body,
             },
-            priority: Priority.HIGH
-          }
+            priority: Priority.HIGH,
+          },
         }),
         prisma.organizationCustomization.create({
           data: {
             organizationId: organization.id,
-          }
+          },
         }),
         prisma.organizationUser.create({
           data: {
             organizationId: organization.id,
             userId: newUserId,
             userType: PrismaUserType.ADMIN,
-          }
-        })
-      ])
+          },
+        }),
+      ]);
       sendResponse(res, {
         status: StatusCode.OK,
         data: {
           ...req.body,
         },
-        message: 'Organization provisioned successfully'
+        message: "Organization provisioned successfully",
       });
     } catch (err) {
       logger.error("Error");
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: String(err),
-        message: 'Failed to provision organization'
+        message: "Failed to provision organization",
       });
     }
   }
 
-  public static async createOrganizationAdmin(req: AuthenticatedRequest, res: Response) {
+  public static async createOrganizationAdmin(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
     try {
       const { userId } = req.user!;
-      const { email, password, organizationId, firstName, lastName, middleName } = req.body as CreateOrganizationAdminSchema;
-
+      const {
+        email,
+        password,
+        organizationId,
+        firstName,
+        lastName,
+        middleName,
+      } = req.body as CreateOrganizationAdminSchema;
 
       const result = await UserService.createUser({
         email,
@@ -325,25 +351,25 @@ class SAdminController {
         lastName,
         middleName,
         userType: PrismaUserType.ADMIN,
-        organizationId
+        organizationId,
       });
 
       await prisma.adminAuditLog.create({
         data: {
           adminId: userId,
-          description: 'Organization admin create attempt',
+          description: "Organization admin create attempt",
           metadata: {
-            body: req.body
+            body: req.body,
           },
-          priority: Priority.HIGH
-        }
-      })
+          priority: Priority.HIGH,
+        },
+      });
 
       if (!result.success) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: result.error
+          message: result.error,
         });
       }
 
@@ -353,14 +379,14 @@ class SAdminController {
           ...req.body,
           password: undefined,
         },
-        message: 'Organization admin created successfully'
+        message: "Organization admin created successfully",
       });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err instanceof Error,
-        message: 'Failed to create organization admin'
+        message: "Failed to create organization admin",
       });
     }
   }
@@ -372,12 +398,15 @@ class SAdminController {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
-        message: 'Failed to get profile'
+        message: "Failed to get profile",
       });
     }
   }
 
-  public static async getOrganizations(req: AuthenticatedRequest, res: Response) {
+  public static async getOrganizations(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
     try {
       const organizations = await prisma.organization.findMany({
         select: {
@@ -393,22 +422,21 @@ class SAdminController {
               firstName: true,
               lastName: true,
               email: true,
-            }
-          }
-        }
-      })
+            },
+          },
+        },
+      });
       sendResponse(res, {
         status: StatusCode.OK,
         data: organizations,
-        message: 'Organizations fetched successfully'
+        message: "Organizations fetched successfully",
       });
     } catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
-        message: 'Failed to get organizations'
+        message: "Failed to get organizations",
       });
-
     }
   }
 
@@ -419,7 +447,7 @@ class SAdminController {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
-        message: 'Failed to get users'
+        message: "Failed to get users",
       });
     }
   }

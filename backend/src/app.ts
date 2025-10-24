@@ -17,12 +17,11 @@ redis.connect();
 
 const app = express();
 
-
 // MiddleWares
 app.use(requestLogger);
 app.use(bodyParser.urlencoded({ extended: false }));
-if(process.env.NODE_ENV === 'production'){
-  app.set('trust proxy', 1);
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
 }
 
 // app.use(
@@ -47,9 +46,9 @@ app.get("/health", (req: Request, res: Response) => {
     data: {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
-      version: process.env.npm_package_version
+      version: process.env.npm_package_version,
     },
-    message: 'Server is running'
+    message: "Server is running",
   });
 });
 

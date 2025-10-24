@@ -1,31 +1,31 @@
-import { Response, NextFunction } from 'express';
-import { sendResponse } from '../helpers/response.helper';
-import { logger } from '../helpers/logger.helper';
-import { AuthenticatedRequest, StatusCode, UserType } from '../types';
+import { Response, NextFunction } from "express";
+import { sendResponse } from "../helpers/response.helper";
+import { logger } from "../helpers/logger.helper";
+import { AuthenticatedRequest, StatusCode, UserType } from "../types";
 
 export const PatientAuthorization = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (req.user?.userType !== UserType.PATIENT) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'Unauthorized'
+        message: "Unauthorized",
       });
     }
     next();
   } catch (err) {
-    logger.error('User authorization error', {
+    logger.error("User authorization error", {
       traceId: req.traceId,
-      error: String(err)
+      error: String(err),
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
       error: true,
-      message: 'Authorization error'
+      message: "Authorization error",
     });
   }
 };
@@ -33,54 +33,53 @@ export const PatientAuthorization = async (
 export const DoctorAuthorization = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (req.user?.userType !== UserType.DOCTOR) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'Unauthorized'
+        message: "Unauthorized",
       });
     }
     next();
   } catch (err) {
-    logger.error('Doctor authorization error', {
+    logger.error("Doctor authorization error", {
       traceId: req.traceId,
-      error: String(err)
+      error: String(err),
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
       error: true,
-      message: 'Authorization error'
+      message: "Authorization error",
     });
   }
 };
 
-
 export const AdminAuthorization = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (req.user?.userType !== UserType.ADMIN) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'Unauthorized'
+        message: "Unauthorized",
       });
     }
     next();
   } catch (err) {
-    logger.error('Admin authorization error', {
+    logger.error("Admin authorization error", {
       traceId: req.traceId,
-      error: String(err)
+      error: String(err),
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
       error: true,
-      message: 'Authorization error'
+      message: "Authorization error",
     });
   }
 };
@@ -88,26 +87,26 @@ export const AdminAuthorization = async (
 export const SAdminAuthorization = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     if (req.user?.userType !== UserType.SUPER_ADMIN) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'Unauthorized'
+        message: "Unauthorized",
       });
     }
     next();
   } catch (err) {
-    logger.error('Super Admin authorization error', {
+    logger.error("Super Admin authorization error", {
       traceId: req.traceId,
-      error: String(err)
+      error: String(err),
     });
     return sendResponse(res, {
       status: StatusCode.INTERNAL_SERVER_ERROR,
       error: true,
-      message: 'Authorization error'
+      message: "Authorization error",
     });
   }
 };

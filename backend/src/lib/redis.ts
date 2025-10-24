@@ -1,5 +1,5 @@
-import { createClient, RedisClientType } from 'redis';
-import { logger } from '../helpers/logger.helper';
+import { createClient, RedisClientType } from "redis";
+import { logger } from "../helpers/logger.helper";
 
 class RedisHandler {
   private client: RedisClientType;
@@ -7,25 +7,28 @@ class RedisHandler {
 
   constructor() {
     // Use different Redis URLs based on environment
-    const redisUrl = process.env.REDIS_URL || 
-      (process.env.NODE_ENV === 'production' ? 'redis://redis:6379' : 'redis://localhost:6379');
-    
+    const redisUrl =
+      process.env.REDIS_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "redis://redis:6379"
+        : "redis://localhost:6379");
+
     this.client = createClient({
-      url: redisUrl
+      url: redisUrl,
     });
 
-    this.client.on('error', (err) => {
-      logger.error('Redis Client Error:', err);
+    this.client.on("error", (err) => {
+      logger.error("Redis Client Error:", err);
       this.isConnected = false;
     });
 
-    this.client.on('connect', () => {
-      logger.debug('Redis Client Connected');
+    this.client.on("connect", () => {
+      logger.debug("Redis Client Connected");
       this.isConnected = true;
     });
 
-    this.client.on('disconnect', () => {
-      logger.debug('Redis Client Disconnected');
+    this.client.on("disconnect", () => {
+      logger.debug("Redis Client Disconnected");
       this.isConnected = false;
     });
   }
@@ -42,7 +45,11 @@ class RedisHandler {
     }
   }
 
-  async set(key: string, value: string, expireInSeconds?: number): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    expireInSeconds?: number,
+  ): Promise<void> {
     await this.connect();
     if (expireInSeconds) {
       await this.client.setEx(key, expireInSeconds, value);

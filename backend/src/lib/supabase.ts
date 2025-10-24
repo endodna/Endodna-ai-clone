@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 // Create Supabase client for server-side operations
 export const supabase = createClient(
@@ -8,13 +8,13 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: false,
       persistSession: false,
-      detectSessionInUrl: false
-    }
-  }
+      detectSessionInUrl: false,
+    },
+  },
 );
 
 // Create Supabase client for user operations (with anon key)
 export const supabaseAnon = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
+  process.env.SUPABASE_ANON_KEY!,
 );

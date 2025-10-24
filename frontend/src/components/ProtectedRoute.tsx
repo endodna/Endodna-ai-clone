@@ -1,39 +1,38 @@
-import React from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
-import { useMenu } from '../contexts/MenuContext'
-import { useAuth } from '@/contexts/AuthContext'
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useMenu } from "../contexts/MenuContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { hasAccess, loading } = useMenu()
-  const {userConfig } = useAuth()
-  const location = useLocation()
+  const { loading } = useMenu();
+  const { userConfig } = useAuth();
+  // const location = useLocation();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   if (!userConfig?.userType) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/" replace />;
   }
 
-  if(!userConfig?.isPasswordSet) {
-    return <Navigate to="/auth/reset-password" replace />
+  if (!userConfig?.isPasswordSet) {
+    return <Navigate to="/auth/reset-password" replace />;
   }
-
 
   // if (!hasAccess(location.pathname)) {
   //   return <Navigate to="/" replace />
   // }
 
-  return <>{children}</>
-}
+  return <>{children}</>;
+};
 
-export default ProtectedRoute
+export default ProtectedRoute;

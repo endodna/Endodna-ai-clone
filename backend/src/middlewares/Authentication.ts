@@ -1,19 +1,23 @@
-import { Response, NextFunction } from 'express';
-import { getSupabaseClaims, verifySupabaseToken } from '../helpers/encryption.helper';
-import { sendResponse } from '../helpers/response.helper';
-import { logger } from '../helpers/logger.helper';
-import { AuthenticatedRequest, StatusCode, UserType } from '../types';
-import redis from '../lib/redis';
-import { SESSION_KEY, SESSION_BLACKLIST_KEY } from '../utils/constants';
+import { Response, NextFunction } from "express";
+import {
+  getSupabaseClaims,
+  verifySupabaseToken,
+} from "../helpers/encryption.helper";
+import { sendResponse } from "../helpers/response.helper";
+import { logger } from "../helpers/logger.helper";
+import { AuthenticatedRequest, StatusCode, UserType } from "../types";
+import redis from "../lib/redis";
+import { SESSION_KEY, SESSION_BLACKLIST_KEY } from "../utils/constants";
 
 export const Authentication = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const auth = req.headers.authorization;
-    const token = auth && auth.split(' ').length === 2 ? auth.split(' ')[1] : null;
+    const token =
+      auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
     if (token) {
       const claims = await getSupabaseClaims(token);
       const user = await verifySupabaseToken(token);
@@ -22,7 +26,7 @@ export const Authentication = async (
         return sendResponse(res, {
           status: StatusCode.UNAUTHORIZED,
           error: true,
-          message: 'InvalidToken'
+          message: "InvalidToken",
         });
       }
       const sessionId = claims?.claims.session_id;
@@ -33,14 +37,14 @@ export const Authentication = async (
         return sendResponse(res, {
           status: StatusCode.UNAUTHORIZED,
           error: true,
-          message: 'InvalidSession'
+          message: "InvalidSession",
         });
       }
       if (isBlacklisted) {
         return sendResponse(res, {
           status: StatusCode.UNAUTHORIZED,
           error: true,
-          message: 'SessionLogout'
+          message: "SessionLogout",
         });
       }
 
@@ -54,18 +58,18 @@ export const Authentication = async (
       sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
         error: true,
-        message: 'Invalid token'
+        message: "Invalid token",
       });
     }
   } catch (e) {
-    logger.error('Token verification failed', {
+    logger.error("Token verification failed", {
       traceId: req.traceId,
-      error: String(e)
+      error: String(e),
     });
     sendResponse(res, {
       status: StatusCode.UNAUTHORIZED,
       error: true,
-      message: 'Token verification failed'
+      message: "Token verification failed",
     });
   }
 };

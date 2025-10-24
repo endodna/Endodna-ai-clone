@@ -1,12 +1,11 @@
-import { Request } from 'express';
+import { Request } from "express";
 
 export enum UserType {
-  PATIENT = 'PATIENT',
-  ADMIN = 'ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  DOCTOR = 'DOCTOR'
+  PATIENT = "PATIENT",
+  ADMIN = "ADMIN",
+  SUPER_ADMIN = "SUPER_ADMIN",
+  DOCTOR = "DOCTOR",
 }
-
 
 export interface AuthenticatedRequest extends Request {
   traceId?: string;
@@ -19,8 +18,6 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-
-
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -29,14 +26,14 @@ export interface ApiResponse<T = any> {
 }
 
 export enum Feature {
-  DASHBOARD = 'dashboard',
+  DASHBOARD = "dashboard",
 }
 
 export enum PermissionAction {
-  VIEW = 'view',
-  EDIT = 'edit',
-  DELETE = 'delete',
-  CREATE = 'create',
+  VIEW = "view",
+  EDIT = "edit",
+  DELETE = "delete",
+  CREATE = "create",
 }
 
 export interface MenuItem {
@@ -50,10 +47,10 @@ export interface MenuItem {
 }
 
 export enum LogLevel {
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR',
-  DEBUG = 'DEBUG',
+  INFO = "INFO",
+  WARN = "WARN",
+  ERROR = "ERROR",
+  DEBUG = "DEBUG",
 }
 
 export interface LogContext {
@@ -101,5 +98,3 @@ export interface ResponseOptions {
   data?: Object | null;
   message?: string;
 }
-
-
