@@ -72,7 +72,7 @@ export default function ResetPasswordForm() {
             navigate("/dashboard");
         }
         return () => { };
-    }, [auth.session, auth.userConfig.isPasswordSet]);
+    }, [auth?.session, auth?.userConfig?.isPasswordSet, navigate]);
 
     useEffect(() => {
         supabase.auth.onAuthStateChange(async (event) => {

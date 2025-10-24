@@ -98,7 +98,7 @@ export class UserService {
         });
       } else {
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
+          redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
         });
       }
 
@@ -274,7 +274,6 @@ export class UserService {
     user.organizationUsers = [];
     try {
       await Promise.all([
-        ,
         prisma.userSession.create({
           data: {
             userId: user.id,

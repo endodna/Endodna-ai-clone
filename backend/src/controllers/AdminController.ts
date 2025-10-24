@@ -51,7 +51,7 @@ class AdminController {
         },
         message: "Organization admin created successfully",
       });
-    } catch (err) {
+    } catch (_err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
@@ -101,7 +101,7 @@ class AdminController {
         },
         message: "Organization doctor created successfully",
       });
-    } catch (err) {
+    } catch (_err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
@@ -151,7 +151,7 @@ class AdminController {
         },
         message: "Organization patient created successfully",
       });
-    } catch (err) {
+    } catch (_err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,

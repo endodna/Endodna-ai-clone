@@ -23,6 +23,7 @@ export const SupabaseProvider: React.FC<SupabaseProviderProps> = ({
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSupabase = () => {
   const context = useContext(SupabaseContext);
   if (context === undefined) {

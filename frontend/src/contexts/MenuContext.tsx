@@ -70,6 +70,7 @@ export const MenuProvider: React.FC<MenuProviderProps> = ({ children }) => {
   return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useMenu = () => {
   const context = useContext(MenuContext);
   if (context === undefined) {

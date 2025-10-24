@@ -1,19 +1,21 @@
-import { Feature, MenuItem, PermissionAction, UserType } from "../types";
-import { hasPermission } from "./rbac.helper";
+import { Feature, MenuItem, UserType } from "../types";
 
 const menu: MenuItem[] = [
   {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: "dashboard",
-    path: "dashboard",
-    feature: Feature.DASHBOARD,
-    permission: PermissionAction.VIEW,
+    id: "quick-actions",
+    label: "Quick Actions",
+    icon: "",
+    path: "quick-actions",
+    feature: Feature.QUICK_ACTIONS,
+    allowedUserTypes: [UserType.ADMIN, UserType.DOCTOR],
+    children: [
+      
+    ]
   },
 ];
 
 export const getMenu = (userType: UserType) => {
   return menu.filter((item) =>
-    hasPermission(userType, item.feature, item.permission),
+    item.allowedUserTypes.includes(userType),
   );
 };

@@ -6,7 +6,6 @@ import { validate } from "../../middlewares/Validator";
 import {
   createOrganizationAdminSchema,
   createSuperAdminSchema,
-  loginSchema,
   provisionOrganizationSchema,
 } from "../../schemas";
 

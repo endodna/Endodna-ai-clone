@@ -5,7 +5,7 @@ import {
 } from "../helpers/encryption.helper";
 import { sendResponse } from "../helpers/response.helper";
 import { logger } from "../helpers/logger.helper";
-import { AuthenticatedRequest, StatusCode, UserType } from "../types";
+import { AuthenticatedRequest, StatusCode } from "../types";
 import redis from "../lib/redis";
 import { SESSION_KEY, SESSION_BLACKLIST_KEY } from "../utils/constants";
 

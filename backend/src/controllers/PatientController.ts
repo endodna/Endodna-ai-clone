@@ -5,14 +5,14 @@ import { AuthenticatedRequest, StatusCode } from "../types";
 class PatientController {
   public static async getProfile(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { user: _user } = req;
 
       sendResponse(res, {
         status: StatusCode.OK,
         data: {},
         message: "Profile fetched successfully",
       });
-    } catch (err) {
+    } catch (_err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,

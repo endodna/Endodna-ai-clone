@@ -4,6 +4,8 @@ import LoginPage from "@/pages/Auth/Login";
 import DashboardLayout from "@/Layouts/DashboardLayout";
 import ResetPasswordForm from "./pages/Auth/ResetPassword";
 import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
+import Error404 from "./pages/Error404";
+import AcceptInvitation from "./pages/Auth/AcceptInvitation";
 
 export const router = createBrowserRouter([
   {
@@ -52,8 +54,8 @@ export const router = createBrowserRouter([
         Component: () => <ForgotPasswordForm />,
       },
       {
-        path: "signup",
-        Component: () => <div>Signup</div>,
+        path: "accept-invitation",
+        Component: () =>  <AcceptInvitation/>,
       },
     ],
   },
@@ -70,10 +72,6 @@ export const router = createBrowserRouter([
   },
   {
     path: "*",
-    Component: () => (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold">404 - Page Not Found</h1>
-      </div>
-    ),
+    Component: () => <Error404/>,
   },
 ]);

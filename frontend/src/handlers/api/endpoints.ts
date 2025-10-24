@@ -9,7 +9,7 @@ export const API_ENDPOINTS = {
   },
 
   MISC: {
-    GET_MENU: "/menu",
+    GET_MENU: "/misc/menu",
   },
 
   PATIENTS: {

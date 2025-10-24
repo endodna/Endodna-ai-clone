@@ -103,7 +103,7 @@ export const sendResponse = (
     [StatusCode.INTERNAL_SERVER_ERROR]: StatusMessage.INTERNAL_SERVER_ERROR,
   };
 
-  let response = { data, error, message };
+  const response = { data, error, message };
   if (error) {
     logger.error("Request error", {
       traceId: req?.traceId,

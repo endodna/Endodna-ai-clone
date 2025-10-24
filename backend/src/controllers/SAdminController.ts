@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
 import { AuthenticatedRequest, StatusCode } from "../types";
 import { prisma } from "../lib/prisma";
@@ -253,7 +253,7 @@ class SAdminController {
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(
           admin.email,
           {
-            redirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
+            redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
           },
         );
       }
@@ -267,7 +267,7 @@ class SAdminController {
       }
 
       const newUserId = newSupabaseUser.data.user.id;
-      const [organization, newUser] = await Promise.all([
+      const [organization] = await Promise.all([
         prisma.organization.create({
           data: {
             name,
@@ -393,7 +393,7 @@ class SAdminController {
 
   public static async getProfile(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { user: _user } = req;
     } catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
@@ -442,7 +442,7 @@ class SAdminController {
 
   public static async getUsers(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
+      const { user: _user } = req;
     } catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,

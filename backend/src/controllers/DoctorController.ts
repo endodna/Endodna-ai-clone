@@ -1,12 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
 import { AuthenticatedRequest, StatusCode } from "../types";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
     try {
-      const { user } = req;
-    } catch (err) {
+      const { user: _user } = req;
+    } catch (_err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,

@@ -26,7 +26,19 @@ export interface ApiResponse<T = any> {
 }
 
 export enum Feature {
-  DASHBOARD = "dashboard",
+  QUICK_ACTIONS = "quick-actions",
+  AI_ASSISTANT = "ai-assistant",
+  PATIENTS = "patients",
+  CARE_STRATEGY = "care-strategy",
+  LABS = "labs",
+  AUTOMATION = "automation",
+  CLINIC = "clinic",
+  SETTINGS = "settings",
+  PROFILE = "profile",
+  TREATMENT_PLAN_TEMPLATES = "treatment-plan-templates",
+  PRODUCTS = "products",
+  INTEGRATIONS = "integrations",
+  SUPPORT = "support",
 }
 
 export enum PermissionAction {
@@ -41,9 +53,9 @@ export interface MenuItem {
   label: string;
   icon: string;
   path: string;
-  feature: Feature;
+  feature?: Feature;
   children?: MenuItem[];
-  permission: PermissionAction;
+  allowedUserTypes: UserType[];
 }
 
 export enum LogLevel {
@@ -95,6 +107,6 @@ export interface ResponseHeader {
 export interface ResponseOptions {
   status: StatusCode;
   error?: any;
-  data?: Object | null;
+  data?: object | boolean| null;
   message?: string;
 }

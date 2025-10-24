@@ -19,7 +19,6 @@ import {
 import { logger } from "../helpers/logger.helper";
 import { UserService } from "../services/user.service";
 import { verifySupabaseToken } from "../helpers/encryption.helper";
-import { buildRedisSession } from "../helpers/misc.helper";
 
 class AuthController {
   public static async login(req: AuthenticatedRequest, res: Response) {
@@ -125,7 +124,7 @@ class AuthController {
 
   public static async register(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      const { email: _email, password: _password } = req.body;
     } catch (err) {
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
@@ -260,9 +259,16 @@ class AuthController {
   public static async setPassword(req: AuthenticatedRequest, res: Response) {
     try {
       const { password } = req.body as SetPasswordSchema;
-      const auth = req.headers.authorization;
+      const auth = req.headers.authorization || "";
       const token =
       auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
+      if (!token) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Invalid token",
+        });
+      }
       const verifyToken = await verifySupabaseToken(token!);
 
       if (!verifyToken) {
@@ -271,6 +277,15 @@ class AuthController {
           error: true,
           message: "Invalid token",
         });
+      }
+
+      const claims = await supabase.auth.getClaims(token!);
+      if (claims.error || !claims?.data?.claims?.session_id) {
+        return {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Invalid credentials",
+        };
       }
 
       const userId = verifyToken.id;

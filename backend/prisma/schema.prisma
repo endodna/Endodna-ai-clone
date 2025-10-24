@@ -78,6 +78,7 @@ model OrganizationCustomization {
   id             Int          @id @default(autoincrement())
   organizationId Int          @unique
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customization  Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }

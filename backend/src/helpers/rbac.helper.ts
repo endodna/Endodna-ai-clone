@@ -4,12 +4,7 @@ const Permissions: Partial<
   Record<UserType, Partial<Record<Feature, Record<PermissionAction, boolean>>>>
 > = {
   [UserType.ADMIN]: {
-    [Feature.DASHBOARD]: {
-      [PermissionAction.VIEW]: true,
-      [PermissionAction.CREATE]: true,
-      [PermissionAction.DELETE]: true,
-      [PermissionAction.EDIT]: true,
-    },
+  
   },
 };
 

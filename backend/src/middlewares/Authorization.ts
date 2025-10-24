@@ -36,14 +36,14 @@ export const DoctorAuthorization = async (
   next: NextFunction,
 ) => {
   try {
-    if (req.user?.userType !== UserType.DOCTOR) {
-      return sendResponse(res, {
-        status: StatusCode.UNAUTHORIZED,
-        error: true,
-        message: "Unauthorized",
-      });
+    if (req.user?.userType === UserType.DOCTOR || req.user?.userType === UserType.ADMIN) {
+      next();
     }
-    next();
+    return sendResponse(res, {
+      status: StatusCode.UNAUTHORIZED,
+      error: true,
+      message: "Unauthorized",
+    });
   } catch (err) {
     logger.error("Doctor authorization error", {
       traceId: req.traceId,
