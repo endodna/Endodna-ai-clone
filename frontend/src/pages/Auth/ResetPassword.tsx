@@ -3,7 +3,7 @@ import { ReusableForm, FormField } from "@/components/forms";
 import { PasswordValidation } from "@/components/forms/PasswordValidation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AuthContainer from "@/components/auth/AuthContainer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -48,7 +48,6 @@ const formFields: FormField[] = [
 
 export default function ResetPasswordForm() {
     const navigate = useNavigate();
-    const location = useLocation();
     const auth = useAuth();
 
     const defaultValues = {
@@ -62,8 +61,6 @@ export default function ResetPasswordForm() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [success, setSuccess] = useState(false);
     
-    const [isPasswordRecovery, setIsPasswordRecovery] = useState(location.state?.isPasswordRecovery || false);
-
     useEffect(() => {
         const now = new Date();
         const sessionExpiry = new Date(auth?.session?.expires_at || 0);
@@ -75,13 +72,18 @@ export default function ResetPasswordForm() {
     }, [auth?.session, auth?.userConfig?.isPasswordSet, navigate]);
 
     useEffect(() => {
-        supabase.auth.onAuthStateChange(async (event) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event == "PASSWORD_RECOVERY") {
-                setIsPasswordRecovery(true);
+                setIsLoading(false);
+            } else if(event  === "INITIAL_SESSION"){
+                if(!session?.user){
+                    setIsLoading(false);
+                    navigate("/");
+                }
             }
-            setIsLoading(false);
+            return () => subscription.unsubscribe();
         })
-    }, [])
+    }, [navigate])
 
     const handleFieldChange = (fieldName: string, value: any) => {
         if (fieldName === "password") {
@@ -145,9 +147,9 @@ export default function ResetPasswordForm() {
         );
     }
 
-    if(!isLoading && !isPasswordRecovery) {
-        return <Navigate to="/" replace />;
-    }
+    // if(!isLoading && !isPasswordRecovery) {
+    //     return <Navigate to="/" replace />;
+    // }
 
     return (
         <AuthContainer
@@ -170,6 +172,7 @@ export default function ResetPasswordForm() {
                     onSubmit={handleSubmit}
                     submitText="Reset Password"
                     showReset={false}
+                    disabled={isLoading}
                     isLoading={isLoading}
                     onFieldChange={handleFieldChange}
                     onClearAllCustomErrors={handleClearAllCustomErrors}

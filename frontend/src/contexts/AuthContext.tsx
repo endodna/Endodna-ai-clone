@@ -144,6 +144,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (_event === "SIGNED_IN" || _event === "PASSWORD_RECOVERY") {
         setSession(session);
         setUser(session?.user ?? null);
+        // Fetch user profile when user signs in (including via invite)
+        if (session?.user) {
+          getProfile();
+        }
       }
       if (_event === "USER_UPDATED") {
         getProfile();
