@@ -73,14 +73,12 @@ export default function ResetPasswordForm() {
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event == "PASSWORD_RECOVERY") {
-                setIsLoading(false);
-            } else if(event  === "INITIAL_SESSION"){
+           if(event  === "INITIAL_SESSION"){
                 if(!session?.user){
-                    setIsLoading(false);
                     navigate("/");
                 }
             }
+            setIsLoading(false);
             return () => subscription.unsubscribe();
         })
     }, [navigate])
@@ -124,6 +122,7 @@ export default function ResetPasswordForm() {
             handleApiError("confirmPassword", error);
             return;
         }
+        await auth.signOut(true)
         setSuccess(true);
     };
 

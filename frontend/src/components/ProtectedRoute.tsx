@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { loading } = useMenu();
-  const { userConfig, user } = useAuth();
+  const { userConfig } = useAuth();
   // const location = useLocation();
 
   if (loading) {
@@ -23,7 +23,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (!userConfig?.userType) {
     return <Navigate to="/" replace />;
   }
-  console.log(userConfig, user);
 
   if (userConfig?.userType && userConfig?.isPasswordSet === false) {
     return <Navigate to="/auth/reset-password" state={{ isPasswordRecovery: true }} replace />;

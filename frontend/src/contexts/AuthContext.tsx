@@ -78,7 +78,7 @@ interface AuthContextType {
     email: string;
     password: string;
   }) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signOut: (useSupabaseSignOut?: boolean) => Promise<void>;
   getProfile: () => Promise<{ error: any; data?: any }>;
   setPassword: ({
     password,
@@ -145,9 +145,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         // Fetch user profile when user signs in (including via invite)
-        if (session?.user) {
-          getProfile();
-        }
       }
       if (_event === "USER_UPDATED") {
         getProfile();
@@ -221,8 +218,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (useSupabaseSignOut?: boolean) => {
     try {
+      if (useSupabaseSignOut) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setUserConfig({
+          userType: null,
+          isPasswordSet: null,
+          firstName: null,
+          lastName: null,
+          middleName: null,
+        });
+        clearUserConfigFromStorage();
+        return;
+      }
       const {
         error: apiError,
         message: apiMessage,
@@ -242,13 +252,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           middleName: null,
         });
         clearUserConfigFromStorage();
+        toast.success("Logged out!");
       }
     } catch (error) {
       console.error("Logout error:", error);
       await supabase.auth.signOut();
       clearUserConfigFromStorage();
-    } finally {
-      toast.success("Logged out!");
     }
   };
 

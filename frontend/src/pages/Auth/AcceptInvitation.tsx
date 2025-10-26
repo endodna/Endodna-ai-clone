@@ -13,10 +13,8 @@ export default function AcceptInvitation() {
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth event:', event, 'Session:', session);
-            
+            console.log('Auth state changed:', event, session);
             if (event === "SIGNED_IN" && session?.user) {
-                console.log('User signed in via invite:', session.user);
                 setIsLoading(false); 
             } 
             else if(event  === "INITIAL_SESSION"){
