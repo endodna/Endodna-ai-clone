@@ -254,6 +254,13 @@ class SAdminController {
           admin.email,
           {
             redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
+            data: {
+              userType: PrismaUserType.ADMIN.toString().toLowerCase(),
+              firstName: admin.firstName,
+              lastName: admin.lastName,
+              middleName: admin.middleName,
+              email: admin.email,
+            },
           },
         );
       }

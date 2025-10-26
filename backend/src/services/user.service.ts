@@ -99,6 +99,13 @@ export class UserService {
       } else {
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(email, {
           redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
+          data: {
+            userType: userType.toString().toLowerCase(),
+            organizationId,
+            firstName,
+            lastName,
+            middleName,
+          },
         });
       }
 
