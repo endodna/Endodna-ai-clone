@@ -14,13 +14,16 @@ on:
         type: choice
         options:
           - production
-
-env:
-  AWS_REGION: us-east-1
+      aws_region:
+        description: 'AWS Region'
+        required: true
+        default: 'us-east-1'
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
     
     permissions:
       id-token: write
@@ -55,10 +58,13 @@ jobs:
     name: Deploy ${{ matrix.function_folder }}
     needs: deploy
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
     strategy:
       fail-fast: false
       matrix:
         function_folder: ${{ fromJSON(needs.deploy.outputs.folders) }}
+    
     permissions:
       id-token: write
       contents: read
@@ -72,7 +78,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ github.event.inputs.aws_region }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -139,20 +145,20 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ steps.extract_name.outputs.FUNCTION_NAME }} \
             --zip-file fileb://serverless/${{ matrix.function_folder }}/function.zip \
-            --region ${{ env.AWS_REGION }}
+            --region ${{ github.event.inputs.aws_region }}
 
       - name: Wait for Lambda update to complete
         run: |
           aws lambda wait function-updated \
             --function-name ${{ steps.extract_name.outputs.FUNCTION_NAME }} \
-            --region ${{ env.AWS_REGION }}
+            --region ${{ github.event.inputs.aws_region }}
 
       - name: Publish Lambda function version (optional)
         run: |
           aws lambda publish-version \
             --function-name ${{ steps.extract_name.outputs.FUNCTION_NAME }} \
             --description "Deployed via GitHub Actions - ${{ github.sha }}" \
-            --region ${{ env.AWS_REGION }} || true
+            --region ${{ github.event.inputs.aws_region }} || true
 
       - name: Cleanup
         if: always()
