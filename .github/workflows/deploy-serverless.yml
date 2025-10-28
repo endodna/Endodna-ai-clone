@@ -80,13 +80,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ github.event.inputs.aws_region }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: serverless/${{ matrix.function_folder }}/yarn.lock
-
       - name: Get Lambda Function ARN
         id: get_arn
         env:
@@ -117,15 +110,18 @@ jobs:
           echo "ARN=$ARN" >> $GITHUB_OUTPUT
           echo "Using ARN: $ARN"
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
       - name: Install dependencies
-        run: |
-          cd serverless/${{ matrix.function_folder }}
-          yarn install --frozen-lockfile
+        working-directory: serverless/${{ matrix.function_folder }}
+        run: yarn install --frozen-lockfile
 
       - name: Build function
-        run: |
-          cd serverless/${{ matrix.function_folder }}
-          yarn build
+        working-directory: serverless/${{ matrix.function_folder }}
+        run: yarn build
 
       - name: Create deployment package
         run: |
