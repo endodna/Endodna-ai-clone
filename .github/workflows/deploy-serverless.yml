@@ -3,28 +3,62 @@ name: Deploy Serverless Functions
 on:
   workflow_dispatch:
     inputs:
-      function_folder:
-        description: 'Select the function folder to deploy'
+      function_folders:
+        description: 'Select function folders to deploy (comma-separated)'
         required: true
-        type: choice
-        options:
-          - copy-files
-          - preprocess-files
+        type: string
+        default: 'copy-files'
       environment:
         description: 'Environment to deploy to'
         required: true
         type: choice
         options:
-          - prod
+          - production
 
 env:
   AWS_REGION: us-east-1
 
 jobs:
   deploy:
-    name: Deploy ${{ github.event.inputs.function_folder }}
     runs-on: ubuntu-latest
     
+    permissions:
+      id-token: write
+      contents: read
+    
+    name: Parse folder list
+    outputs:
+      folders: ${{ steps.parse.outputs.folders }}
+    
+    steps:
+      - name: Parse function folders
+        id: parse
+        shell: bash
+        run: |
+          FOLDERS="${{ github.event.inputs.function_folders }}"
+          # Remove spaces and create JSON array manually
+          FOLDERS=$(echo "$FOLDERS" | tr -d ' ')
+          # Create JSON array format ["folder1","folder2"]
+          IFS=',' read -ra FOLDER_ARRAY <<< "$FOLDERS"
+          JSON_ARRAY="["
+          for i in "${!FOLDER_ARRAY[@]}"; do
+            if [ $i -gt 0 ]; then
+              JSON_ARRAY+=","
+            fi
+            JSON_ARRAY+="\"${FOLDER_ARRAY[$i]}\""
+          done
+          JSON_ARRAY+="]"
+          echo "folders=$JSON_ARRAY" >> $GITHUB_OUTPUT
+          echo "Parsed folders: $JSON_ARRAY"
+
+  deploy-functions:
+    name: Deploy ${{ matrix.function_folder }}
+    needs: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        function_folder: ${{ fromJSON(needs.deploy.outputs.folders) }}
     permissions:
       id-token: write
       contents: read
@@ -45,7 +79,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: serverless/${{ github.event.inputs.function_folder }}/package.json
+          cache-dependency-path: serverless/${{ matrix.function_folder }}/package.json
 
       - name: Get Lambda Function ARN
         id: get_arn
@@ -54,7 +88,7 @@ jobs:
           PREPROCESS_FILES_ARN: ${{ vars.FUNCTION_ARN_PREPROCESS_FILES }}
         run: |
           # Convert folder name to uppercase with underscores and extract ARN
-          FOLDER_UPPER=$(echo ${{ github.event.inputs.function_folder }} | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+          FOLDER_UPPER=$(echo ${{ matrix.function_folder }} | tr '[:lower:]' '[:upper:]' | tr '-' '_')
           
           case "$FOLDER_UPPER" in
             COPY_FILES)
@@ -64,13 +98,13 @@ jobs:
               ARN="$PREPROCESS_FILES_ARN"
               ;;
             *)
-              echo "Error: Unknown function folder: ${{ github.event.inputs.function_folder }}"
+              echo "Error: Unknown function folder: ${{ matrix.function_folder }}"
               exit 1
               ;;
           esac
           
           if [ -z "$ARN" ]; then
-            echo "Error: ARN not found for function ${{ github.event.inputs.function_folder }}"
+            echo "Error: ARN not found for function ${{ matrix.function_folder }}"
             exit 1
           fi
           
@@ -79,17 +113,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd serverless/${{ github.event.inputs.function_folder }}
+          cd serverless/${{ matrix.function_folder }}
           npm ci
 
       - name: Build function
         run: |
-          cd serverless/${{ github.event.inputs.function_folder }}
+          cd serverless/${{ matrix.function_folder }}
           npm run build
 
       - name: Create deployment package
         run: |
-          cd serverless/${{ github.event.inputs.function_folder }}
+          cd serverless/${{ matrix.function_folder }}
           zip -r function.zip dist/ node_modules/ package.json
 
       - name: Extract function name from ARN
@@ -104,7 +138,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name ${{ steps.extract_name.outputs.FUNCTION_NAME }} \
-            --zip-file fileb://serverless/${{ github.event.inputs.function_folder }}/function.zip \
+            --zip-file fileb://serverless/${{ matrix.function_folder }}/function.zip \
             --region ${{ env.AWS_REGION }}
 
       - name: Wait for Lambda update to complete
@@ -123,14 +157,14 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          cd serverless/${{ github.event.inputs.function_folder }}
+          cd serverless/${{ matrix.function_folder }}
           rm -f function.zip
 
       - name: Deployment Summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Function**: \`${{ github.event.inputs.function_folder }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Function**: \`${{ matrix.function_folder }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: \`${{ github.event.inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Lambda ARN**: \`${{ steps.get_arn.outputs.ARN }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
