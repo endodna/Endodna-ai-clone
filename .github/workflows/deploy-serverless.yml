@@ -84,8 +84,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: serverless/${{ matrix.function_folder }}/package.json
+          cache: 'yarn'
+          cache-dependency-path: serverless/${{ matrix.function_folder }}/yarn.lock
 
       - name: Get Lambda Function ARN
         id: get_arn
@@ -120,12 +120,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd serverless/${{ matrix.function_folder }}
-          npm ci
+          yarn install --frozen-lockfile
 
       - name: Build function
         run: |
           cd serverless/${{ matrix.function_folder }}
-          npm run build
+          yarn build
 
       - name: Create deployment package
         run: |
