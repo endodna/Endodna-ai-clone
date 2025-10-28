@@ -1,0 +1,22 @@
+{
+  "name": "copy-files-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function to copy files from DMZ to private bucket",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepare": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.450.0",
+    "@aws-sdk/client-sqs": "^3.450.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.9.0",
+    "typescript": "^5.2.2"
+  }
+}
+
+

@@ -15,6 +15,7 @@ export interface AuthenticatedRequest extends Request {
     userType: UserType;
     sessionId: string;
     organizationId?: string;
+    isPasswordSet?: boolean;
   };
 }
 

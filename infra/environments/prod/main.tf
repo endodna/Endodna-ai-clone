@@ -289,6 +289,16 @@ module "elastic_beanstalk" {
   tags               = local.common_tags
 }
 
+# S3 Processing Pipeline Module
+module "s3_processing" {
+  source = "../../modules/s3-lab-processing"
+
+  bucket_name_prefix = "biosai"
+  environment        = var.environment
+  lab_user_arn       = var.lab_user_arn
+  tags               = local.common_tags
+}
+
 # Outputs
 output "redis_url" {
   description = "Redis URL for application configuration"
@@ -298,4 +308,35 @@ output "redis_url" {
 output "valkey_endpoint" {
   description = "Valkey primary endpoint (Redis-compatible)"
   value       = module.elasticache.primary_endpoint
+}
+
+# S3 Processing Pipeline Outputs
+output "dmz_bucket_name" {
+  description = "Name of the DMZ S3 bucket"
+  value       = try(module.s3_processing.dmz_bucket_name, null)
+}
+
+output "dmz_bucket_arn" {
+  description = "ARN of the DMZ S3 bucket"
+  value       = try(module.s3_processing.dmz_bucket_arn, null)
+}
+
+output "private_bucket_name" {
+  description = "Name of the private S3 bucket"
+  value       = try(module.s3_processing.private_bucket_name, null)
+}
+
+output "copy_lambda_arn" {
+  description = "ARN of the copy Lambda function"
+  value       = try(module.s3_processing.copy_lambda_arn, null)
+}
+
+output "preprocess_lambda_arn" {
+  description = "ARN of the preprocess Lambda function"
+  value       = try(module.s3_processing.preprocess_lambda_arn, null)
+}
+
+output "sqs_queue_url" {
+  description = "URL of the processing SQS queue"
+  value       = try(module.s3_processing.sqs_queue_url, null)
 }

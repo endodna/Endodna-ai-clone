@@ -320,6 +320,7 @@ class AuthController {
           },
         }),
       ]);
+      
 
       return sendResponse(res, {
         status: StatusCode.OK,

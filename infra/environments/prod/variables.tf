@@ -167,3 +167,10 @@ variable "enable_s3_endpoint" {
   default     = true
 }
 
+# S3 Processing Pipeline Variables
+variable "lab_user_arn" {
+  description = "ARN of the IAM user that the lab will use to push files to DMZ bucket"
+  type        = string
+  default     = null
+}
+

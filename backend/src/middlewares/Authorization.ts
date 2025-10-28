@@ -9,6 +9,13 @@ export const PatientAuthorization = async (
   next: NextFunction,
 ) => {
   try {
+    if (req.user?.isPasswordSet === false) {
+      return sendResponse(res, {
+        status: StatusCode.UNAUTHORIZED,
+        error: true,
+        message: "PasswordNotSet",
+      });
+    }
     if (req.user?.userType !== UserType.PATIENT) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
@@ -36,6 +43,13 @@ export const DoctorAuthorization = async (
   next: NextFunction,
 ) => {
   try {
+    if (req.user?.isPasswordSet === false) {
+      return sendResponse(res, {
+        status: StatusCode.UNAUTHORIZED,
+        error: true,
+        message: "PasswordNotSet",
+      });
+    }
     if (req.user?.userType === UserType.DOCTOR || req.user?.userType === UserType.ADMIN) {
       next();
     }
@@ -63,6 +77,13 @@ export const AdminAuthorization = async (
   next: NextFunction,
 ) => {
   try {
+    if (req.user?.isPasswordSet === false) {
+      return sendResponse(res, {
+        status: StatusCode.UNAUTHORIZED,
+        error: true,
+        message: "PasswordNotSet",
+      });
+    }
     if (req.user?.userType !== UserType.ADMIN) {
       return sendResponse(res, {
         status: StatusCode.UNAUTHORIZED,
