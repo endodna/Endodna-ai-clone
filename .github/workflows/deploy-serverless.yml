@@ -124,9 +124,17 @@ jobs:
         run: yarn build
 
       - name: Create deployment package
+        working-directory: serverless/${{ matrix.function_folder }}
         run: |
-          cd serverless/${{ matrix.function_folder }}
-          zip -r function.zip dist/ node_modules/ package.json
+          # Build temp directory with flat structure
+          mkdir -p lambda-package
+          cp -r dist/* lambda-package/
+          cp -r node_modules lambda-package/
+          cp package.json lambda-package/
+          cd lambda-package
+          zip -r ../function.zip .
+          cd ..
+          rm -rf lambda-package
 
       - name: Extract function name from ARN
         id: extract_name
@@ -137,10 +145,11 @@ jobs:
           echo "Function name: $FUNCTION_NAME"
 
       - name: Update Lambda function code
+        working-directory: serverless/${{ matrix.function_folder }}
         run: |
           aws lambda update-function-code \
             --function-name ${{ steps.extract_name.outputs.FUNCTION_NAME }} \
-            --zip-file fileb://serverless/${{ matrix.function_folder }}/function.zip \
+            --zip-file fileb://function.zip \
             --region ${{ github.event.inputs.aws_region }}
 
       - name: Wait for Lambda update to complete
@@ -158,9 +167,8 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: |
-          cd serverless/${{ matrix.function_folder }}
-          rm -f function.zip
+        working-directory: serverless/${{ matrix.function_folder }}
+        run: rm -f function.zip
 
       - name: Deployment Summary
         run: |
