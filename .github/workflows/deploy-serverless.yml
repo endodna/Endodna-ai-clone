@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       function_folders:
-        description: 'Select function folders to deploy (comma-separated)'
+        description: 'Select function folders to deploy (comma-separated: copy-files,preprocess-files,tempus-lab)'
         required: true
         type: string
         default: 'copy-files'
@@ -85,6 +85,7 @@ jobs:
         env:
           COPY_FILES_ARN: ${{ vars.FUNCTION_ARN_COPY_FILES }}
           PREPROCESS_FILES_ARN: ${{ vars.FUNCTION_ARN_PREPROCESS_FILES }}
+          TEMPUS_LAB_ARN: ${{ vars.FUNCTION_ARN_TEMPUS_LAB }}
         run: |
           # Convert folder name to uppercase with underscores and extract ARN
           FOLDER_UPPER=$(echo ${{ matrix.function_folder }} | tr '[:lower:]' '[:upper:]' | tr '-' '_')
@@ -95,6 +96,9 @@ jobs:
               ;;
             PREPROCESS_FILES)
               ARN="$PREPROCESS_FILES_ARN"
+              ;;
+            TEMPUS_LAB)
+              ARN="$TEMPUS_LAB_ARN"
               ;;
             *)
               echo "Error: Unknown function folder: ${{ matrix.function_folder }}"

@@ -284,6 +284,14 @@ resource "aws_lambda_function" "copy_files" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      last_modified
+    ]
+  }
+
   tags = merge(var.tags, {
     Name        = local.copy_lambda_name
     Environment = var.environment
@@ -307,6 +315,14 @@ resource "aws_lambda_function" "preprocess_files" {
       PRIVATE_BUCKET = local.private_bucket_name
       SQS_QUEUE_URL  = aws_sqs_queue.processing.url
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      last_modified
+    ]
   }
 
   tags = merge(var.tags, {

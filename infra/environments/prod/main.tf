@@ -299,6 +299,16 @@ module "s3_processing" {
   tags               = local.common_tags
 }
 
+# API Gateway for Lab Integrations
+module "api_gateway_lab" {
+  source = "../../modules/api-gateway-lab"
+
+  bucket_name_prefix = "biosai"
+  environment         = var.environment
+  stage_name          = var.environment
+  tags                = local.common_tags
+}
+
 # Outputs
 output "redis_url" {
   description = "Redis URL for application configuration"
@@ -339,4 +349,21 @@ output "preprocess_lambda_arn" {
 output "sqs_queue_url" {
   description = "URL of the processing SQS queue"
   value       = try(module.s3_processing.sqs_queue_url, null)
+}
+
+# API Gateway Lab Outputs
+output "tempus_lab_lambda_arn" {
+  description = "ARN of the Tempus Lab Lambda function"
+  value       = try(module.api_gateway_lab.lambda_function_arn, null)
+}
+
+output "api_gateway_lab_url" {
+  description = "URL of the Lab API Gateway"
+  value       = try(module.api_gateway_lab.api_gateway_url, null)
+}
+
+output "api_gateway_lab_key" {
+  description = "API Gateway API key for lab integrations"
+  value       = try(module.api_gateway_lab.api_key_value, null)
+  sensitive   = true
 }
