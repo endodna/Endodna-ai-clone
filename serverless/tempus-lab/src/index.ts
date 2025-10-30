@@ -54,7 +54,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
       body: JSON.stringify({
         success: true,
-        message: 'Success',
+        status: 'received',
         timestamp: new Date().toISOString()
       })
     };

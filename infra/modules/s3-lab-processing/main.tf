@@ -67,20 +67,9 @@ resource "aws_s3_bucket_policy" "dmz" {
           AWS = var.lab_user_arn
         }
         Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:DeleteObject"
+          "s3:PutObject"
         ]
         Resource = "${aws_s3_bucket.dmz.arn}/*"
-      },
-      {
-        Sid    = "AllowLabUserList"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.lab_user_arn
-        }
-        Action = "s3:ListBucket"
-        Resource = aws_s3_bucket.dmz.arn
       }
     ]
   })
