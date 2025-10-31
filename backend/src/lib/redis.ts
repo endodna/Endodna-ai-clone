@@ -18,7 +18,10 @@ class RedisHandler {
     });
 
     this.client.on("error", (err) => {
-      logger.error("Redis Client Error:", err);
+      logger.error("Redis Client Error", {
+        error: err,
+        method: "RedisHandler.constructor",
+      });
       this.isConnected = false;
     });
 

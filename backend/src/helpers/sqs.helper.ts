@@ -102,7 +102,7 @@ class SQSHelper {
     } catch (error) {
       logger.error("Error polling SQS queue", {
         queueUrl,
-        error: error instanceof Error ? error.message : String(error),
+        error: error,
       });
 
       if (options.onError) {
@@ -211,7 +211,7 @@ class SQSHelper {
             logger.error("Error processing SQS message", {
               queueUrl,
               messageId: message.messageId,
-              error: error instanceof Error ? error.message : String(error),
+              error: error,
             });
 
             if (onError) {
@@ -224,7 +224,7 @@ class SQSHelper {
       } catch (error) {
         logger.error("Error during SQS polling cycle", {
           queueUrl,
-          error: error instanceof Error ? error.message : String(error),
+          error: error,
         });
 
         if (onError) {
@@ -316,7 +316,7 @@ class SQSHelper {
       logger.error("Error deleting message from SQS queue", {
         queueUrl,
         receiptHandle,
-        error: error instanceof Error ? error.message : String(error),
+        error: error,
       });
       throw error;
     }

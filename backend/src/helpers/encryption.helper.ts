@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { supabase } from "../lib/supabase";
+import { logger } from "./logger.helper";
 
 export const signJWTToken = (payload: any): string => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
@@ -35,7 +36,10 @@ export const verifySupabaseToken = async (token: string) => {
     }
     return user;
   } catch (error) {
-    console.error("Supabase token verification error:", error);
+    logger.error("Supabase token verification error", {
+      error: error,
+      method: "verifySupabaseToken",
+    });
     return null;
   }
 };

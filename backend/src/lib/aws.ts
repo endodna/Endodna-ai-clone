@@ -25,7 +25,7 @@ class AWSHandler {
       });
     } catch (error) {
       logger.error("Failed to initialize AWS SQS Client", {
-        error: error instanceof Error ? error.message : String(error),
+        error: error,
         region: this.region,
       });
     }

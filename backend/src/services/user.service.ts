@@ -11,6 +11,7 @@ import { AuthenticatedRequest, StatusCode, UserType } from "../types";
 import { buildRedisSession } from "../helpers/misc.helper";
 import { SESSION_KEY } from "../utils/constants";
 import redis from "../lib/redis";
+import { logger } from "../helpers/logger.helper";
 
 export interface CreateUserParams {
   email: string;
@@ -147,7 +148,10 @@ export class UserService {
         message: "User created successfully",
       };
     } catch (error) {
-      console.error("Error creating user:", error);
+      logger.error("Error creating user", {
+        error: error,
+        method: "UserService.createUser",
+      });
       return {
         success: false,
         error: "InternalServerError",
@@ -303,7 +307,10 @@ export class UserService {
         }),
       ]);
     } catch (error) {
-      console.error("Error creating user session:", error);
+      logger.error("Error creating user session", {
+        error: error,
+        method: "UserService.completeUserLogin",
+      });
       return {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: true,
