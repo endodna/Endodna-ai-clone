@@ -61,10 +61,10 @@ class AuthController {
         message: "Login successful",
       });
     } catch (err) {
-      console.log(err);
       logger.error("Login failed", {
         traceId: req.traceId,
-        error: String(err),
+        method: "login",
+        error: err,
       });
       sendResponse(
         res,
@@ -113,7 +113,11 @@ class AuthController {
         message: "Login validated successfully",
       });
     } catch (err) {
-      console.log(err);
+      logger.error("Validate login failed", {
+        traceId: (req as AuthenticatedRequest).traceId,
+        method: "validateLogin",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
@@ -126,6 +130,11 @@ class AuthController {
     try {
       const { email: _email, password: _password } = req.body;
     } catch (err) {
+      logger.error("Registration failed", {
+        traceId: (req as AuthenticatedRequest).traceId,
+        method: "register",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
@@ -205,11 +214,16 @@ class AuthController {
         message: "Sign out successful",
       });
     } catch (err) {
+      logger.error("Sign out failed", {
+        traceId: req.traceId,
+        method: "signOut",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Sign out failed",
-      });
+      }, req);
     }
   }
 
@@ -246,13 +260,14 @@ class AuthController {
     } catch (err) {
       logger.error("Get profile failed", {
         traceId: req.traceId,
-        error: String(err),
+        method: "getProfile",
+        error: err,
       });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to get profile",
-      });
+      }, req);
     }
   }
 
@@ -328,11 +343,16 @@ class AuthController {
         message: "Password set successfully",
       });
     } catch (err) {
+      logger.error("Set password failed", {
+        traceId: req.traceId,
+        method: "setPassword",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to set password",
-      });
+      }, req);
     }
   }
 
@@ -377,6 +397,11 @@ class AuthController {
         message: "Password reset link sent successfully",
       });
     } catch (err) {
+      logger.error("Forgot password failed", {
+        traceId: (req as AuthenticatedRequest).traceId,
+        method: "forgotPassword",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,

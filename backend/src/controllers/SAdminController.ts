@@ -76,13 +76,14 @@ class SAdminController {
     } catch (err) {
       logger.error("Create super admin failed", {
         traceId: req.traceId,
-        error: String(err),
+        method: "createSuperAdmin",
+        error: err,
       });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err instanceof Error,
+        error: err,
         message: "Failed to create super admin",
-      });
+      }, req);
     }
   }
 
@@ -175,13 +176,14 @@ class SAdminController {
     } catch (err) {
       logger.error("Login failed", {
         traceId: req.traceId,
-        error: String(err),
+        method: "login",
+        error: err,
       });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to login",
-      });
+      }, req);
     }
   }
 
@@ -327,12 +329,16 @@ class SAdminController {
         message: "Organization provisioned successfully",
       });
     } catch (err) {
-      logger.error("Error");
+      logger.error("Provision organization failed", {
+        traceId: req.traceId,
+        method: "provisionOrganization",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: String(err),
+        error: err,
         message: "Failed to provision organization",
-      });
+      }, req);
     }
   }
 
@@ -389,12 +395,16 @@ class SAdminController {
         message: "Organization admin created successfully",
       });
     } catch (err) {
-      console.log(err);
+      logger.error("Create organization admin failed", {
+        traceId: req.traceId,
+        method: "createOrganizationAdmin",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err instanceof Error,
+        error: err,
         message: "Failed to create organization admin",
-      });
+      }, req);
     }
   }
 
@@ -402,11 +412,16 @@ class SAdminController {
     try {
       const { user: _user } = req;
     } catch (err) {
+      logger.error("Get profile failed", {
+        traceId: req.traceId,
+        method: "getProfile",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to get profile",
-      });
+      }, req);
     }
   }
 
@@ -439,11 +454,16 @@ class SAdminController {
         message: "Organizations fetched successfully",
       });
     } catch (err) {
+      logger.error("Get organizations failed", {
+        traceId: req.traceId,
+        method: "getOrganizations",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to get organizations",
-      });
+      }, req);
     }
   }
 
@@ -451,11 +471,16 @@ class SAdminController {
     try {
       const { user: _user } = req;
     } catch (err) {
+      logger.error("Get users failed", {
+        traceId: req.traceId,
+        method: "getUsers",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
         error: err,
         message: "Failed to get users",
-      });
+      }, req);
     }
   }
 }

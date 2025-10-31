@@ -5,7 +5,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import loginBackground from "@/assets/login_background.jpg";
-import carePlus from "@/assets/care_plus.svg";
+// import carePlus from "@/assets/care_plus.svg";
 import poweredByEndoDNA from "@/assets/powered_by_endodna.svg";
 
 export default function AuthContainer({
@@ -28,7 +28,7 @@ export default function AuthContainer({
             <CardHeader className="pb-0">
               <CardDescription className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                  <img src={carePlus} alt="Care Plus" className="w-20 h-auto" />
+                  {/* <img src={carePlus} alt="Care Plus" className="w-20 h-auto" /> */}
                   <img
                     src={poweredByEndoDNA}
                     alt="Powered by EndoDNA"

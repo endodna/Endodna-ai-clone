@@ -18,7 +18,6 @@ redis.connect();
 const app = express();
 
 // MiddleWares
-app.use(requestLogger);
 app.use(bodyParser.urlencoded({ extended: false }));
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -34,6 +33,7 @@ if (process.env.NODE_ENV === "production") {
 app.use(bodyParser.json());
 app.use(cors());
 app.use(helmet());
+app.use(requestLogger);
 
 //Rate limiting all API endpoints.
 app.use("/", rateLimiter.regular);

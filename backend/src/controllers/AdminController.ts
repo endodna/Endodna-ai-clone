@@ -8,6 +8,7 @@ import {
   CreatePatientSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
+import { logger } from "../helpers/logger.helper";
 
 class AdminController {
   public static async createAdmin(req: AuthenticatedRequest, res: Response) {
@@ -51,12 +52,17 @@ class AdminController {
         },
         message: "Organization admin created successfully",
       });
-    } catch (_err) {
+    } catch (err) {
+      logger.error("Create admin failed", {
+        traceId: req.traceId,
+        method: "createAdmin",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: true,
+        error: err,
         message: "Failed to create organization admin",
-      });
+      }, req);
     }
   }
 
@@ -101,12 +107,17 @@ class AdminController {
         },
         message: "Organization doctor created successfully",
       });
-    } catch (_err) {
+    } catch (err) {
+      logger.error("Create doctor failed", {
+        traceId: req.traceId,
+        method: "createDoctor",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: true,
+        error: err,
         message: "Failed to create organization doctor",
-      });
+      }, req);
     }
   }
 
@@ -151,12 +162,17 @@ class AdminController {
         },
         message: "Organization patient created successfully",
       });
-    } catch (_err) {
+    } catch (err) {
+      logger.error("Create patient failed", {
+        traceId: req.traceId,
+        method: "createPatient",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: true,
+        error: err,
         message: "Failed to create organization patient",
-      });
+      }, req);
     }
   }
 }

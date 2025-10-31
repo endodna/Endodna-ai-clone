@@ -5,7 +5,6 @@ import {
   StatusCode,
   StatusMessage,
 } from "../types";
-import { logger } from "./logger.helper";
 
 class ResponseHelper {
   private responseHeaders: ResponseHeader[] = [
@@ -85,6 +84,24 @@ class ResponseHelper {
 
 export const responseHelper = new ResponseHelper();
 
+function extractErrorMessage(error: any): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "object" && error !== null) {
+    if (error.message) {
+      return String(error.message);
+    }
+    if (error.error) {
+      return String(error.error);
+    }
+  }
+  return String(error);
+}
+
 export const sendResponse = (
   res: Response,
   options: ResponseOptions,
@@ -103,18 +120,17 @@ export const sendResponse = (
     [StatusCode.INTERNAL_SERVER_ERROR]: StatusMessage.INTERNAL_SERVER_ERROR,
   };
 
-  const response = { data, error, message };
+  const response: { data: any; error: any; message: string } = { data, error: false, message };
+  
   if (error) {
-    logger.error("Request error", {
-      traceId: req?.traceId,
-      error: String(error),
-    });
+    const errorMessage = extractErrorMessage(error);
+    if (process.env.NODE_ENV === "production") {
+      response.error = true;
+    } else {
+      response.error = errorMessage;
+    }
   }
-  if (process.env.NODE_ENV === "production" && error) {
-    response.error = true;
-  } else {
-    response.error = error ? error : false;
-  }
+  
   response.message = message ? message : statusMessages[status];
 
   const headers = responseHelper.getResponseHeaders(req || {});

@@ -14,13 +14,17 @@ class MiscController {
         data: menu,
         message: "Menu fetched successfully",
       });
-    } catch (_err) {
-      logger.error("Error");
+    } catch (err) {
+      logger.error("Get menu failed", {
+        traceId: req.traceId,
+        method: "getMenu",
+        error: err,
+      });
       sendResponse(res, {
         status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: true,
+        error: err,
         message: "Failed to fetch menu",
-      });
+      }, req);
     }
   }
 }
