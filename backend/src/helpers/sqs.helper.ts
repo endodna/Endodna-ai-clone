@@ -100,15 +100,31 @@ class SQSHelper {
 
       return messages;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isConnectionError = 
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("ETIMEDOUT") ||
+        errorMessage.includes("ENOTFOUND") ||
+        errorMessage.includes("ECONNREFUSED");
+
       logger.error("Error polling SQS queue", {
         queueUrl,
         error: error,
+        isConnectionError,
       });
 
       if (options.onError) {
         options.onError(
           error instanceof Error ? error : new Error(String(error)),
         );
+      }
+
+      if (isConnectionError) {
+        logger.warn("Connection error detected, will retry on next poll cycle", {
+          queueUrl,
+          error: errorMessage,
+        });
+        return [];
       }
 
       throw error;
@@ -313,11 +329,27 @@ class SQSHelper {
         receiptHandle,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isConnectionError = 
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("ETIMEDOUT") ||
+        errorMessage.includes("ENOTFOUND") ||
+        errorMessage.includes("ECONNREFUSED");
+
       logger.error("Error deleting message from SQS queue", {
         queueUrl,
         receiptHandle,
         error: error,
+        isConnectionError,
       });
+
+      if (isConnectionError) {
+        logger.warn("Connection error during message deletion, message will remain in queue and be retried", {
+          queueUrl,
+          error: errorMessage,
+        });
+      }
+
       throw error;
     }
   }

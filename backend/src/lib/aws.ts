@@ -1,6 +1,8 @@
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { CloudWatchLogsClient } from "@aws-sdk/client-cloudwatch-logs";
 import { logger } from "../helpers/logger.helper";
+import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
+import https from "https";
 
 class AWSHandler {
   private sqsClient: SQSClient | null = null;
@@ -14,10 +16,30 @@ class AWSHandler {
     this.initializeCloudWatchLogs();
   }
 
+  private createHttpAgent() {
+    return new https.Agent({
+      keepAlive: true,
+      keepAliveMsecs: 30000,
+      maxSockets: 50,
+      maxFreeSockets: 10,
+      timeout: 60000,
+      scheduling: "fifo" as any,
+    });
+  }
+
   private initializeSQS(): void {
     try {
+      const httpAgent = this.createHttpAgent();
+      const requestHandler = new NodeHttpHandler({
+        httpsAgent: httpAgent,
+        connectionTimeout: 5000,
+        socketTimeout: 60000,
+      });
+
       this.sqsClient = new SQSClient({
         region: this.region,
+        requestHandler,
+        maxAttempts: 3,
       });
 
       logger.info("AWS SQS Client initialized", {
