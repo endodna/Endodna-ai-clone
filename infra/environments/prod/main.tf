@@ -48,6 +48,9 @@ locals {
   }
 }
 
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
 # VPC Module
 module "vpc" {
   source = "../../modules/vpc"
@@ -285,8 +288,26 @@ module "elastic_beanstalk" {
     REDIS_URL = module.elasticache.redis_url
   })
   
+  # SQS queue ARNs for access
+  sqs_queue_arns = [
+    module.s3_processing.sqs_queue_arn,
+    module.api_gateway_lab.sqs_queue_arn
+  ]
+  
+  # CloudWatch log group ARN
+  cloudwatch_log_group_arn = lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_ARN", "") != "" ? lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_ARN", "") : (
+    lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_GROUP", "") != "" ? 
+    "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_GROUP", "")}:*" : 
+    ""
+  )
+  
   eb_security_group_id = module.security_groups.eb_security_group_id
   tags               = local.common_tags
+  
+  depends_on = [
+    module.s3_processing,
+    module.api_gateway_lab
+  ]
 }
 
 # S3 Processing Pipeline Module

@@ -99,6 +99,45 @@ resource "aws_iam_role_policy_attachment" "eb_instance_profile_role_multicontain
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
 }
 
+# IAM Policy for SQS and CloudWatch Logs access
+resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
+  name = "${var.application_name}-${var.environment}-eb-instance-sqs-cloudwatch-policy"
+  role = aws_iam_role.eb_instance_profile_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      # SQS permissions for all queues
+      length(var.sqs_queue_arns) > 0 ? [
+        {
+          Effect = "Allow"
+          Action = [
+            "sqs:ReceiveMessage",
+            "sqs:SendMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:GetQueueUrl",
+            "sqs:DeleteMessage",
+            "sqs:ChangeMessageVisibility"
+          ]
+          Resource = var.sqs_queue_arns
+        }
+      ] : [],
+      # CloudWatch Logs permissions
+      var.cloudwatch_log_group_arn != "" ? [
+        {
+          Effect = "Allow"
+          Action = [
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+            "logs:DescribeLogStreams"
+          ]
+          Resource = "${var.cloudwatch_log_group_arn}"
+        }
+      ] : []
+    )
+  })
+}
+
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "eb_instance_profile" {
   name = "${var.application_name}-${var.environment}-eb-instance-profile"

@@ -87,3 +87,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "sqs_queue_arns" {
+  description = "List of SQS queue ARNs to allow access to"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudwatch_log_group_arn" {
+  description = "ARN of the CloudWatch log group to allow access to"
+  type        = string
+  default     = ""
+}
