@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/card";
 import loginBackground from "@/assets/login_background.jpg";
 // import carePlus from "@/assets/care_plus.svg";
-import poweredByEndoDNA from "@/assets/powered_by_endodna.svg";
+import endoDNA from "@/assets/endodna.svg";
 
 export default function AuthContainer({
   header,
@@ -27,12 +27,12 @@ export default function AuthContainer({
           <Card className="px-4 py-4 bg-gradient-to-r from-white/100 to-gray-100/100 flex flex-col gap-6">
             <CardHeader className="pb-0">
               <CardDescription className="flex flex-col gap-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center">
                   {/* <img src={carePlus} alt="Care Plus" className="w-20 h-auto" /> */}
                   <img
-                    src={poweredByEndoDNA}
+                    src={endoDNA}
                     alt="Powered by EndoDNA"
-                    className="w-20 h-auto"
+                    className="w-30 h-auto"
                   />
                 </div>
                 {header}

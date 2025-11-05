@@ -9,9 +9,7 @@ export interface ApiResponse<T = any> {
 
 // Authentication API
 export const authApi = {
-  login: async (
-    token: string,
-  ): Promise<ApiResponse> => {
+  login: async (token: string): Promise<ApiResponse> => {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN_TOKEN, {
         token,

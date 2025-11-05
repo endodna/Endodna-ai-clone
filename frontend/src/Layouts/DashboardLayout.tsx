@@ -1,67 +1,20 @@
-import { Button } from "@/components/ui/button";
-import { Link, Outlet } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { Outlet } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { TopNavigation } from "@/components/navigation/TopNavigation";
 
 export default function DashboardLayout() {
-  const auth = useAuth();
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">
-              BiosAI Dashboard
-            </h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome back</span>
-            </div>
-          </div>
+    <SidebarProvider>
+      <div className="min-h-screen w-full bg-neutral-100 flex">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col bg-white rounded-l-3xl shadow-xl">
+          <TopNavigation />
+          <main className="flex-1 overflow-auto p-6">
+            <Outlet />
+          </main>
         </div>
-      </nav>
-
-      <div className="flex">
-        <aside className="w-64 bg-white shadow-sm min-h-screen">
-          <div className="p-6">
-            <nav className="space-y-2">
-              <Link
-                to="/dashboard"
-                className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/dashboard/doctor"
-                className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Doctor
-              </Link>
-              <Link
-                to="/dashboard/patients"
-                className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Patients
-              </Link>
-              <Link
-                to="/dashboard/settings"
-                className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Settings
-              </Link>
-              <Button
-                onClick={() => {
-                  auth.signOut();
-                }}
-              >
-                Logout
-              </Button>
-            </nav>
-          </div>
-        </aside>
-
-        <main className="flex-1 p-6">
-          <Outlet />
-        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

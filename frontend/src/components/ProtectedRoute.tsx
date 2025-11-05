@@ -25,7 +25,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (userConfig?.userType && userConfig?.isPasswordSet === false) {
-    return <Navigate to="/auth/reset-password" state={{ isPasswordRecovery: true }} replace />;
+    return (
+      <Navigate
+        to="/auth/reset-password"
+        state={{ isPasswordRecovery: true }}
+        replace
+      />
+    );
   }
 
   // if (!hasAccess(location.pathname)) {

@@ -21,6 +21,7 @@ export interface CreateUserParams {
   middleName?: string;
   userType: PrismaUserType;
   organizationId: string;
+  userId: string;
 }
 
 export interface CreateUserResult {
@@ -50,11 +51,22 @@ export class UserService {
         middleName,
         userType,
         organizationId,
+        userId,
       } = params;
 
       const organization = await prisma.organization.findFirst({
         where: {
           uuid: organizationId,
+        },
+        select: {
+          id: true,
+          name: true,
+          createdBy: true,
+          createdByAdmin: {
+            select: {
+              email: true,
+            },
+          },
         },
       });
 
@@ -90,6 +102,14 @@ export class UserService {
         };
       }
 
+      const invitedBy = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      });
+
       let newSupabaseUser: UserResponse | null = null;
       if (password) {
         newSupabaseUser = await supabase.auth.admin.createUser({
@@ -106,6 +126,14 @@ export class UserService {
             firstName,
             lastName,
             middleName,
+            organization: {
+              id: organization.id,
+              name: organization.name,
+              email: organization.createdByAdmin?.email,
+            },
+            invitedBy: {
+              ...invitedBy,
+            },
           },
         });
       }

@@ -25,6 +25,7 @@ class AdminController {
         middleName,
         userType: PrismaUserType.ADMIN,
         organizationId: organizationId!,
+        userId: userId,
       });
 
       await UserService.createUserAuditLog({
@@ -80,6 +81,7 @@ class AdminController {
         middleName,
         userType: PrismaUserType.DOCTOR,
         organizationId: organizationId!,
+        userId: userId,
       });
 
       await UserService.createUserAuditLog({
@@ -135,6 +137,7 @@ class AdminController {
         middleName,
         userType: PrismaUserType.PATIENT,
         organizationId: organizationId!,
+        userId: userId,
       });
 
       await UserService.createUserAuditLog({
