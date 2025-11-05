@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "@/pages/Auth/Login";
-import DashboardLayout from "@/Layouts/DashboardLayout";
+import DashboardLayout from "@/layouts/DashboardLayout";
 import ResetPasswordForm from "./pages/Auth/ResetPassword";
 import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import Error404 from "./pages/Error404";
@@ -25,26 +25,38 @@ export const router = createBrowserRouter([
         Component: () => <div>Dashboard</div>,
       },
       {
-        path: "doctor",
-        Component: () => <div>Doctor Dashboard</div>,
+        path: "quick-actions",
+        Component: () => <div>Quick Actions</div>,
+      },
+      {
+        path: "ai-assistant",
+        Component: () => <div>AI Assistant</div>,
       },
       {
         path: "patients",
         Component: () => <div>Patients</div>,
       },
       {
-        path: "settings",
-        Component: () => <div>Settings</div>,
+        path: "care-strategy",
+        Component: () => <div>Care Strategy</div>,
+      },
+      {
+        path: "labs",
+        Component: () => <div>Labs</div>,
+      },
+      {
+        path: "automation",
+        Component: () => <div>Automation</div>,
+      },
+      {
+        path: "manage-clinic",
+        Component: () => <div>Manage Clinic</div>,
       },
     ],
   },
   {
     path: "/auth",
     children: [
-      {
-        path: "callback",
-        Component: () => <div>Callback</div>,
-      },
       {
         path: "reset-password",
         Component: () => <ResetPasswordForm />,
@@ -55,7 +67,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "accept-invitation",
-        Component: () =>  <AcceptInvitation/>,
+        Component: () => <AcceptInvitation />,
       },
     ],
   },
@@ -72,6 +84,6 @@ export const router = createBrowserRouter([
   },
   {
     path: "*",
-    Component: () => <Error404/>,
+    Component: () => <Error404 />,
   },
 ]);

@@ -62,7 +62,6 @@ export function PasswordValidation({
     setValidations(newValidations);
   }, [password, confirmPassword]);
 
-
   return (
     <div className="mt-2 space-y-1">
       {validationRules.map((rule) => (

@@ -41,7 +41,7 @@ const loadUserConfigFromStorage = (): UserConfig => {
 
 const saveUserConfigToStorage = (userConfig: UserConfig): void => {
   try {
-    if(userConfig.userType) {
+    if (userConfig.userType) {
       localStorage.setItem(USER_CONFIG_KEY, JSON.stringify(userConfig));
     } else {
       clearUserConfigFromStorage();
@@ -102,7 +102,9 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userConfig, setUserConfig] = useState<UserConfig>(loadUserConfigFromStorage());
+  const [userConfig, setUserConfig] = useState<UserConfig>(
+    loadUserConfigFromStorage(),
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 

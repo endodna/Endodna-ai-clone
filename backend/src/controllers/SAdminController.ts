@@ -4,7 +4,7 @@ import { AuthenticatedRequest, StatusCode } from "../types";
 import { prisma } from "../lib/prisma";
 import { logger } from "../helpers/logger.helper";
 import { supabase } from "../lib/supabase";
-import { Priority, Status, UserType as PrismaUserType } from "@prisma/client";
+import { Priority, Status, UserType as PrismaUserType, Organization, Prisma } from "@prisma/client";
 import { UserType } from "../types";
 import redis from "../lib/redis";
 import { SESSION_KEY } from "../utils/constants";
@@ -17,6 +17,7 @@ import {
 import { UserResponse } from "@supabase/supabase-js";
 import { buildRedisSession } from "../helpers/misc.helper";
 import { UserService } from "../services/user.service";
+import PaginationHelper from "../helpers/pagination.helper";
 
 class SAdminController {
   public static async createSuperAdmin(
@@ -365,6 +366,7 @@ class SAdminController {
         middleName,
         userType: PrismaUserType.ADMIN,
         organizationId,
+        userId
       });
 
       await prisma.adminAuditLog.create({
@@ -430,27 +432,40 @@ class SAdminController {
     res: Response,
   ) {
     try {
-      const organizations = await prisma.organization.findMany({
-        select: {
-          uuid: true,
-          name: true,
-          isPrimary: true,
-          createdBy: true,
-          createdAt: true,
-          updatedAt: true,
-          createdByAdmin: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
+      const { page, limit } = PaginationHelper.parseQueryParams(req.query);
+
+      const result = await PaginationHelper.paginate<Organization, Prisma.OrganizationFindManyArgs>(
+        prisma.organization,
+        {
+          select: { 
+            uuid: true,
+            name: true,
+            isPrimary: true,
+            createdBy: true,
+            createdAt: true,
+            updatedAt: true,
+            createdByAdmin: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
-      });
+        {
+          page,
+          limit,
+        },
+      );
+
       sendResponse(res, {
         status: StatusCode.OK,
-        data: organizations,
+        data: {
+          items: result.data,
+          pagination: result.meta,
+        },
         message: "Organizations fetched successfully",
       });
     } catch (err) {
