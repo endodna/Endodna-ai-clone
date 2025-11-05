@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === "production") {
 //   // })
 // );
 app.use(bodyParser.json());
-// app.use(cors());
+app.use(cors());
 app.use(helmet());
 app.use(requestLogger);
 
