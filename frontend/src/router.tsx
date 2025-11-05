@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "@/pages/Auth/Login";
-import DashboardLayout from "@/layouts/DashboardLayout";
+import DashboardLayout from "./layouts/DashboardLayout";
 import ResetPasswordForm from "./pages/Auth/ResetPassword";
 import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import Error404 from "./pages/Error404";
