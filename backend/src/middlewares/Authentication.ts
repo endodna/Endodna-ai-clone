@@ -20,7 +20,7 @@ export const Authentication = async (
       auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
     if (token) {
       const claims = await getSupabaseClaims(token);
-      const user = await verifySupabaseToken(token);
+      const user = await verifySupabaseToken(token, req.traceId);
 
       if (!user || !user.id || !claims?.claims.session_id) {
         return sendResponse(res, {

@@ -3,11 +3,7 @@ import AdminController from "../../controllers/AdminController";
 import { Authentication } from "../../middlewares/Authentication";
 import { AdminAuthorization } from "../../middlewares/Authorization";
 import { validate } from "../../middlewares/Validator";
-import {
-  createAdminSchema,
-  createDoctorSchema,
-  createPatientSchema,
-} from "../../schemas";
+import { createAdminSchema, createDoctorSchema } from "../../schemas";
 
 const adminRouter = Router().use("/", Authentication, AdminAuthorization);
 
@@ -16,11 +12,6 @@ adminRouter.post(
   "/doctor",
   validate(createDoctorSchema),
   AdminController.createDoctor,
-);
-adminRouter.post(
-  "/patient",
-  validate(createPatientSchema),
-  AdminController.createPatient,
 );
 adminRouter.post(
   "/admin",

@@ -3,9 +3,7 @@ import { Feature, PermissionAction, UserType } from "../types";
 const Permissions: Partial<
   Record<UserType, Partial<Record<Feature, Record<PermissionAction, boolean>>>>
 > = {
-  [UserType.ADMIN]: {
-  
-  },
+  [UserType.ADMIN]: {},
 };
 
 export const hasPermission = (

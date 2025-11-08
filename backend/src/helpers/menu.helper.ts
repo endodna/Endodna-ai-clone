@@ -8,14 +8,10 @@ const menu: MenuItem[] = [
     path: "quick-actions",
     feature: Feature.QUICK_ACTIONS,
     allowedUserTypes: [UserType.ADMIN, UserType.DOCTOR],
-    children: [
-      
-    ]
+    children: [],
   },
 ];
 
 export const getMenu = (userType: UserType) => {
-  return menu.filter((item) =>
-    item.allowedUserTypes.includes(userType),
-  );
+  return menu.filter((item) => item.allowedUserTypes.includes(userType));
 };

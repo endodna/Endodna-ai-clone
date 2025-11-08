@@ -26,7 +26,7 @@ export const requestLogger = (
     body: sanitizeForLogging(req.body),
   });
 
-  const originalSend = res.send;
+  // const originalSend = res.send;
   const originalJson = res.json;
 
   const logResponse = (data: any): any => {
@@ -55,17 +55,17 @@ export const requestLogger = (
     return data;
   };
 
-  res.send = function (data: any): Response {
-    logResponse(data);
+  // res.send = function (data: any): Response {
+  //   logResponse(data);
 
-    // Add configured response headers
-    const headers = responseHelper.getResponseHeaders(req);
-    Object.entries(headers).forEach(([name, value]) => {
-      res.set(name, value);
-    });
+  //   // Add configured response headers
+  //   const headers = responseHelper.getResponseHeaders(req);
+  //   Object.entries(headers).forEach(([name, value]) => {
+  //     res.set(name, value);
+  //   });
 
-    return originalSend.call(this, data);
-  };
+  //   return originalSend.call(this, data);
+  // };
 
   res.json = function (data: any): Response {
     logResponse(data);

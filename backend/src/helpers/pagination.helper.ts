@@ -5,6 +5,7 @@ export interface PaginationOptions {
   limit?: number;
   maxLimit?: number;
   defaultLimit?: number;
+  traceId?: string;
 }
 
 export interface PaginationMeta {
@@ -24,26 +25,22 @@ export interface PaginatedResult<T> {
 export interface PaginationQueryParams {
   page?: string | number;
   limit?: string | number;
+  search?: string;
 }
 
 export class PaginationHelper {
   static parseQueryParams(
     query: PaginationQueryParams,
     options: PaginationOptions = {},
-  ): { page: number; limit: number; skip: number } {
-    const {
-      defaultLimit = 10,
-      maxLimit = 100,
-    } = options;
+  ): { page: number; limit: number; skip: number; search?: string } {
+    const { defaultLimit = 10, maxLimit = 100 } = options;
 
     let page = 1;
     let limit = defaultLimit;
 
     if (query.page !== undefined) {
       const parsedPage =
-        typeof query.page === "string"
-          ? parseInt(query.page, 10)
-          : query.page;
+        typeof query.page === "string" ? parseInt(query.page, 10) : query.page;
       if (!isNaN(parsedPage) && parsedPage > 0) {
         page = parsedPage;
       }
@@ -72,6 +69,7 @@ export class PaginationHelper {
     findManyArgs: TFindManyArgs = {} as TFindManyArgs,
     paginationOptions: PaginationOptions = {},
   ): Promise<PaginatedResult<T>> {
+    const { traceId } = paginationOptions;
     try {
       const {
         defaultLimit = 10,
@@ -89,8 +87,8 @@ export class PaginationHelper {
 
       const countArgs =
         findManyArgs &&
-        typeof findManyArgs === "object" &&
-        "where" in findManyArgs
+          typeof findManyArgs === "object" &&
+          "where" in findManyArgs
           ? { where: (findManyArgs as any).where }
           : undefined;
 
@@ -120,6 +118,7 @@ export class PaginationHelper {
       };
     } catch (error) {
       logger.error("Error in pagination", {
+        traceId,
         error: error,
         method: "PaginationHelper.paginate",
       });
@@ -146,4 +145,3 @@ export class PaginationHelper {
 }
 
 export default PaginationHelper;
-

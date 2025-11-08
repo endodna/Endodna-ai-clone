@@ -1,5 +1,6 @@
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { CloudWatchLogsClient } from "@aws-sdk/client-cloudwatch-logs";
+import { S3Client } from "@aws-sdk/client-s3";
 import { logger } from "../helpers/logger.helper";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import https from "https";
@@ -7,6 +8,7 @@ import https from "https";
 class AWSHandler {
   private sqsClient: SQSClient | null = null;
   private cloudWatchLogsClient: CloudWatchLogsClient | null = null;
+  private s3Client: S3Client | null = null;
   private region: string;
 
   constructor() {
@@ -14,6 +16,7 @@ class AWSHandler {
 
     this.initializeSQS();
     this.initializeCloudWatchLogs();
+    this.initializeS3();
   }
 
   private createHttpAgent() {
@@ -81,6 +84,42 @@ class AWSHandler {
     return this.cloudWatchLogsClient;
   }
 
+  private initializeS3(): void {
+    try {
+      const httpAgent = this.createHttpAgent();
+      const requestHandler = new NodeHttpHandler({
+        httpsAgent: httpAgent,
+        connectionTimeout: 5000,
+        socketTimeout: 60000,
+      });
+
+      this.s3Client = new S3Client({
+        region: this.region,
+        requestHandler,
+        maxAttempts: 3,
+      });
+
+      logger.info("AWS S3 Client initialized", {
+        region: this.region,
+      });
+    } catch (error) {
+      logger.error("Failed to initialize AWS S3 Client", {
+        error: error,
+        region: this.region,
+      });
+    }
+  }
+
+  getS3Client(): S3Client {
+    if (!this.s3Client) {
+      this.initializeS3();
+      if (!this.s3Client) {
+        throw new Error("S3 client failed to initialize");
+      }
+    }
+    return this.s3Client;
+  }
+
   getRegion(): string {
     return this.region;
   }
@@ -88,4 +127,3 @@ class AWSHandler {
 
 export const aws = new AWSHandler();
 export default aws;
-

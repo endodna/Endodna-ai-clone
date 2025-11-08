@@ -50,8 +50,11 @@ export const DoctorAuthorization = async (
         message: "PasswordNotSet",
       });
     }
-    if (req.user?.userType === UserType.DOCTOR || req.user?.userType === UserType.ADMIN) {
-      next();
+    if (
+      req.user?.userType === UserType.DOCTOR ||
+      req.user?.userType === UserType.ADMIN
+    ) {
+      return next();
     }
     return sendResponse(res, {
       status: StatusCode.UNAUTHORIZED,

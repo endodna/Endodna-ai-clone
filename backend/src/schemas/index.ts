@@ -1,3 +1,4 @@
+import { MedicalRecordType } from "@prisma/client";
 import { z } from "zod";
 
 // Auth schemas
@@ -99,6 +100,9 @@ export const createPatientSchema = z
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     middleName: z.string().optional(),
+    gender: z.string().optional(),
+    dateOfBirth: z.date().optional(),
+    phoneNumber: z.string().optional(),
   })
   .strict();
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
@@ -129,3 +133,44 @@ export const forgotPasswordSchema = z
   })
   .strict();
 export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+
+export const getPatientsSchema = z
+  .object({
+    page: z.number().optional(),
+    limit: z.number().optional(),
+    search: z.string().trim().toLowerCase().optional(),
+  })
+  .strict();
+export type GetPatientsSchema = z.infer<typeof getPatientsSchema>;
+
+export const createPatientActiveMedicationSchema = z
+  .object({
+    drugName: z.string().min(1, "Drug name is required"),
+    dosage: z.string().min(1, "Dosage is required"),
+    frequency: z.string().min(1, "Frequency is required"),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+    reason: z.string().min(1, "Reason is required"),
+    notes: z.string().optional(),
+  })
+  .strict();
+export type CreatePatientActiveMedicationSchema = z.infer<
+  typeof createPatientActiveMedicationSchema
+>;
+
+export const patientIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+}).strict();
+export type PatientIdParamsSchema = z.infer<typeof patientIdParamsSchema>;
+
+export const medicationIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  medicationId: z.string().transform(val => Number(val))
+}).strict();
+export type MedicationIdParamsSchema = z.infer<typeof medicationIdParamsSchema>;
+
+export const createPatientMedicalRecordSchema = z.object({
+  title: z.string().optional(),
+  type: z.nativeEnum(MedicalRecordType).optional(),
+}).strict();
+export type CreatePatientMedicalRecordSchema = z.infer<typeof createPatientMedicalRecordSchema>;

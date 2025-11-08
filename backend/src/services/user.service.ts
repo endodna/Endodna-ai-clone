@@ -20,8 +20,14 @@ export interface CreateUserParams {
   lastName: string;
   middleName?: string;
   userType: PrismaUserType;
-  organizationId: string;
+  organizationId: number;
   userId: string;
+  status: Status;
+  managingDoctorId?: string;
+  gender?: string;
+  dateOfBirth?: Date;
+  phoneNumber?: string;
+  traceId?: string;
 }
 
 export interface CreateUserResult {
@@ -52,11 +58,16 @@ export class UserService {
         userType,
         organizationId,
         userId,
+        managingDoctorId,
+        gender,
+        dateOfBirth,
+        phoneNumber,
+        status,
       } = params;
 
       const organization = await prisma.organization.findFirst({
         where: {
-          uuid: organizationId,
+          id: organizationId,
         },
         select: {
           id: true,
@@ -121,11 +132,12 @@ export class UserService {
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(email, {
           redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
           data: {
-            userType: userType.toString().toLowerCase(),
+            userType: userType.toString(),
             organizationId,
             firstName,
             lastName,
             middleName,
+            status,
             organization: {
               id: organization.id,
               name: organization.name,
@@ -155,8 +167,11 @@ export class UserService {
           lastName,
           middleName,
           email,
-          status: Status.ACTIVE,
           userType,
+          managingDoctorId,
+          gender,
+          dateOfBirth,
+          phoneNumber,
         },
       });
 
@@ -166,6 +181,17 @@ export class UserService {
             organizationId: organization.id,
             userId: newUserId,
             userType,
+            status: Status.ACTIVE,
+          },
+        });
+      }
+
+      if (userType === PrismaUserType.PATIENT && managingDoctorId) {
+        await prisma.patientDoctor.create({
+          data: {
+            patientId: newUserId,
+            doctorId: managingDoctorId!,
+            status: Status.ACTIVE,
           },
         });
       }
@@ -177,6 +203,7 @@ export class UserService {
       };
     } catch (error) {
       logger.error("Error creating user", {
+        traceId: params.traceId,
         error: error,
         method: "UserService.createUser",
       });
@@ -266,6 +293,7 @@ export class UserService {
             organizationId: true,
             organization: {
               select: {
+                id: true,
                 uuid: true,
               },
             },
@@ -305,7 +333,7 @@ export class UserService {
       userId: user.id,
       sessionId,
       isPasswordSet: user.isPasswordSet,
-      organizationId: user.organizationUsers[0].organization.uuid!,
+      organizationId: user.organizationUsers[0].organization.id!,
     });
 
     await redis.set(SESSION_KEY(sessionId), session, ttl);
@@ -336,6 +364,7 @@ export class UserService {
       ]);
     } catch (error) {
       logger.error("Error creating user session", {
+        traceId: req.traceId,
         error: error,
         method: "UserService.completeUserLogin",
       });

@@ -17,11 +17,11 @@ export interface SQSMessage {
 
 export interface SQSPollingOptions {
   queueUrl: string;
-  maxNumberOfMessages?: number; 
+  maxNumberOfMessages?: number;
   waitTimeSeconds?: number; // 0-20, default 0 (short polling)
   visibilityTimeoutSeconds?: number; // default queue visibility timeout
   messageAttributeNames?: string[];
-  attributeNames?: string[]; 
+  attributeNames?: string[];
   onMessage?: (message: SQSMessage) => Promise<void>;
   onError?: (error: Error) => void;
   // Exponential backoff options
@@ -36,7 +36,6 @@ class SQSHelper {
   private isPolling: Map<string, boolean> = new Map();
   private consecutiveEmptyReceives: Map<string, number> = new Map();
   private currentBackoffInterval: Map<string, number> = new Map();
-
 
   private convertMessage(message: Message): SQSMessage {
     return {
@@ -75,14 +74,15 @@ class SQSHelper {
 
       if (!response.Messages || response.Messages.length === 0) {
         // Increment empty receive counter for exponential backoff
-        const currentEmptyCount = this.consecutiveEmptyReceives.get(queueUrl) || 0;
+        const currentEmptyCount =
+          this.consecutiveEmptyReceives.get(queueUrl) || 0;
         this.consecutiveEmptyReceives.set(queueUrl, currentEmptyCount + 1);
-        
+
         logger.debug("Empty SQS receive", {
           queueUrl,
           consecutiveEmptyReceives: currentEmptyCount + 1,
         });
-        
+
         return [];
       }
 
@@ -100,8 +100,9 @@ class SQSHelper {
 
       return messages;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isConnectionError = 
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isConnectionError =
         errorMessage.includes("ECONNRESET") ||
         errorMessage.includes("ETIMEDOUT") ||
         errorMessage.includes("ENOTFOUND") ||
@@ -120,10 +121,13 @@ class SQSHelper {
       }
 
       if (isConnectionError) {
-        logger.warn("Connection error detected, will retry on next poll cycle", {
-          queueUrl,
-          error: errorMessage,
-        });
+        logger.warn(
+          "Connection error detected, will retry on next poll cycle",
+          {
+            queueUrl,
+            error: errorMessage,
+          },
+        );
         return [];
       }
 
@@ -258,7 +262,7 @@ class SQSHelper {
       );
 
       const emptyReceives = this.consecutiveEmptyReceives.get(queueUrl) || 0;
-      
+
       if (emptyReceives > 0 && enableExponentialBackoff) {
         logger.debug(`Using exponential backoff for next poll`, {
           queueUrl,
@@ -288,7 +292,7 @@ class SQSHelper {
     }
 
     this.isPolling.set(queueUrl, false);
-    
+
     // Clean up backoff tracking
     this.consecutiveEmptyReceives.delete(queueUrl);
     this.currentBackoffInterval.delete(queueUrl);
@@ -310,10 +314,7 @@ class SQSHelper {
   /**
    * Delete a message from SQS queue after processing
    */
-  async deleteMessage(
-    queueUrl: string,
-    receiptHandle: string,
-  ): Promise<void> {
+  async deleteMessage(queueUrl: string, receiptHandle: string): Promise<void> {
     const sqsClient: SQSClient = aws.getSQSClient();
 
     try {
@@ -329,8 +330,9 @@ class SQSHelper {
         receiptHandle,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isConnectionError = 
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isConnectionError =
         errorMessage.includes("ECONNRESET") ||
         errorMessage.includes("ETIMEDOUT") ||
         errorMessage.includes("ENOTFOUND") ||
@@ -344,10 +346,13 @@ class SQSHelper {
       });
 
       if (isConnectionError) {
-        logger.warn("Connection error during message deletion, message will remain in queue and be retried", {
-          queueUrl,
-          error: errorMessage,
-        });
+        logger.warn(
+          "Connection error during message deletion, message will remain in queue and be retried",
+          {
+            queueUrl,
+            error: errorMessage,
+          },
+        );
       }
 
       throw error;
@@ -364,4 +369,3 @@ class SQSHelper {
 
 export const sqsHelper = new SQSHelper();
 export default sqsHelper;
-

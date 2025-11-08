@@ -133,7 +133,31 @@ resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
           ]
           Resource = "${var.cloudwatch_log_group_arn}"
         }
-      ] : []
+      ] : [],
+      # Bedrock permissions
+      [
+        {
+          Effect = "Allow"
+          Action = [
+            "bedrock:InvokeModel",
+            "bedrock:InvokeModelWithResponseStream",
+            "bedrock:ApplyGuardrail"
+          ]
+          Resource = [
+            "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v1",
+            "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0",
+            "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
+          ]
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "bedrock:GetFoundationModel",
+            "bedrock:ListFoundationModels"
+          ]
+          Resource = "*"
+        }
+      ]
     )
   })
 }

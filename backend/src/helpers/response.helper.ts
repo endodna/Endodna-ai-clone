@@ -120,8 +120,12 @@ export const sendResponse = (
     [StatusCode.INTERNAL_SERVER_ERROR]: StatusMessage.INTERNAL_SERVER_ERROR,
   };
 
-  const response: { data: any; error: any; message: string } = { data, error: false, message };
-  
+  const response: { data: any; error: any; message: string } = {
+    data,
+    error: false,
+    message,
+  };
+
   if (error) {
     const errorMessage = extractErrorMessage(error);
     if (process.env.NODE_ENV === "production") {
@@ -130,7 +134,7 @@ export const sendResponse = (
       response.error = errorMessage;
     }
   }
-  
+
   response.message = message ? message : statusMessages[status];
 
   const headers = responseHelper.getResponseHeaders(req || {});

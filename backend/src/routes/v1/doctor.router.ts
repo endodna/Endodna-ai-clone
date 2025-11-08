@@ -1,17 +1,86 @@
 import { Router } from "express";
-import AdminController from "../../controllers/AdminController";
 import { Authentication } from "../../middlewares/Authentication";
 import { DoctorAuthorization } from "../../middlewares/Authorization";
-import { validate } from "../../middlewares/Validator";
-import { createPatientSchema } from "../../schemas";
+import { validate, validateParams, validateQuery } from "../../middlewares/Validator";
+import {
+  createPatientActiveMedicationSchema,
+  createPatientMedicalRecordSchema,
+  createPatientSchema,
+  getPatientsSchema,
+  medicationIdParamsSchema,
+  patientIdParamsSchema,
+} from "../../schemas";
+import DoctorController from "../../controllers/DoctorController";
+import { uploadMultiple } from "../../middlewares/FileUpload";
 
 const doctorRouter = Router().use("/", Authentication, DoctorAuthorization);
 
-// Routes
+// Patient Routes
 doctorRouter.post(
   "/patient",
   validate(createPatientSchema),
-  AdminController.createPatient,
+  DoctorController.createPatient,
+);
+doctorRouter.get(
+  "/patients",
+  validateQuery(getPatientsSchema),
+  DoctorController.getPatients,
+);
+doctorRouter.get("/patients/:patientId",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatient
+);
+
+// Medication Routes
+doctorRouter.post(
+  "/patients/:patientId/medications",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientActiveMedicationSchema),
+  DoctorController.createPatientActiveMedication,
+);
+doctorRouter.get(
+  "/patients/:patientId/medications",
+  DoctorController.getPatientActiveMedication,
+);
+doctorRouter.put(
+  "/patients/:patientId/medications/:medicationId",
+  validateParams(medicationIdParamsSchema),
+  validate(createPatientActiveMedicationSchema),
+  DoctorController.updatePatientActiveMedication,
+);
+doctorRouter.delete(
+  "/patients/:patientId/medications/:medicationId",
+  validateParams(medicationIdParamsSchema),
+  DoctorController.deletePatientActiveMedication,
+);
+
+// Medical Record Routes
+doctorRouter.post(
+  "/patients/:patientId/medical-records",
+  validateParams(patientIdParamsSchema),
+  uploadMultiple,
+  validate(createPatientMedicalRecordSchema),
+  DoctorController.uploadMultipleMedicalRecords,
+);
+
+doctorRouter.get(
+  "/patients/:patientId/medical-records",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getMedicalRecords,
+);
+
+// AI Summary Routes
+doctorRouter.get(
+  "/patients/:patientId/summary",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientAISummary,
+);
+
+// Genetics Routes
+doctorRouter.get(
+  "/patients/:patientId/genetics",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientGenetics,
 );
 
 export default doctorRouter;

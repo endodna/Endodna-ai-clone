@@ -14,6 +14,11 @@ declare global {
       SQS_TEMPUS_LAB_QUEUE_URL: string;
       CLOUDWATCH_LOG_ARN: string;
       CLOUDWATCH_LOG_GROUP: string;
+      S3_PRIVATE_BUCKET: string;
+      S3_LAB_PROCESSING_BUCKET: string;
+      MEDICAL_RECORDS_PROCESSING_CRON: string;
+      AWS_REGION: string;
+      RUN_MEDICAL_RECORDS_PROCESSING_ON_START: string;
     }
   }
 }

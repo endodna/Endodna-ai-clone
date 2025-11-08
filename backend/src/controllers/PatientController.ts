@@ -19,11 +19,15 @@ class PatientController {
         method: "getProfile",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to fetch profile",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch profile",
+        },
+        req,
+      );
     }
   }
 }

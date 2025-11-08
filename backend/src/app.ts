@@ -63,11 +63,11 @@ app.use(function (error: Error, req: Request, res: Response) {
 });
 
 process.on("unhandledRejection", function (error) {
-  logger.error("Unhandled rejection", { error: String(error) });
+  logger.error("Unhandled rejection", { error: error });
 });
 
 process.on("uncaughtException", function (error) {
-  logger.error("Uncaught exception", { error: String(error) });
+  logger.error("Uncaught exception", { error: error });
 });
 
 // starting the app

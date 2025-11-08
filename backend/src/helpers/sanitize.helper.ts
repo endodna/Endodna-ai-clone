@@ -35,8 +35,8 @@ function sanitizeObject(obj: any, depth: number = 0): any {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
       const lowerKey = key.toLowerCase();
-      const isSensitive = SENSITIVE_FIELDS.some(
-        (field) => lowerKey.includes(field.toLowerCase()),
+      const isSensitive = SENSITIVE_FIELDS.some((field) =>
+        lowerKey.includes(field.toLowerCase()),
       );
 
       if (isSensitive) {
@@ -58,4 +58,3 @@ export function sanitizeForLogging(data: any): any {
 }
 
 export default sanitizeForLogging;
-

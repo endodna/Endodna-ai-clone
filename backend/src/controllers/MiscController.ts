@@ -20,11 +20,15 @@ class MiscController {
         method: "getMenu",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to fetch menu",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch menu",
+        },
+        req,
+      );
     }
   }
 }

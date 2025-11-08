@@ -9,7 +9,7 @@ import {
   SESSION_KEY,
 } from "../utils/constants";
 import redis from "../lib/redis";
-import { Priority } from "@prisma/client";
+import { Priority, Status } from "@prisma/client";
 import {
   ForgotPasswordSchema,
   LoginSchema,
@@ -19,6 +19,7 @@ import {
 import { logger } from "../helpers/logger.helper";
 import { UserService } from "../services/user.service";
 import { verifySupabaseToken } from "../helpers/encryption.helper";
+import { RequestWithTrace } from "../middlewares/Logger";
 
 class AuthController {
   public static async login(req: AuthenticatedRequest, res: Response) {
@@ -78,11 +79,11 @@ class AuthController {
     }
   }
 
-  public static async validateLogin(req: Request, res: Response) {
+  public static async validateLogin(req: RequestWithTrace, res: Response) {
     try {
       const { token } = req.body as ValidateLoginSchema;
 
-      const verifyToken = await verifySupabaseToken(token);
+      const verifyToken = await verifySupabaseToken(token, req.traceId);
 
       if (!verifyToken) {
         return sendResponse(res, {
@@ -219,11 +220,15 @@ class AuthController {
         method: "signOut",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Sign out failed",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Sign out failed",
+        },
+        req,
+      );
     }
   }
 
@@ -263,11 +268,15 @@ class AuthController {
         method: "getProfile",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to get profile",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get profile",
+        },
+        req,
+      );
     }
   }
 
@@ -276,7 +285,7 @@ class AuthController {
       const { password } = req.body as SetPasswordSchema;
       const auth = req.headers.authorization || "";
       const token =
-      auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
+        auth && auth.split(" ").length === 2 ? auth.split(" ")[1] : null;
       if (!token) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
@@ -325,6 +334,7 @@ class AuthController {
           },
           data: {
             isPasswordSet: true,
+            status: Status.ACTIVE,
           },
         }),
         prisma.userAuditLog.create({
@@ -335,7 +345,6 @@ class AuthController {
           },
         }),
       ]);
-      
 
       return sendResponse(res, {
         status: StatusCode.OK,
@@ -348,11 +357,15 @@ class AuthController {
         method: "setPassword",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to set password",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to set password",
+        },
+        req,
+      );
     }
   }
 

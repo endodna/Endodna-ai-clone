@@ -1,5 +1,6 @@
 import { logger } from "../helpers/logger.helper";
 import sqsHelper from "../helpers/sqs.helper";
+import tempusService from "../services/tempus.service";
 
 class QueueController {
   public static initializePolling(): void {
@@ -32,8 +33,18 @@ class QueueController {
             messageId: message.messageId,
             data,
           });
-
-         
+          if (data.bucket && data.key) {
+            await tempusService.processDNAFile({
+              bucket: data.bucket,
+              key: data.key,
+              traceId: message.messageId,
+            });
+          } else {
+            logger.warn("Tempus Lab message missing bucket or key", {
+              messageId: message.messageId,
+              data,
+            });
+          }
         } catch (error) {
           logger.error("Error processing file processing SQS message", {
             messageId: message.messageId,
@@ -76,7 +87,6 @@ class QueueController {
             messageId: message.messageId,
             data,
           });
-
         } catch (error) {
           logger.error("Error processing Tempus Lab SQS message", {
             messageId: message.messageId,
@@ -105,7 +115,6 @@ class QueueController {
     }
   }
 
-
   private static stopTempusLabPolling(): void {
     const queueUrl = process.env.SQS_TEMPUS_LAB_QUEUE_URL;
 
@@ -125,4 +134,3 @@ class QueueController {
 }
 
 export default QueueController;
-

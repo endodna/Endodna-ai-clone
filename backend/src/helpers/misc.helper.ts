@@ -16,7 +16,7 @@ export const buildRedisSession = ({
   userType: UserType;
   userId: string;
   sessionId: string;
-  organizationId?: string;
+  organizationId?: number;
   isPasswordSet?: boolean;
   data?: Record<string, any>;
 }) => {

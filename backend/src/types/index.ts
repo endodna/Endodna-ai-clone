@@ -14,7 +14,7 @@ export interface AuthenticatedRequest extends Request {
     userId: string;
     userType: UserType;
     sessionId: string;
-    organizationId?: string;
+    organizationId?: number;
     isPasswordSet?: boolean;
   };
 }
@@ -108,6 +108,6 @@ export interface ResponseHeader {
 export interface ResponseOptions {
   status: StatusCode;
   error?: any;
-  data?: object | boolean| null;
+  data?: object | boolean | null;
   message?: string;
 }

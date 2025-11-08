@@ -67,13 +67,13 @@ function formatErrorForLogging(error: any): Record<string, any> {
       name: error.name,
     };
   }
-  
+
   if (typeof error === "string") {
     return {
       error,
     };
   }
-  
+
   if (typeof error === "object" && error !== null) {
     return {
       error: error.message || error.error || String(error),
@@ -81,7 +81,7 @@ function formatErrorForLogging(error: any): Record<string, any> {
       ...error,
     };
   }
-  
+
   return {
     error: String(error),
   };

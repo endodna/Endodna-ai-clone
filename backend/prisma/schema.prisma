@@ -61,17 +61,27 @@ model AdminSession {
 }
 
 model Organization {
-  id                      Int                        @id @default(autoincrement())
-  uuid                    String                     @default(uuid())
-  name                    String
-  isPrimary               Boolean                    @default(false)
-  createdBy               String
-  createdByAdmin          Admin?                     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  customizations          OrganizationCustomization?
-  createdAt               DateTime                   @default(now())
-  updatedAt               DateTime                   @updatedAt
-  organizationUser        OrganizationUser[]
-  organizationUserInvites OrganizationUserInvites[]
+  id                       Int                        @id @default(autoincrement())
+  uuid                     String                     @default(uuid())
+  name                     String
+  isPrimary                Boolean                    @default(false)
+  createdBy                String
+  createdByAdmin           Admin?                     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  customizations           OrganizationCustomization?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  organizationUser         OrganizationUser[]
+  organizationUserInvites  OrganizationUserInvites[]
+  patientActivities        PatientActivity[]
+  patientAllergies         PatientAllergy[]
+  patientActiveMedications PatientActiveMedication[]
+  patientProblemLists      PatientProblemList[]
+  patientGoals             PatientGoal[]
+  patientTreatmentPlans    PatientTreatmentPlan[]
+  patientChartNotes        PatientMedicalRecord[]
+  patientLabResults        PatientLabResult[]
+  patientDNAResults        PatientDNAResultKit[]
+  tokenUsage               TokenUsage[]
 }
 
 model OrganizationCustomization {
@@ -89,6 +99,7 @@ model OrganizationUser {
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userType       UserType     @default(PATIENT)
+  status         Status       @default(PENDING)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -109,22 +120,259 @@ model OrganizationUserInvites {
 }
 
 model User {
-  id                      String                    @id @unique
-  firstName               String
-  lastName                String
-  email                   String?                   @unique
-  middleName              String?
-  photo                   String?
-  isPasswordSet           Boolean                   @default(false)
-  status                  Status                    @default(PENDING)
-  userType                UserType?                 @default(PATIENT)
-  logins                  UserLogin[]
-  auditLogs               UserAuditLog[]
-  organizationUsers       OrganizationUser[]
-  organizationUserInvites OrganizationUserInvites[]
-  sessions                UserSession[]
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
+  id                       String                    @id @unique
+  firstName                String
+  lastName                 String
+  email                    String?                   @unique
+  middleName               String?
+  photo                    String?
+  phoneNumber              String?
+  dateOfBirth              DateTime?
+  managingDoctorId         String?
+  gender                   String?
+  address                  Json?
+  emergencyContact         Json?
+  isPasswordSet            Boolean                   @default(false)
+  status                   Status                    @default(PENDING)
+  userType                 UserType?                 @default(PATIENT)
+  logins                   UserLogin[]
+  auditLogs                UserAuditLog[]
+  organizationUsers        OrganizationUser[]
+  organizationUserInvites  OrganizationUserInvites[]
+  sessions                 UserSession[]
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  managingDoctor           User?                     @relation("ManagingDoctor", fields: [managingDoctorId], references: [id])
+  patientsManaged          User[]                    @relation("ManagingDoctor")
+  userDoctors              PatientDoctor[]           @relation("Patient")
+  userPatients             PatientDoctor[]           @relation("Doctor")
+  userPatientActivities    PatientActivity[]
+  patientAllergies         PatientAllergy[]
+  patientProblemLists      PatientProblemList[]
+  patientGoals             PatientGoal[]
+  patientTreatmentPlans    PatientTreatmentPlan[]
+  patientMedicalRecords    PatientMedicalRecord[]    @relation("Patient")
+  doctorMedicalRecords     PatientMedicalRecord[]    @relation("Doctor")
+  patientLabResults        PatientLabResult[]
+  patientDNAResults        PatientDNAResultKit[]
+  patientActiveMedications PatientActiveMedication[] @relation("Patient")
+  doctorGivenMedications   PatientActiveMedication[] @relation("Doctor")
+  tokenUsage               TokenUsage[]
+}
+
+model PatientActivity {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity       String
+  dateRequested  DateTime?    @default(now())
+  dateCompleted  DateTime?
+  status         Status       @default(PENDING)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientDoctor {
+  id          Int       @id @unique @default(autoincrement())
+  patientId   String
+  doctorId    String
+  patient     User      @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User      @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  status      Status    @default(PENDING)
+  dateRemoved DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PatientAllergy {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergen       String
+  reactionType   String
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientActiveMedication {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         User         @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  drugName       String
+  dosage         String
+  frequency      String
+  startDate      DateTime?
+  endDate        DateTime?
+  reason         String
+  notes          String?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientProblemList {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  problem        String
+  severity       String
+  status         Status       @default(PENDING)
+  notes          String
+  onsetDate      DateTime
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientGoal {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  description    String
+  targetDate     DateTime
+  allergies      Int[]
+  medications    Int[]
+  problems       Int[]
+  treatments     Int[]
+  status         Status       @default(PENDING)
+  notes          String
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientTreatmentPlan {
+  id               Int          @id @unique @default(autoincrement())
+  organizationId   Int
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId        String
+  patient          User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  planName         String
+  planContent      Json?
+  startDate        DateTime
+  endDate          DateTime
+  sourceTemplateId String?
+  status           Status       @default(PENDING)
+  deletedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model PatientMedicalRecord {
+  id                     Int                         @id @unique @default(autoincrement())
+  organizationId         Int
+  organization           Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId              String
+  patient                User                        @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  content                Json?
+  title                  String?
+  type                   MedicalRecordType?          @default(CONSULTATION)
+  sourceUrl              String
+  fileMetadata           Json                        @default("{}")
+  isProcessed            Boolean                     @default(false)
+  isFailedProcessing     Boolean                     @default(false)
+  failedProcessingReason String?
+  doctorId               String
+  doctor                 User                        @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  chunks                 PatientMedicalRecordChunk[]
+  deletedAt              DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+
+  @@index([patientId, organizationId])
+}
+
+model PatientMedicalRecordChunk {
+  id                     Int                          @id @unique @default(autoincrement())
+  patientMedicalRecordId Int
+  patientMedicalRecord   PatientMedicalRecord         @relation(fields: [patientMedicalRecordId], references: [id], onDelete: Cascade)
+  chunkText              String
+  chunkIndex             Int
+  embedding              Unsupported("vector(1536)")?
+  metadata               Json?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+
+  @@index([patientMedicalRecordId])
+}
+
+model PatientDNAResultKit {
+  id                        Int                         @id @unique @default(autoincrement())
+  organizationId            Int
+  organization              Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId                 String
+  patient                   User                        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  barcode                   String
+  fileMetadata              Json                        @default("{}")
+  status                    DNAResultStatus             @default(PENDING)
+  isFailedProcessing        Boolean                     @default(false)
+  failedProcessingReason    String?
+  isProcessed               Boolean                     @default(false)
+  deletedAt                 DateTime?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  patientDNAResultActivity  PatientDNAResultActivity[]
+  patientDNAResultBreakdown PatientDNAResultBreakdown[]
+}
+
+model PatientDNAResultBreakdown {
+  id                 Int                 @id @unique @default(autoincrement())
+  patientDNAResultId Int
+  patientDNAResult   PatientDNAResultKit @relation(fields: [patientDNAResultId], references: [id], onDelete: Cascade)
+  snpName            String
+  chromosome         String
+  position           Int
+  referenceAllele    String
+  alternateAllele    String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model PatientDNAResultActivity {
+  id                 Int                 @id @unique @default(autoincrement())
+  patientDNAResultId Int
+  patientDNAResult   PatientDNAResultKit @relation(fields: [patientDNAResultId], references: [id], onDelete: Cascade)
+  activity           String
+  status             DNAResultStatus     @default(KIT_RECEIVED)
+  metadata           Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model PatientLabResult {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bioMarkerName  String
+  value          String
+  unit           String?
+  referenceRange String?
+  status         Status?
+  collectionDate DateTime?
+  reportName     String?
+  reportData     Json?
+  sourceUrl      String?
+  isProcessed    Boolean      @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model UserLogin {
@@ -167,6 +415,45 @@ enum Status {
   DEACTIVATED
   BLOCKED
   DELETED
+  ACHIEVED
+  IN_PROGRESS
+  CANCELLED
+  RESOLVED
+  IN_RANGE
+  OUT_OF_RANGE
+  LOW
+  HIGH
+  ANOMALOUS
+  READY
+}
+
+enum DNAResultStatus {
+  PENDING
+  KIT_RECEIVED
+  QC_FAILED
+  QC_PASSED
+  DNA_EXTRACTION_2ND_FAILED
+  DNA_EXTRACTION_FAILED
+  DNA_EXTRACTION_2ND_ACCEPTED
+  DNA_EXTRACTION_ACCEPTED
+  GENOTYPING_2ND_FAILED
+  GENOTYPING_FAILED
+  GENOTYPING_2ND_ACCEPTED
+  GENOTYPING_ACCEPTED
+  HOLD
+  PROCESS
+  CANCEL
+  DISCARD
+}
+
+enum MedicalRecordType {
+  CONSULTATION
+  DIAGNOSIS
+  TREATMENT
+  FOLLOW_UP
+  EMERGENCY
+  LAB_RESULT
+  IMAGING
 }
 
 enum Priority {
@@ -181,4 +468,44 @@ enum UserType {
   ADMIN
   SUPER_ADMIN
   DOCTOR
+}
+
+enum TaskType {
+  MEDICAL_RECORD_PROCESSING
+  PATIENT_SUMMARY_GENERATION
+  DOCUMENT_EMBEDDING
+  SIMILARITY_SEARCH
+  TREATMENT_PLAN_GENERATION
+  DIAGNOSIS_ASSISTANCE
+  OTHER
+}
+
+enum RequestType {
+  EMBEDDING
+  TEXT_GENERATION
+  TEXT_EMBEDDING
+  CHAT_COMPLETION
+}
+
+model TokenUsage {
+  id             Int          @id @unique @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String?
+  patient        User?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  taskId         Int?
+  taskType       TaskType
+  requestType    RequestType
+  modelId        String
+  modelType      String
+  inputTokens    Int
+  outputTokens   Int
+  totalTokens    Int
+  inputCost      Decimal      @db.Decimal(10, 6)
+  outputCost     Decimal      @db.Decimal(10, 6)
+  totalCost      Decimal      @db.Decimal(10, 6)
+  cacheHit       Boolean      @default(false)
+  latencyMs      Int?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
 }

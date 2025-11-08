@@ -4,7 +4,13 @@ import { AuthenticatedRequest, StatusCode } from "../types";
 import { prisma } from "../lib/prisma";
 import { logger } from "../helpers/logger.helper";
 import { supabase } from "../lib/supabase";
-import { Priority, Status, UserType as PrismaUserType, Organization, Prisma } from "@prisma/client";
+import {
+  Priority,
+  Status,
+  UserType as PrismaUserType,
+  Organization,
+  Prisma,
+} from "@prisma/client";
 import { UserType } from "../types";
 import redis from "../lib/redis";
 import { SESSION_KEY } from "../utils/constants";
@@ -80,11 +86,15 @@ class SAdminController {
         method: "createSuperAdmin",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to create super admin",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create super admin",
+        },
+        req,
+      );
     }
   }
 
@@ -180,11 +190,15 @@ class SAdminController {
         method: "login",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to login",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to login",
+        },
+        req,
+      );
     }
   }
 
@@ -335,11 +349,15 @@ class SAdminController {
         method: "provisionOrganization",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to provision organization",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to provision organization",
+        },
+        req,
+      );
     }
   }
 
@@ -358,6 +376,19 @@ class SAdminController {
         middleName,
       } = req.body as CreateOrganizationAdminSchema;
 
+      const organization = await prisma.organization.findFirst({
+        where: {
+          uuid: organizationId,
+        },
+      });
+      if (!organization) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Invalid organization",
+        });
+      }
+
       const result = await UserService.createUser({
         email,
         password,
@@ -365,8 +396,10 @@ class SAdminController {
         lastName,
         middleName,
         userType: PrismaUserType.ADMIN,
-        organizationId,
-        userId
+        organizationId: organization.id!,
+        userId,
+        status: Status.PENDING,
+        traceId: req.traceId,
       });
 
       await prisma.adminAuditLog.create({
@@ -402,11 +435,15 @@ class SAdminController {
         method: "createOrganizationAdmin",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to create organization admin",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create organization admin",
+        },
+        req,
+      );
     }
   }
 
@@ -419,11 +456,15 @@ class SAdminController {
         method: "getProfile",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to get profile",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get profile",
+        },
+        req,
+      );
     }
   }
 
@@ -434,10 +475,13 @@ class SAdminController {
     try {
       const { page, limit } = PaginationHelper.parseQueryParams(req.query);
 
-      const result = await PaginationHelper.paginate<Organization, Prisma.OrganizationFindManyArgs>(
+      const result = await PaginationHelper.paginate<
+        Organization,
+        Prisma.OrganizationFindManyArgs
+      >(
         prisma.organization,
         {
-          select: { 
+          select: {
             uuid: true,
             name: true,
             isPrimary: true,
@@ -457,6 +501,7 @@ class SAdminController {
         {
           page,
           limit,
+          traceId: req.traceId,
         },
       );
 
@@ -474,11 +519,15 @@ class SAdminController {
         method: "getOrganizations",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to get organizations",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get organizations",
+        },
+        req,
+      );
     }
   }
 
@@ -491,11 +540,15 @@ class SAdminController {
         method: "getUsers",
         error: err,
       });
-      sendResponse(res, {
-        status: StatusCode.INTERNAL_SERVER_ERROR,
-        error: err,
-        message: "Failed to get users",
-      }, req);
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get users",
+        },
+        req,
+      );
     }
   }
 }
