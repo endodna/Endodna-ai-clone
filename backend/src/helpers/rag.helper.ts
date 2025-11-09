@@ -1,8 +1,10 @@
 import { prisma } from "../lib/prisma";
 import { logger } from "./logger.helper";
-import bedrockHelper from "./bedrock.helper";
+import bedrockHelper from "./aws/bedrock.helper";
 import { TaskType } from "@prisma/client";
 import redis from "../lib/redis";
+import { buildOrganizationUserFilter } from "./organization-user.helper";
+import tokenUsageHelper, { MODEL_ID } from "./token-usage.helper";
 
 export interface PatientSummaryParams {
     patientId: string;
@@ -35,15 +37,21 @@ class RAGHelper {
         return `PATIENT_SUMMARY:${organizationId}:${patientId}`;
     }
 
+    private getPatientSummaryCacheHitCountKey(organizationId: number, patientId: string): string {
+        return `PATIENT_SUMMARY_HIT_COUNT:${organizationId}:${patientId}`;
+    }
+
     async invalidatePatientSummaryCache(
         organizationId: number,
         patientId: string,
         traceId?: string,
     ): Promise<void> {
         const cacheKey = this.getPatientSummaryCacheKey(organizationId, patientId);
+        const cacheHitCountKey = this.getPatientSummaryCacheHitCountKey(organizationId, patientId);
 
         try {
             const deleted = await redis.del(cacheKey);
+            await redis.del(cacheHitCountKey);
             logger.info("Patient summary cache invalidated", {
                 traceId,
                 patientId,
@@ -59,6 +67,42 @@ class RAGHelper {
                 cacheKey,
                 error: error,
             });
+        }
+    }
+
+    async invalidateAllPatientSummaryCaches(traceId?: string): Promise<void> {
+        try {
+            const cacheKeys = await redis.keys("PATIENT_SUMMARY:*");
+            const cacheHitCountKeys = await redis.keys("PATIENT_SUMMARY_HIT_COUNT:*");
+
+            const allKeys = [...cacheKeys, ...cacheHitCountKeys];
+
+            if (allKeys.length === 0) {
+                logger.info("No patient summary caches to invalidate", {
+                    traceId,
+                });
+                return;
+            }
+
+            let deletedCount = 0;
+            for (const key of allKeys) {
+                const deleted = await redis.del(key);
+                if (deleted > 0) {
+                    deletedCount++;
+                }
+            }
+
+            logger.info("All patient summary caches invalidated", {
+                traceId,
+                totalKeys: allKeys.length,
+                deletedCount,
+            });
+        } catch (error) {
+            logger.error("Error invalidating all patient summary caches", {
+                traceId,
+                error: error,
+            });
+            throw error;
         }
     }
 
@@ -276,10 +320,10 @@ class RAGHelper {
 
     private formatMedicalRecordChunks(chunks: RelevantChunk[]): string {
         if (!chunks || chunks.length === 0) {
-            return "MEDICAL RECORDS: No medical record content available.\n\n";
+            return "MEDICAL RECORDS: No medical record content available.<br>";
         }
 
-        let formatted = `MEDICAL RECORDS CONTENT (Most Relevant Chunks):\n\n`;
+        let formatted = `MEDICAL RECORDS CONTENT (Most Relevant Chunks):<br>`;
 
         const chunksByRecord = chunks.reduce((acc: any, chunk: RelevantChunk) => {
             const recordId = chunk.patientMedicalRecord.id;
@@ -300,7 +344,7 @@ class RAGHelper {
             if (record.createdAt) {
                 formatted += ` - Date: ${record.createdAt}`;
             }
-            formatted += ` ---\n\n`;
+            formatted += ` ---<br><br>`;
 
             record.chunks
                 .sort((a: RelevantChunk, b: RelevantChunk) => {
@@ -314,7 +358,7 @@ class RAGHelper {
                     if (chunk.similarity !== null && chunk.similarity !== undefined) {
                         formatted += ` [Relevance: ${(chunk.similarity * 100).toFixed(1)}%]`;
                     }
-                    formatted += `\n\n`;
+                    formatted += `<br><br>`;
                 });
         });
 
@@ -322,32 +366,32 @@ class RAGHelper {
     }
 
     private formatPatientData(patient: any): string {
-        let formatted = `PATIENT INFORMATION:\n`;
-        formatted += `Name: ${patient.firstName} ${patient.middleName || ""} ${patient.lastName}\n`;
+        let formatted = `PATIENT INFORMATION:<br>`;
+        formatted += `Name: ${patient.firstName} ${patient.middleName || ""} ${patient.lastName}<br>`;
         if (patient.dateOfBirth) {
-            formatted += `Date of Birth: ${patient.dateOfBirth}\n`;
+            formatted += `Date of Birth: ${patient.dateOfBirth}<br>`;
         }
         if (patient.gender) {
-            formatted += `Gender: ${patient.gender}\n`;
+            formatted += `Gender: ${patient.gender}<br>`;
         }
         if (patient.phoneNumber) {
-            formatted += `Phone: ${patient.phoneNumber}\n`;
+            formatted += `Phone: ${patient.phoneNumber}<br>`;
         }
         if (patient.email) {
-            formatted += `Email: ${patient.email}\n`;
+            formatted += `Email: ${patient.email}<br>`;
         }
-        formatted += `\n`;
+        formatted += `<br>`;
 
         if (patient.patientAllergies && patient.patientAllergies.length > 0) {
-            formatted += `ALLERGIES:\n`;
+            formatted += `ALLERGIES:<br>`;
             patient.patientAllergies.forEach((allergy: any) => {
-                formatted += `- ${allergy.allergen} (Reaction: ${allergy.reactionType})\n`;
+                formatted += `- ${allergy.allergen} (Reaction: ${allergy.reactionType})<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         if (patient.patientActiveMedications && patient.patientActiveMedications.length > 0) {
-            formatted += `ACTIVE MEDICATIONS:\n`;
+            formatted += `ACTIVE MEDICATIONS:<br>`;
             patient.patientActiveMedications.forEach((med: any) => {
                 formatted += `- ${med.drugName} (${med.dosage}, ${med.frequency})`;
                 if (med.reason) {
@@ -356,45 +400,45 @@ class RAGHelper {
                 if (med.notes) {
                     formatted += ` - Notes: ${med.notes}`;
                 }
-                formatted += `\n`;
+                formatted += `<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         if (patient.patientProblemLists && patient.patientProblemLists.length > 0) {
-            formatted += `PROBLEM LIST:\n`;
+            formatted += `PROBLEM LIST:<br>`;
             patient.patientProblemLists.forEach((problem: any) => {
                 formatted += `- ${problem.problem} (Severity: ${problem.severity}, Status: ${problem.status})`;
                 if (problem.notes) {
                     formatted += ` - Notes: ${problem.notes}`;
                 }
-                formatted += `\n`;
+                formatted += `<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         if (patient.patientGoals && patient.patientGoals.length > 0) {
-            formatted += `GOALS:\n`;
+            formatted += `GOALS:<br>`;
             patient.patientGoals.forEach((goal: any) => {
                 formatted += `- ${goal.description} (Target Date: ${goal.targetDate}, Status: ${goal.status})`;
                 if (goal.notes) {
                     formatted += ` - Notes: ${goal.notes}`;
                 }
-                formatted += `\n`;
+                formatted += `<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         if (patient.patientTreatmentPlans && patient.patientTreatmentPlans.length > 0) {
-            formatted += `TREATMENT PLANS:\n`;
+            formatted += `TREATMENT PLANS:<br>`;
             patient.patientTreatmentPlans.forEach((plan: any) => {
-                formatted += `- ${plan.planName} (${plan.startDate} to ${plan.endDate}, Status: ${plan.status})\n`;
+                formatted += `- ${plan.planName} (${plan.startDate} to ${plan.endDate}, Status: ${plan.status})<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         if (patient.patientLabResults && patient.patientLabResults.length > 0) {
-            formatted += `LAB RESULTS:\n`;
+            formatted += `LAB RESULTS:<br>`;
             patient.patientLabResults.forEach((lab: any) => {
                 formatted += `- ${lab.bioMarkerName}: ${lab.value} ${lab.unit || ""}`;
                 if (lab.referenceRange) {
@@ -403,47 +447,102 @@ class RAGHelper {
                 if (lab.status) {
                     formatted += ` - Status: ${lab.status}`;
                 }
-                formatted += `\n`;
+                formatted += `<br>`;
             });
-            formatted += `\n`;
+            formatted += `<br>`;
         }
 
         return formatted;
     }
 
+    private replaceNewlinesWithBr(text: string): string {
+        if (!text) {
+            return text;
+        }
+        return text.replace(/\n/g, '<br>');
+    }
+
     private buildSummarySystemPrompt(): string {
-        return `You are a clinical AI assistant generating concise, accurate patient summaries for healthcare providers.
+        return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers.
       
-      Guidelines:
-      1. Focus on clinically relevant information.
-      2. Organize logically: demographics, conditions, medications, allergies, treatments, and recent findings.
-      3. Highlight key updates and important abnormalities.
-      4. Use professional medical terminology appropriately.
-      5. If data is missing, note it briefly.
-      6. Never infer or fabricate details.
-      7. Maintain patient privacy at all times.
-      
-      End every summary with this disclaimer:
-        "Disclaimer: This summary is generated automatically for clinical reference and does not replace professional medical judgment."`;
+        Guidelines:
+        1. Present the entire summary in **Markdown** format.
+        2. Use clear section headers (##) for major categories such as demographics, conditions, medications, allergies, and treatments.
+        3. Highlight important data using **bold** or bullet points when appropriate.
+        4. Be factual and concise — avoid speculation or filler.
+        5. Extract ALL clinical information from medical records, including medications, allergies, diagnoses, treatments, and lab results, even if they are not explicitly listed in the structured patient data section.
+        6. Combine information from both structured patient data and medical record content. If the same information appears in both sources, use the most recent or most detailed version.
+        7. For date calculations, ALWAYS use the patient's date of birth when calculating age. Calculate age accurately by subtracting the birthdate from the current date or reference date. When converting dates to years (e.g., age, duration of condition), be precise and accurate.
+        8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
+        9. Maintain privacy and confidentiality.
+        10. Do **not** include instructions or meta-comments in the output.
+        11. For line breaks in markdown: Use two spaces followed by a newline for line breaks within a paragraph, or use two newlines for paragraph breaks. Do NOT use literal <br> characters - use actual newlines.
+        
+        At the end of every summary, include this markdown disclaimer block:
+        
+        ---
+        
+        *Disclaimer: This summary is generated automatically for clinical reference and does not replace professional medical judgment.*
+        
+        ---`;
     }
 
     private buildSummaryUserPrompt(patientData: string, medicalRecords: string): string {
-        return `Generate a concise, well-structured patient summary based on the following data:
-        
+        const currentDate = new Date();
+        const currentDateISO = currentDate.toISOString();
+        const currentDateFormatted = currentDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+        const currentTimeFormatted = currentDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'UTC',
+            hour12: false
+        });
+
+        return `Generate a structured **Markdown** summary using the information below.
+      
+        ### Current Date and Time
+        Current Date: ${currentDateFormatted}
+        Current Time: ${currentTimeFormatted}
+        ISO 8601 Format: ${currentDateISO}
+      
+        ### Patient Data
         ${patientData}
         
+        ### Medical Records
         ${medicalRecords}
         
-        Include:
-        - Patient demographics
-        - Active problems and diagnoses
-        - Current medications and dosages
-        - Known allergies
-        - Treatment plans and goals
-        - Recent labs and key results
-        - Brief medical history overview
+        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records, even if it's not explicitly listed in the Patient Data section above. This includes:
+        - Medications (current and past) mentioned in medical records
+        - Allergies and adverse reactions documented in records
+        - Medical conditions, diagnoses, and problem lists
+        - Treatment plans and interventions
+        - Lab results and diagnostic findings
+        - Clinical observations and assessments
         
-        Keep it factual, clinically relevant, and under 400 words. End with the standard disclaimer.`;
+        **DATE CALCULATIONS**: When calculating age or converting dates to years:
+        - ALWAYS use the patient's Date of Birth from the Patient Data section above
+        - Use the Current Date and Time provided above as the reference date for all calculations
+        - Calculate age accurately by subtracting the birthdate from the current date provided above
+        - Be precise when converting dates to years (e.g., age, duration of conditions, medication duration)
+        - Do not estimate or approximate ages - calculate them accurately using the exact current date provided
+        
+        The output should include the following sections (using markdown headings):
+        ## Patient Overview  
+        ## Active Conditions  
+        ## Medications  
+        ## Allergies  
+        ## Treatment Plans  
+        ## Recent Labs and Key Findings  
+        ## Medical History Summary  
+        
+        Each section should be clear and concise — use bullet points or short paragraphs as needed.  
+        Combine information from both the Patient Data section and Medical Records section. If information appears in both, prioritize the most recent or most detailed source.
+        Keep the full medical history summary under 5 paragraphs and end with the markdown disclaimer block.`;
     }
 
     async generatePatientSummary(
@@ -451,7 +550,7 @@ class RAGHelper {
     ): Promise<PatientSummaryResult> {
         const { patientId, organizationId, traceId } = params;
         const cacheKey = this.getPatientSummaryCacheKey(organizationId, patientId);
-        const CACHE_TTL_SECONDS = 3600; // 1 hour
+        const CACHE_TTL_SECONDS = 7200; // 2 hours
 
         try {
             logger.info("Generating patient AI summary", {
@@ -464,13 +563,44 @@ class RAGHelper {
             if (cachedResult) {
                 try {
                     const parsed = JSON.parse(cachedResult) as PatientSummaryResult;
+                    const cleanedSummary = this.replaceNewlinesWithBr(parsed.summary);
+
+                    const cacheHitCountKey = this.getPatientSummaryCacheHitCountKey(organizationId, patientId);
+                    const cacheHitCount = await redis.incr(cacheHitCountKey);
+
+                    await redis.expire(cacheHitCountKey, CACHE_TTL_SECONDS);
+
                     logger.info("Patient AI summary retrieved from cache", {
                         traceId,
                         patientId,
                         organizationId,
                         cacheKey,
+                        cacheHitCount,
                     });
-                    return parsed;
+
+                    await tokenUsageHelper.recordUsage({
+                        organizationId,
+                        patientId,
+                        taskType: TaskType.PATIENT_SUMMARY_GENERATION,
+                        requestType: "TEXT_GENERATION",
+                        modelId: MODEL_ID.CHAT_COMPLETION,
+                        modelType: "text-generation",
+                        inputTokens: parsed.inputTokens,
+                        outputTokens: parsed.outputTokens,
+                        cacheHit: true,
+                        latencyMs: parsed.latencyMs,
+                        metadata: {
+                            cacheKey,
+                            cached: true,
+                            cacheHitCount,
+                        },
+                        traceId,
+                    });
+
+                    return {
+                        ...parsed,
+                        summary: cleanedSummary,
+                    };
                 } catch (parseError) {
                     logger.warn("Failed to parse cached patient summary, regenerating", {
                         traceId,
@@ -482,16 +612,11 @@ class RAGHelper {
                 }
             }
 
-            const patient = await prisma.user.findUnique({
-                where: {
+            const patient = await prisma.user.findFirst({
+                where: buildOrganizationUserFilter(organizationId, {
                     id: patientId,
                     userType: "PATIENT",
-                    organizationUsers: {
-                        every: {
-                            organizationId,
-                        },
-                    },
-                },
+                }),
                 select: {
                     id: true,
                     firstName: true,
@@ -579,25 +704,14 @@ class RAGHelper {
                 throw new Error("Patient not found");
             }
 
-            const queryText = `Generate a comprehensive patient summary including medical history, current conditions, medications, allergies, treatment plans, lab results, and clinical findings for patient summary.`;
-
-            logger.debug("Generating query embedding for semantic search", {
+            logger.debug("Finding relevant chunks", {
                 traceId,
                 patientId,
                 organizationId,
-                queryText,
-            });
-
-            const queryEmbeddingResult = await bedrockHelper.generateEmbedding({
-                text: queryText,
-                organizationId,
-                patientId,
-                taskType: TaskType.PATIENT_SUMMARY_GENERATION,
-                traceId,
             });
 
             const medicalRecordChunks = await this.findRelevantChunks(
-                queryEmbeddingResult.embedding,
+                [],
                 patientId,
                 organizationId,
                 50,
@@ -629,8 +743,10 @@ class RAGHelper {
                 traceId,
             });
 
+            const cleanedSummary = this.replaceNewlinesWithBr(result.text);
+
             const summaryResult: PatientSummaryResult = {
-                summary: result.text,
+                summary: cleanedSummary,
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
@@ -642,6 +758,10 @@ class RAGHelper {
                     JSON.stringify(summaryResult),
                     CACHE_TTL_SECONDS,
                 );
+
+                const cacheHitCountKey = this.getPatientSummaryCacheHitCountKey(organizationId, patientId);
+                await redis.del(cacheHitCountKey);
+
                 logger.debug("Patient AI summary cached successfully", {
                     traceId,
                     patientId,

@@ -1,18 +1,19 @@
 import { prisma } from "../../lib/prisma";
 import { logger } from "../../helpers/logger.helper";
-import s3Helper from "../../helpers/s3.helper";
-import bedrockHelper from "../../helpers/bedrock.helper";
+import s3Helper from "../../helpers/aws/s3.helper";
+import bedrockHelper from "../../helpers/aws/bedrock.helper";
 import { PatientMedicalRecord } from "@prisma/client";
 import { TaskType } from "@prisma/client";
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
 import fs from "fs";
 import path from "path";
-import os from "os";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { createCanvas } = require("canvas");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PdfReader = require("pdfreader");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-poppler");
+const pdfjsLib = require("pdfjs-dist");
 
 interface ProcessResult {
     success: boolean;
@@ -23,16 +24,26 @@ class MedicalRecordProcessorService {
     private readonly CHUNK_SIZE = 2500
     private readonly CHUNK_OVERLAP = 100
     private readonly MIN_CHUNK_SIZE = 500
-    private readonly MAX_CHUNKS_PER_DOCUMENT = 2000
+    private readonly MAX_CHUNKS_PER_DOCUMENT = 5000
     private readonly BATCH_SIZE = 10
-    private readonly MIN_PDF_TEXT_LENGTH = 10
+    private readonly MIN_PDF_TEXT_LENGTH = 500
+    private readonly TMP_DIR: string
+
+    constructor() {
+        const cronDir = path.resolve(__dirname);
+        this.TMP_DIR = path.join(cronDir, "tmp");
+
+        if (!fs.existsSync(this.TMP_DIR)) {
+            fs.mkdirSync(this.TMP_DIR, { recursive: true });
+        }
+    }
 
     async processUnprocessedRecords(traceId?: string): Promise<void> {
         try {
             const unprocessedRecords = await prisma.patientMedicalRecord.findMany({
                 where: {
                     isProcessed: false,
-                    isFailedProcessing: false,
+                    // isFailedProcessing: false,
                     deletedAt: null,
                 },
                 take: this.BATCH_SIZE,
@@ -284,32 +295,54 @@ class MedicalRecordProcessorService {
         traceId?: string,
     ): Promise<string> {
         let worker: any = null;
-        const tempDir = path.join(os.tmpdir(), `pdf-ocr-${Date.now()}`);
-        const tempPdfPath = path.join(tempDir, "input.pdf");
+        const tempDir = path.join(this.TMP_DIR, `pdf-ocr-${Date.now()}`);
         let imageFiles: string[] = [];
 
         try {
             fs.mkdirSync(tempDir, { recursive: true });
-            fs.writeFileSync(tempPdfPath, buffer);
 
             logger.info("Converting PDF pages to images", {
                 traceId,
             });
 
-            const options = {
-                format: "png",
-                out_dir: tempDir,
-                out_prefix: "page",
-                page: null,
-            };
+            const loadingTask = pdfjsLib.getDocument({
+                data: buffer,
+            });
+            const pdfDocument = await loadingTask.promise;
+            const numPages = pdfDocument.numPages;
 
-            await pdf.convert(tempPdfPath, options);
+            logger.info("PDF loaded, converting pages to images", {
+                traceId,
+                numPages,
+            });
 
-            imageFiles = fs
-                .readdirSync(tempDir)
-                .filter((file) => file.startsWith("page") && file.endsWith(".png"))
-                .sort()
-                .map((file) => path.join(tempDir, file));
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                const page = await pdfDocument.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2.0 });
+
+                const canvas = createCanvas(viewport.width, viewport.height);
+                const context = canvas.getContext("2d");
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport,
+                };
+
+                await page.render(renderContext).promise;
+
+                const imagePath = path.join(tempDir, `page-${pageNum}.png`);
+                const imageBuffer = canvas.toBuffer("image/png");
+                fs.writeFileSync(imagePath, imageBuffer);
+                imageFiles.push(imagePath);
+
+                logger.debug("PDF page converted to image", {
+                    traceId,
+                    pageNum,
+                    imagePath,
+                });
+            }
+
+            imageFiles = imageFiles.sort();
 
             logger.info("Extracting text from PDF using OCR", {
                 traceId,
@@ -372,9 +405,6 @@ class MedicalRecordProcessorService {
             }
 
             try {
-                if (fs.existsSync(tempPdfPath)) {
-                    fs.unlinkSync(tempPdfPath);
-                }
                 if (fs.existsSync(tempDir)) {
                     fs.rmSync(tempDir, { recursive: true, force: true });
                 }

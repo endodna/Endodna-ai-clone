@@ -1,6 +1,6 @@
-import { DNAResultStatus } from "@prisma/client";
+import { DNAResultStatus, Status } from "@prisma/client";
 import { logger } from "../helpers/logger.helper";
-import s3Helper from "../helpers/s3.helper";
+import s3Helper from "../helpers/aws/s3.helper";
 import { prisma } from "../lib/prisma";
 import { ALLOWED_SNPS_SET } from "../utils/constants";
 
@@ -144,7 +144,24 @@ class TempusService {
                             gsgtVersion: parsedFile.header.gsgtVersion,
                         },
                     },
-                })
+                }),
+                prisma.patientActivity.create({
+                    data: {
+                        organizationId: dnaResultKit.organizationId,
+                        userId: dnaResultKit.patientId,
+                        activity: "DNA result processed and analyzed",
+                        dateRequested: dnaResultKit.createdAt,
+                        dateCompleted: new Date(),
+                        status: Status.ACHIEVED,
+                        metadata: {
+                            dnaResultKitId: dnaResultKit.id,
+                            barcode: dnaResultKit.barcode,
+                            recordsCreated,
+                            totalSNPs: parsedFile.totalRows,
+                            sampleId: parsedFile.sampleId,
+                        },
+                    },
+                }),
             ])
 
 
