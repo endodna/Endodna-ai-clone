@@ -5,7 +5,7 @@ import ResetPasswordForm from "./pages/Auth/ResetPassword";
 import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import Error404 from "./pages/Error404";
 import AcceptInvitation from "./pages/Auth/AcceptInvitation";
-import DashboardLayout from "./layouts/DashboardLayout";
+import DashboardLayout from "./Layouts/DashboardLayout";
 
 export const router = createBrowserRouter([
   {
