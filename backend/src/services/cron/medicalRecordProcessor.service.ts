@@ -43,7 +43,7 @@ class MedicalRecordProcessorService {
             const unprocessedRecords = await prisma.patientMedicalRecord.findMany({
                 where: {
                     isProcessed: false,
-                    // isFailedProcessing: false,
+                    isFailedProcessing: false,
                     deletedAt: null,
                 },
                 take: this.BATCH_SIZE,
