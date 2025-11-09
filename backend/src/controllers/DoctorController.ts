@@ -19,8 +19,9 @@ import {
 } from "@prisma/client";
 import PaginationHelper from "../helpers/pagination.helper";
 import { prisma } from "../lib/prisma";
-import s3Helper from "../helpers/s3.helper";
+import s3Helper from "../helpers/aws/s3.helper";
 import ragHelper from "../helpers/rag.helper";
+import { buildOrganizationUserFilter } from "../helpers/organization-user.helper";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -157,12 +158,9 @@ class DoctorController {
                 ],
               },
             ],
-            userType: PrismaUserType.PATIENT,
-            organizationUsers: {
-              every: {
-                organizationId,
-              },
-            },
+            ...buildOrganizationUserFilter(organizationId!, {
+              userType: PrismaUserType.PATIENT,
+            }),
           },
         },
         {
@@ -203,7 +201,7 @@ class DoctorController {
       const { patientId } = req.params;
       const { organizationId } = req.user!;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         select: {
           id: true,
           firstName: true,
@@ -237,15 +235,10 @@ class DoctorController {
             },
           },
         },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: {
-            every: {
-              organizationId,
-            },
-          },
-        },
+        }),
       });
 
       if (!user) {
@@ -289,19 +282,14 @@ class DoctorController {
         req.body as CreatePatientActiveMedicationSchema;
       const { userId, organizationId } = req.user!;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         select: {
           id: true,
         },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: {
-            every: {
-              organizationId,
-            },
-          },
-        },
+        }),
       });
 
       if (!user) {
@@ -364,19 +352,14 @@ class DoctorController {
       const { patientId } = req.params;
       const { organizationId } = req.user!;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         select: {
           id: true,
         },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: {
-            every: {
-              organizationId,
-            },
-          },
-        },
+        }),
       });
 
       if (!user) {
@@ -439,20 +422,19 @@ class DoctorController {
         req.body as CreatePatientActiveMedicationSchema;
       const { userId, organizationId } = req.user!;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         select: {
           id: true,
-          patientActiveMedications: true,
-        },
-        where: {
-          id: patientId,
-          userType: PrismaUserType.PATIENT,
-          organizationUsers: {
-            every: {
-              organizationId,
+          patientActiveMedications: {
+            where: {
+              deletedAt: null,
             },
           },
         },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
       });
 
       if (!user) {
@@ -463,7 +445,7 @@ class DoctorController {
         });
       }
 
-      if (!user.patientActiveMedications.find(medication => medication.id == medicationId && medication.deletedAt == null)) {
+      if (!user.patientActiveMedications.find((medication: { id: number; deletedAt: Date | null }) => medication.id == medicationId)) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -528,20 +510,19 @@ class DoctorController {
       const { patientId, medicationId } = req.params as unknown as { patientId: string, medicationId: number };
       const { userId, organizationId } = req.user!;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         select: {
           id: true,
-          patientActiveMedications: true,
-        },
-        where: {
-          id: patientId,
-          userType: PrismaUserType.PATIENT,
-          organizationUsers: {
-            every: {
-              organizationId,
+          patientActiveMedications: {
+            where: {
+              deletedAt: null,
             },
           },
         },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
       });
 
       if (!user) {
@@ -625,13 +606,12 @@ class DoctorController {
         });
       }
 
-      const patient = await prisma.user.findUnique({
+      const patient = await prisma.user.findFirst({
         select: { id: true },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: { every: { organizationId } },
-        },
+        }),
       });
 
       if (!patient) {
@@ -755,13 +735,12 @@ class DoctorController {
       const { patientId } = req.params;
       const { organizationId } = req.user!;
 
-      const patient = await prisma.user.findUnique({
+      const patient = await prisma.user.findFirst({
         select: { id: true },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: { some: { organizationId } },
-        },
+        }),
       });
 
       if (!patient) {
@@ -896,13 +875,12 @@ class DoctorController {
         });
       }
 
-      const patient = await prisma.user.findUnique({
+      const patient = await prisma.user.findFirst({
         select: { id: true },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: { some: { organizationId } },
-        },
+        }),
       });
 
       if (!patient) {
@@ -956,7 +934,7 @@ class DoctorController {
         });
       }
 
-      const patient = await prisma.user.findUnique({
+      const patient = await prisma.user.findFirst({
         select: {
           id: true, patientDNAResults: {
             select: {
@@ -984,11 +962,10 @@ class DoctorController {
             },
           }
         },
-        where: {
+        where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
           userType: PrismaUserType.PATIENT,
-          organizationUsers: { some: { organizationId } },
-        },
+        }),
       });
 
       if (!patient) {

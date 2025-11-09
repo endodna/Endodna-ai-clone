@@ -4,8 +4,8 @@ import {
   Message,
   SQSClient,
 } from "@aws-sdk/client-sqs";
-import { logger } from "./logger.helper";
-import aws from "../lib/aws";
+import { logger } from "../logger.helper";
+import aws from "../../lib/aws";
 
 export interface SQSMessage {
   messageId: string;

@@ -1,5 +1,5 @@
 import { logger } from "../helpers/logger.helper";
-import sqsHelper from "../helpers/sqs.helper";
+import sqsHelper from "../helpers/aws/sqs.helper";
 import tempusService from "../services/tempus.service";
 
 class QueueController {

@@ -1,9 +1,9 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-import { logger } from "./logger.helper";
-import aws from "../lib/aws";
-import { MODEL_ID } from "./token-usage.helper";
+import { logger } from "../logger.helper";
+import aws from "../../lib/aws";
+import { MODEL_ID } from "../token-usage.helper";
 import { TaskType } from "@prisma/client";
-import tokenUsageHelper from "./token-usage.helper";
+import tokenUsageHelper from "../token-usage.helper";
 
 export interface GenerateEmbeddingParams {
     text: string;

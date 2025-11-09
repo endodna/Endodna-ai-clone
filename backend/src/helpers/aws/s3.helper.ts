@@ -8,8 +8,8 @@ import {
     PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { logger } from "./logger.helper";
-import aws from "../lib/aws";
+import { logger } from "../logger.helper";
+import aws from "../../lib/aws";
 import { Readable } from "stream";
 
 export interface S3UploadOptions {

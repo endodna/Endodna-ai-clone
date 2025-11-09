@@ -64,12 +64,12 @@ export const Authentication = async (
   } catch (e) {
     logger.error("Token verification failed", {
       traceId: req.traceId,
-      error: String(e),
+      error: e,
     });
     sendResponse(res, {
       status: StatusCode.UNAUTHORIZED,
       error: true,
-      message: "Token verification failed",
+      message: (e as Error)?.message,
     });
   }
 };

@@ -30,6 +30,11 @@ class RedisHandler {
       this.isConnected = true;
     });
 
+    this.client.on("ready", () => {
+      logger.debug("Redis Client Ready");
+      this.isConnected = true;
+    });
+
     this.client.on("disconnect", () => {
       logger.debug("Redis Client Disconnected");
       this.isConnected = false;
@@ -37,8 +42,20 @@ class RedisHandler {
   }
 
   async connect(): Promise<void> {
-    if (!this.isConnected) {
-      await this.client.connect();
+    if (this.isConnected) {
+      return;
+    }
+
+    try {
+      if (!this.client.isOpen) {
+        await this.client.connect();
+      }
+    } catch (error: any) {
+      if (error?.message?.includes("Socket already opened") || error?.message?.includes("already connected")) {
+        this.isConnected = true;
+        return;
+      }
+      throw error;
     }
   }
 
@@ -81,9 +98,19 @@ class RedisHandler {
     return await this.client.expire(key, seconds);
   }
 
+  async incr(key: string): Promise<number> {
+    await this.connect();
+    return await this.client.incr(key);
+  }
+
   async ttl(key: string): Promise<number> {
     await this.connect();
     return await this.client.ttl(key);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    await this.connect();
+    return await this.client.keys(pattern);
   }
 
   async flushAll(): Promise<void> {
