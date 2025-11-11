@@ -6,6 +6,7 @@ import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import Error404 from "./pages/Error404";
 import AcceptInvitation from "./pages/Auth/AcceptInvitation";
 import DashboardLayout from "./Layouts/DashboardLayout";
+import PatientListPage from "./pages/Patients/PatientListPage";
 
 export const router = createBrowserRouter([
   {
@@ -22,7 +23,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: () => <div>Patients</div>,
+        Component: () => <PatientListPage />,
       },
       {
         path: "quick-actions",
@@ -34,7 +35,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "patients",
-        Component: () => <div>Patients</div>,
+        Component: () => <PatientListPage />,
       },
       {
         path: "care-strategy",
