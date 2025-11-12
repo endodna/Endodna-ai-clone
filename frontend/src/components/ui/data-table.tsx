@@ -1,0 +1,132 @@
+import * as React from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  getSortedRowModel,
+  SortingState,
+  getFilteredRowModel,
+  ColumnFiltersState,
+} from "@tanstack/react-table";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { TableColumnMeta } from "@/types/table";
+
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  className?: string;
+  headerClassName?: string;
+  rowClassName?: string;
+  cellClassName?: string;
+  enableSorting?: boolean;
+  enableFiltering?: boolean;
+}
+
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  className,
+  headerClassName,
+  rowClassName,
+  cellClassName,
+  enableSorting = false,
+  enableFiltering = false,
+}: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    ...(enableSorting && {
+      getSortedRowModel: getSortedRowModel(),
+      onSortingChange: setSorting,
+      state: {
+        sorting,
+      },
+    }),
+    ...(enableFiltering && {
+      getFilteredRowModel: getFilteredRowModel(),
+      onColumnFiltersChange: setColumnFilters,
+      state: {
+        columnFilters,
+      },
+    }),
+  });
+
+  return (
+    <div className={cn("overflow-auto rounded-2xl", className)}>
+      <Table className="border-separate border-spacing-y-2 ">
+        <TableHeader className={headerClassName}>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className={cn(
+                    "",
+                    (header.column.columnDef.meta as TableColumnMeta)?.headerClassName
+                  )}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody className="bg-white">
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+                className={cn("border-none", rowClassName)}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      "px-2 text-neutral-700",
+                      cellClassName,
+                      (cell.column.columnDef.meta as TableColumnMeta)?.cellClassName
+                    )}
+                  >
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow className="">
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center"
+              >
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
