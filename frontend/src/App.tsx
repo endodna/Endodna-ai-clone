@@ -1,4 +1,5 @@
 import { RouterProvider } from "react-router-dom";
+import { QueryClientProvider } from "./providers/QueryClientProvider";
 import { SupabaseProvider } from "./contexts/SupabaseContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MenuProvider } from "./contexts/MenuContext";
@@ -11,14 +12,16 @@ function AppContent() {
 
 function App() {
   return (
-    <SupabaseProvider>
-      <AuthProvider>
-        <MenuProvider>
-          <Toaster />
-          <AppContent />
-        </MenuProvider>
-      </AuthProvider>
-    </SupabaseProvider>
+    <QueryClientProvider>
+      <SupabaseProvider>
+        <AuthProvider>
+          <MenuProvider>
+            <Toaster />
+            <AppContent />
+          </MenuProvider>
+        </AuthProvider>
+      </SupabaseProvider>
+    </QueryClientProvider>
   );
 }
 
