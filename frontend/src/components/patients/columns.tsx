@@ -1,6 +1,8 @@
+import { Button } from "@/components/ui/button";
 import { PATIENT_STATUS, PatientRow } from "@/types/patient";
 import { ColumnDef } from "@tanstack/react-table";
 import {
+  ArrowUpDown,
   Ban,
   CircleDashed,
   CircleDot,
@@ -45,16 +47,33 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
     header: "",
     cell: ({ row }) => {
       return (
-      <div className="flex items-center justify-center p-2">
+        <div className="flex items-center justify-center p-2">
           <AlertIcon patient={row.original} />
-      </div>
-    );
-  },
+        </div>
+      );
+    },
   },
   {
     id: "patient",
-    accessorKey: "Patient ",
-    header: "Patient",
+    accessorKey: "patient",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+        >
+          Patient
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+        </Button>
+      );
+    },
+    enableSorting: true,
+    sortingFn: (rowA, rowB) => {
+      const nameA = `${rowA.original.firstName ?? ""} ${rowA.original.lastName ?? ""}`.trim().toLowerCase();
+      const nameB = `${rowB.original.firstName ?? ""} ${rowB.original.lastName ?? ""}`.trim().toLowerCase();
+      return nameA.localeCompare(nameB);
+    },
     cell: ({ row }) => {
       const patient = row.original;
       const fullName = `${patient.firstName || ""} ${patient.lastName || ""}`.trim();
@@ -83,7 +102,19 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
   {
     id: "status",
     accessorKey: "status",
-    header: "DNA Test Status",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+        >
+          DNA Test Status
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+        </Button>
+      );
+    },
+    enableSorting: true,
     cell: () => <></>,
     meta: {
       headerClassName: "",
@@ -92,7 +123,19 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
   {
     id: "lastActivity",
     accessorKey: "lastActivity",
-    header: "Last activity",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+        >
+          Last activity
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+        </Button>
+      );
+    },
+    enableSorting: true,
     cell: () => {
       return (
         <span className="text-neutral-700">
@@ -126,8 +169,27 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
   },
   {
     id: "physician",
-    accessorKey: "Physician",
-    header: "Physician",
+    accessorKey: "physician",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+        >
+          Physician
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+        </Button>
+      );
+    },
+    enableSorting: true,
+    sortingFn: (rowA, rowB) => {
+      const doctorA = rowA.original.managingDoctor;
+      const doctorB = rowB.original.managingDoctor;
+      const nameA = doctorA ? `${doctorA.firstName} ${doctorA.lastName}`.trim().toLowerCase() : "";
+      const nameB = doctorB ? `${doctorB.firstName} ${doctorB.lastName}`.trim().toLowerCase() : "";
+      return nameA.localeCompare(nameB);
+    },
     cell: ({ row }) => {
       const doctor = row.original.managingDoctor;
       const physicianName = doctor

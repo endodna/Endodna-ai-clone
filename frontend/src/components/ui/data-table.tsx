@@ -49,21 +49,16 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    ...(enableSorting && {
-      getSortedRowModel: getSortedRowModel(),
-      onSortingChange: setSorting,
-      state: {
-        sorting,
-      },
-    }),
-    ...(enableFiltering && {
-      getFilteredRowModel: getFilteredRowModel(),
-      onColumnFiltersChange: setColumnFilters,
-      state: {
-        columnFilters,
-      },
-    }),
+    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
+    getFilteredRowModel: enableFiltering ? getFilteredRowModel() : undefined,
+    onSortingChange: enableSorting ? setSorting : undefined,
+    onColumnFiltersChange: enableFiltering ? setColumnFilters : undefined,
+    state: {
+      ...(enableSorting ? { sorting } : {}),
+      ...(enableFiltering ? { columnFilters } : {}),
+    },
   });
+
 
   return (
     <div className={cn("overflow-auto rounded-2xl", className)}>
@@ -75,7 +70,7 @@ export function DataTable<TData, TValue>({
                 <TableHead
                   key={header.id}
                   className={cn(
-                    "",
+                    "text-neutral-950 text-sm font-medium leading-normal",
                     (header.column.columnDef.meta as TableColumnMeta)?.headerClassName
                   )}
                 >
