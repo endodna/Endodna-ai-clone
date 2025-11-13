@@ -99,9 +99,9 @@ resource "aws_iam_role_policy_attachment" "eb_instance_profile_role_multicontain
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
 }
 
-# IAM Policy for SQS and CloudWatch Logs access
+# IAM Policy for SQS, CloudWatch Logs, S3, and Bedrock access
 resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
-  name = "${var.application_name}-${var.environment}-eb-instance-sqs-cloudwatch-policy"
+  name = "${var.application_name}-${var.environment}-eb-instance-sqs-cloudwatch-s3-policy"
   role = aws_iam_role.eb_instance_profile_role.id
 
   policy = jsonencode({
@@ -132,6 +132,23 @@ resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
             "logs:DescribeLogStreams"
           ]
           Resource = "${var.cloudwatch_log_group_arn}"
+        }
+      ] : [],
+      # S3 permissions for processing buckets
+      length(var.s3_bucket_arns) > 0 ? [
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:CopyObject",
+            "s3:ListBucket"
+          ]
+          Resource = concat(
+            var.s3_bucket_arns,
+            [for arn in var.s3_bucket_arns : "${arn}/*"]
+          )
         }
       ] : [],
       # Bedrock permissions
