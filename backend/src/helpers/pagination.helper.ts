@@ -25,14 +25,13 @@ export interface PaginatedResult<T> {
 export interface PaginationQueryParams {
   page?: string | number;
   limit?: string | number;
-  search?: string;
 }
 
 export class PaginationHelper {
   static parseQueryParams(
     query: PaginationQueryParams,
     options: PaginationOptions = {},
-  ): { page: number; limit: number; skip: number; search?: string } {
+  ): { page: number; limit: number; skip: number; } {
     const { defaultLimit = 10, maxLimit = 100 } = options;
 
     let page = 1;

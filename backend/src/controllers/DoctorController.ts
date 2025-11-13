@@ -13,6 +13,7 @@ import {
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
+  DNAResultStatus,
   Priority,
   Status,
   UserType as PrismaUserType,
@@ -107,10 +108,76 @@ class DoctorController {
     res: Response,
   ) {
     try {
-      const { page, limit, search } = PaginationHelper.parseQueryParams(
+      const { page, limit } = PaginationHelper.parseQueryParams(
         req.query,
       );
       const { organizationId } = req.user!;
+      const { search, doctorId, status } = req.query as GetPatientsSchema;
+
+      const whereConditions: Prisma.UserWhereInput[] = [
+        buildOrganizationUserFilter(organizationId!, {
+          userType: PrismaUserType.PATIENT,
+        }),
+      ];
+
+      if (search) {
+        whereConditions.push({
+          OR: [
+            {
+              firstName: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              lastName: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        });
+      }
+
+      if (doctorId) {
+        whereConditions.push({
+          managingDoctorId: doctorId,
+        });
+      }
+
+      if (status) {
+        const statusValues = Object.values(Status);
+        const dnaResultStatusValues = Object.values(DNAResultStatus);
+        const isStatusEnum = statusValues.includes(status as Status);
+        const isDNAResultStatusEnum = dnaResultStatusValues.includes(
+          status as DNAResultStatus,
+        );
+
+        const statusOrConditions: Prisma.UserWhereInput[] = [];
+
+        if (isStatusEnum) {
+          statusOrConditions.push({
+            status: status as Status,
+          });
+        }
+
+        if (isDNAResultStatusEnum) {
+          statusOrConditions.push({
+            patientDNAResults: {
+              some: {
+                status: status as DNAResultStatus,
+                organizationId: organizationId!,
+              },
+            },
+          });
+        }
+
+        if (statusOrConditions.length > 0) {
+          whereConditions.push({
+            AND: statusOrConditions,
+          });
+        }
+      }
 
       const result = await PaginationHelper.paginate<
         User,
@@ -154,27 +221,7 @@ class DoctorController {
             },
           },
           where: {
-            AND: [
-              {
-                OR: [
-                  {
-                    firstName: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    lastName: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  },
-                ],
-              },
-            ],
-            ...buildOrganizationUserFilter(organizationId!, {
-              userType: PrismaUserType.PATIENT,
-            }),
+            AND: whereConditions,
           },
         },
         {
@@ -1034,6 +1081,7 @@ class DoctorController {
                   snpName: true,
                   chromosome: true,
                   position: true,
+                  genotype: true,
                   referenceAllele: true,
                   alternateAllele: true,
                 },
@@ -1442,6 +1490,56 @@ class DoctorController {
         error: err,
         message: "Failed to update patient conversation title",
       }, req);
+    }
+  }
+
+  public static async getDoctors(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { organizationId } = req.user!;
+
+      const doctors = await prisma.user.findMany({
+        where: buildOrganizationUserFilter(organizationId!, {
+          OR: [
+            {
+              userType: PrismaUserType.DOCTOR,
+            },
+            {
+              userType: PrismaUserType.ADMIN,
+            },
+          ],
+        }),
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          userType: true,
+        },
+        orderBy: {
+          lastName: "asc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: doctors,
+        message: "Doctors fetched successfully",
+      });
+    } catch (err) {
+      logger.error("Get doctors failed", {
+        traceId: req.traceId,
+        method: "getDoctors.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get doctors",
+        },
+        req,
+      );
     }
   }
 }

@@ -1,4 +1,4 @@
-import { ChatType, MedicalRecordType } from "@prisma/client";
+import { ChatType, DNAResultStatus, MedicalRecordType, Status } from "@prisma/client";
 import { z } from "zod";
 
 // Auth schemas
@@ -139,6 +139,10 @@ export const getPatientsSchema = z
     page: z.string().transform(val => Number(val)).optional(),
     limit: z.string().transform(val => Number(val)).optional(),
     search: z.string().trim().toLowerCase().optional(),
+    doctorId: z.string().uuid("Invalid doctor ID").optional(),
+    status: z
+      .union([z.nativeEnum(Status), z.nativeEnum(DNAResultStatus)])
+      .optional(),
   })
   .strict();
 export type GetPatientsSchema = z.infer<typeof getPatientsSchema>;
