@@ -2,7 +2,7 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { logger } from "../logger.helper";
 import aws from "../../lib/aws";
 import { MODEL_ID } from "../token-usage.helper";
-import { TaskType } from "@prisma/client";
+import { RequestType, TaskType } from "@prisma/client";
 import tokenUsageHelper from "../token-usage.helper";
 
 export interface GenerateEmbeddingParams {
@@ -35,6 +35,7 @@ class BedrockHelper {
 
             logger.info("AWS Bedrock Client initialized", {
                 region: aws.getRegion(),
+                method: "BedrockHelper.initializeBedrock",
             });
         } catch (error) {
             logger.error("Failed to initialize AWS Bedrock Client", {
@@ -166,6 +167,7 @@ class BedrockHelper {
                 embeddingLength: embedding.length,
                 inputTokens,
                 latencyMs,
+                method: "BedrockHelper.generateEmbedding",
             });
 
             return {
@@ -369,6 +371,7 @@ class BedrockHelper {
                 inputTokens,
                 outputTokens,
                 latencyMs,
+                method: "BedrockHelper.generateText",
             });
 
             return {
@@ -380,6 +383,177 @@ class BedrockHelper {
         } catch (error) {
             const latencyMs = Date.now() - startTime;
             logger.error("Error generating text", {
+                traceId,
+                organizationId,
+                patientId,
+                taskId,
+                error: error,
+                latencyMs,
+            });
+            throw error;
+        }
+    }
+
+    async generateChatCompletion(
+        params: {
+            systemPrompt: string;
+            messages: Array<{ role: string; content: string }>;
+            organizationId: number;
+            patientId?: string;
+            taskId?: number;
+            taskType: TaskType;
+            maxTokens?: number;
+            temperature?: number;
+            traceId?: string;
+        },
+    ): Promise<{
+        text: string;
+        inputTokens: number;
+        outputTokens: number;
+        latencyMs: number;
+    }> {
+        const startTime = Date.now();
+        const {
+            systemPrompt,
+            messages,
+            organizationId,
+            patientId,
+            taskId,
+            taskType,
+            maxTokens = 4096,
+            temperature = 0.7,
+            traceId,
+        } = params;
+
+        if (!this.enableBedrock) {
+            logger.debug("Bedrock chat completion disabled, returning mock response", {
+                traceId,
+                organizationId,
+                patientId,
+                taskId,
+                taskType,
+            });
+
+            const mockText = "This is a mock AI chat response. Bedrock is disabled in development mode.";
+            const inputTokens = this.estimateTokens(systemPrompt + messages.map(m => m.content).join(" "));
+            const outputTokens = this.estimateTokens(mockText);
+            const latencyMs = Date.now() - startTime;
+
+            await tokenUsageHelper.recordUsage({
+                organizationId,
+                patientId,
+                taskId,
+                taskType,
+                requestType: RequestType.CHAT_COMPLETION,
+                modelId: MODEL_ID.CHAT_COMPLETION,
+                modelType: "chat-completion",
+                inputTokens,
+                outputTokens,
+                cacheHit: false,
+                latencyMs,
+                metadata: { mock: true },
+                traceId,
+            });
+
+            return {
+                text: mockText,
+                inputTokens,
+                outputTokens,
+                latencyMs,
+            };
+        }
+
+        try {
+            logger.debug("Generating chat completion with Bedrock", {
+                traceId,
+                organizationId,
+                patientId,
+                taskId,
+                taskType,
+                systemPromptLength: systemPrompt.length,
+                messagesCount: messages.length,
+            });
+
+            const bedrockClient = this.getBedrockClient();
+            const modelId = MODEL_ID.CHAT_COMPLETION;
+
+            const requestBody = {
+                anthropic_version: "bedrock-2023-05-31",
+                max_tokens: maxTokens,
+                temperature,
+                system: systemPrompt,
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content,
+                })),
+            };
+
+            const command = new InvokeModelCommand({
+                modelId,
+                contentType: "application/json",
+                accept: "application/json",
+                body: JSON.stringify(requestBody),
+            });
+
+            const response = await bedrockClient.send(command);
+
+            if (!response.body) {
+                throw new Error("Empty response body from Bedrock");
+            }
+
+            const bodyArray = new Uint8Array(response.body as unknown as ArrayBuffer);
+            const responseBody = JSON.parse(
+                new TextDecoder().decode(bodyArray),
+            );
+
+            if (!responseBody.content || !Array.isArray(responseBody.content)) {
+                throw new Error("Invalid chat completion response from Bedrock");
+            }
+
+            const text = responseBody.content
+                .map((item: any) => item.text)
+                .join("");
+
+            const inputTokens = responseBody.usage?.input_tokens || this.estimateTokens(systemPrompt + messages.map(m => m.content).join(" "));
+            const outputTokens = responseBody.usage?.output_tokens || this.estimateTokens(text);
+            const latencyMs = Date.now() - startTime;
+
+            await tokenUsageHelper.recordUsage({
+                organizationId,
+                patientId,
+                taskId,
+                taskType,
+                requestType: RequestType.CHAT_COMPLETION,
+                modelId,
+                modelType: "chat-completion",
+                inputTokens,
+                outputTokens,
+                cacheHit: false,
+                latencyMs,
+                traceId,
+            });
+
+            logger.info("Chat completion generated successfully", {
+                traceId,
+                organizationId,
+                patientId,
+                taskId,
+                textLength: text.length,
+                inputTokens,
+                outputTokens,
+                latencyMs,
+                method: "BedrockHelper.generateChatCompletion",
+            });
+
+            return {
+                text,
+                inputTokens,
+                outputTokens,
+                latencyMs,
+            };
+        } catch (error) {
+            const latencyMs = Date.now() - startTime;
+            logger.error("Error generating chat completion", {
                 traceId,
                 organizationId,
                 patientId,

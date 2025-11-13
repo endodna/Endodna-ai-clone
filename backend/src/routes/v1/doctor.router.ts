@@ -3,12 +3,16 @@ import { Authentication } from "../../middlewares/Authentication";
 import { DoctorAuthorization } from "../../middlewares/Authorization";
 import { validate, validateParams, validateQuery } from "../../middlewares/Validator";
 import {
+  conversationIdParamsSchema,
   createPatientActiveMedicationSchema,
   createPatientMedicalRecordSchema,
   createPatientSchema,
   getPatientsSchema,
   medicationIdParamsSchema,
   patientIdParamsSchema,
+  createPatientConversationSchema,
+  sendPatientMessageSchema,
+  updateConversationTitleSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -81,6 +85,37 @@ doctorRouter.get(
   "/patients/:patientId/genetics",
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientGenetics,
+);
+
+// AI Chat Routes
+doctorRouter.get(
+  "/patients/:patientId/conversations",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientConversations,
+);
+doctorRouter.post(
+  "/patients/:patientId/conversations",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientConversationSchema),
+  DoctorController.createPatientConversation,
+);
+doctorRouter.get(
+  "/patients/:patientId/conversations/:conversationId/messages",
+  validateParams(conversationIdParamsSchema),
+  DoctorController.getPatientConversationMessages,
+);
+doctorRouter.post(
+  "/patients/:patientId/conversations/:conversationId/messages",
+  validateParams(conversationIdParamsSchema),
+  validate(sendPatientMessageSchema),
+  DoctorController.sendPatientConversationMessage,
+);
+
+doctorRouter.patch(
+  "/patients/:patientId/conversations/:conversationId/title",
+  validateParams(conversationIdParamsSchema),
+  validate(updateConversationTitleSchema),
+  DoctorController.updatePatientConversationTitle,
 );
 
 export default doctorRouter;

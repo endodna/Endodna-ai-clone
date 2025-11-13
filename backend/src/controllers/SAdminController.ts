@@ -19,11 +19,14 @@ import {
   CreateSuperAdminSchema,
   LoginSchema,
   ProvisionOrganizationSchema,
+  TriggerCronActionSchema,
 } from "../schemas";
+import cronService from "../services/cron/cron.service";
 import { UserResponse } from "@supabase/supabase-js";
 import { buildRedisSession } from "../helpers/misc.helper";
 import { UserService } from "../services/user.service";
 import PaginationHelper from "../helpers/pagination.helper";
+import ragHelper from "../helpers/rag.helper";
 
 class SAdminController {
   public static async createSuperAdmin(
@@ -546,6 +549,112 @@ class SAdminController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to get users",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async triggerCronActions(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { user } = req;
+      const { action } = req.body as TriggerCronActionSchema;
+
+      logger.info("Triggering cron action", {
+        traceId: req.traceId,
+        action,
+        adminId: user?.userId,
+        method: "triggerCronActions",
+      });
+
+      let result: { success: boolean; message: string };
+
+      switch (action) {
+        case "medicalRecords":
+          cronService.triggerMedicalRecordsProcessing(req.traceId).catch((error) => {
+            logger.error("Medical records processing failed", {
+              traceId: req.traceId,
+              action,
+              error: error,
+              method: "triggerCronActions",
+            });
+          });
+          result = {
+            success: true,
+            message: "Medical records processing triggered successfully",
+          };
+          break;
+        case "pendingDNAFiles":
+          cronService.triggerPendingDNAFilesProcessing(req.traceId).catch((error) => {
+            logger.error("Pending DNA files processing failed", {
+              traceId: req.traceId,
+              action,
+              error: error,
+              method: "triggerCronActions",
+            });
+          });
+          result = {
+            success: true,
+            message: "Pending DNA files processing triggered successfully",
+          };
+          break;
+        case "invalidateAllPatientSummaryCaches":
+          ragHelper.invalidateAllPatientSummaryCaches(req.traceId).catch((error) => {
+            logger.error("Invalidate all patient summary caches failed", {
+              traceId: req.traceId,
+              action,
+              error: error,
+              method: "triggerCronActions",
+            });
+          });
+          result = {
+            success: true,
+            message: "Invalidate all patient summary caches triggered successfully",
+          };
+          break;
+        default:
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Invalid action",
+          });
+      }
+
+      prisma.adminAuditLog.create({
+        data: {
+          adminId: user!.userId,
+          description: `Cron action triggered: ${action}`,
+          metadata: {
+            action,
+            traceId: req.traceId,
+          },
+          priority: Priority.MEDIUM,
+        },
+      }).catch((error) => {
+        logger.error("Failed to create audit log", {
+          traceId: req.traceId,
+          error: error,
+          method: "triggerCronActions",
+        });
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: result.message,
+      });
+    } catch (err) {
+      logger.error("Trigger cron actions failed", {
+        traceId: req.traceId,
+        method: "triggerCronActions",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to trigger cron actions",
         },
         req,
       );

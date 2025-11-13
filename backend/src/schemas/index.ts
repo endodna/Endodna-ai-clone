@@ -1,4 +1,4 @@
-import { MedicalRecordType } from "@prisma/client";
+import { ChatType, MedicalRecordType } from "@prisma/client";
 import { z } from "zod";
 
 // Auth schemas
@@ -136,8 +136,8 @@ export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 
 export const getPatientsSchema = z
   .object({
-    page: z.number().optional(),
-    limit: z.number().optional(),
+    page: z.string().transform(val => Number(val)).optional(),
+    limit: z.string().transform(val => Number(val)).optional(),
     search: z.string().trim().toLowerCase().optional(),
   })
   .strict();
@@ -158,6 +158,14 @@ export type CreatePatientActiveMedicationSchema = z.infer<
   typeof createPatientActiveMedicationSchema
 >;
 
+export const triggerCronActionSchema = z
+  .object({
+    action: z.enum(["medicalRecords", "pendingDNAFiles", "invalidateAllPatientSummaryCaches"]),
+  })
+  .strict();
+
+export type TriggerCronActionSchema = z.infer<typeof triggerCronActionSchema>;
+
 export const patientIdParamsSchema = z.object({
   patientId: z.string().uuid("Invalid patient ID"),
 }).strict();
@@ -174,3 +182,24 @@ export const createPatientMedicalRecordSchema = z.object({
   type: z.nativeEnum(MedicalRecordType).optional(),
 }).strict();
 export type CreatePatientMedicalRecordSchema = z.infer<typeof createPatientMedicalRecordSchema>;
+
+export const conversationIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  conversationId: z.string().uuid("Invalid conversation ID"),
+}).strict();
+export type ConversationIdParamsSchema = z.infer<typeof conversationIdParamsSchema>;
+
+export const createPatientConversationSchema = z.object({
+  type: z.nativeEnum(ChatType).optional(),
+}).strict();
+export type CreatePatientConversationSchema = z.infer<typeof createPatientConversationSchema>;
+
+export const sendPatientMessageSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+}).strict();
+export type SendPatientMessageSchema = z.infer<typeof sendPatientMessageSchema>;
+
+export const updateConversationTitleSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+}).strict();
+export type UpdateConversationTitleSchema = z.infer<typeof updateConversationTitleSchema>;

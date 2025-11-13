@@ -96,6 +96,7 @@ class SQSHelper {
       logger.info(`Received ${messages.length} message(s) from SQS queue`, {
         queueUrl,
         messageCount: messages.length,
+        method: "SQSHelper.pollOnce",
       });
 
       return messages;
@@ -202,6 +203,7 @@ class SQSHelper {
       maxBackoffIntervalMs,
       backoffMultiplier,
       enableExponentialBackoff,
+      method: "SQSHelper.startPolling",
     });
 
     const poll = async () => {
@@ -299,6 +301,7 @@ class SQSHelper {
 
     logger.info(`Stopped SQS polling for queue: ${queueUrl}`, {
       queueUrl,
+      method: "SQSHelper.stopPolling",
     });
   }
 

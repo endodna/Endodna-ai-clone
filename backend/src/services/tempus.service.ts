@@ -53,6 +53,7 @@ class TempusService {
                 traceId,
                 bucket,
                 key,
+                method: "TempusService.processDNAFile",
             });
 
             const fileBuffer = await s3Helper.downloadFile(bucket, key, traceId);
@@ -60,15 +61,26 @@ class TempusService {
 
             parsedFile = this.parseDNAFile(fileContent);
 
+            if (!parsedFile.sampleId || parsedFile.sampleId.trim() === "") {
+                logger.warn("No sample ID found in DNA file, skipping processing", {
+                    traceId,
+                    bucket,
+                    key,
+                    method: "TempusService.processDNAFile",
+                });
+                return;
+            }
+
             logger.info("DNA file parsed successfully", {
                 traceId,
                 bucket,
                 key,
                 sampleId: parsedFile.sampleId,
                 totalRows: parsedFile.totalRows,
+                method: "TempusService.processDNAFile",
             });
 
-            const dnaResultKit = await prisma.patientDNAResultKit.findFirst({
+            let dnaResultKit = await prisma.patientDNAResultKit.findFirst({
                 where: {
                     barcode: parsedFile.sampleId,
                     deletedAt: null,
@@ -76,14 +88,32 @@ class TempusService {
             });
 
             if (!dnaResultKit) {
-                logger.warn("DNA result kit not found for sample ID", {
+                logger.info("DNA result kit not found for sample ID, creating new record", {
                     traceId,
                     sampleId: parsedFile.sampleId,
                     bucket,
                     key,
+                    method: "TempusService.processDNAFile",
                 });
-                console.log("DNA Result Kit not found for Sample ID:", parsedFile.sampleId);
-                return;
+
+                dnaResultKit = await prisma.patientDNAResultKit.create({
+                    data: {
+                        barcode: parsedFile.sampleId,
+                        organizationId: null,
+                        patientId: null,
+                        status: DNAResultStatus.KIT_RECEIVED,
+                        isProcessed: false,
+                        isFailedProcessing: false,
+                        fileMetadata: {},
+                    },
+                });
+
+                logger.info("Created new DNA result kit", {
+                    traceId,
+                    dnaResultKitId: dnaResultKit.id,
+                    sampleId: parsedFile.sampleId,
+                    method: "TempusService.processDNAFile",
+                });
             }
 
             if (dnaResultKit.isProcessed) {
@@ -91,6 +121,7 @@ class TempusService {
                     traceId,
                     dnaResultKitId: dnaResultKit.id,
                     sampleId: parsedFile.sampleId,
+                    method: "TempusService.processDNAFile",
                 });
                 return;
             }
@@ -101,6 +132,7 @@ class TempusService {
                 sampleId: parsedFile.sampleId,
                 organizationId: dnaResultKit.organizationId,
                 patientId: dnaResultKit.patientId,
+                method: "TempusService.processDNAFile",
             });
 
             await this.deleteExistingBreakdown(dnaResultKit.id, traceId);
@@ -113,7 +145,7 @@ class TempusService {
 
             const existingFileMetadata = (dnaResultKit.fileMetadata as Record<string, any>) || {};
 
-            await Promise.all([
+            const updatePromises: Promise<any>[] = [
                 prisma.patientDNAResultKit.update({
                     where: { id: dnaResultKit.id },
                     data: {
@@ -145,24 +177,31 @@ class TempusService {
                         },
                     },
                 }),
-                prisma.patientActivity.create({
-                    data: {
-                        organizationId: dnaResultKit.organizationId,
-                        userId: dnaResultKit.patientId,
-                        activity: "DNA result processed and analyzed",
-                        dateRequested: dnaResultKit.createdAt,
-                        dateCompleted: new Date(),
-                        status: Status.ACHIEVED,
-                        metadata: {
-                            dnaResultKitId: dnaResultKit.id,
-                            barcode: dnaResultKit.barcode,
-                            recordsCreated,
-                            totalSNPs: parsedFile.totalRows,
-                            sampleId: parsedFile.sampleId,
+            ];
+
+            if (dnaResultKit.organizationId !== null && dnaResultKit.patientId !== null) {
+                updatePromises.push(
+                    prisma.patientActivity.create({
+                        data: {
+                            organizationId: dnaResultKit.organizationId,
+                            userId: dnaResultKit.patientId,
+                            activity: "DNA result processed and analyzed",
+                            dateRequested: dnaResultKit.createdAt,
+                            dateCompleted: new Date(),
+                            status: Status.ACHIEVED,
+                            metadata: {
+                                dnaResultKitId: dnaResultKit.id,
+                                barcode: dnaResultKit.barcode,
+                                recordsCreated,
+                                totalSNPs: parsedFile.totalRows,
+                                sampleId: parsedFile.sampleId,
+                            },
                         },
-                    },
-                }),
-            ])
+                    }),
+                );
+            }
+
+            await Promise.all(updatePromises)
 
 
             logger.info("DNA file processing completed successfully", {
@@ -171,7 +210,32 @@ class TempusService {
                 sampleId: parsedFile.sampleId,
                 recordsCreated,
                 totalSNPs: parsedFile.totalRows,
+                method: "TempusService.processDNAFile",
             });
+
+            if (key.startsWith("pending/")) {
+                const filename = key.replace("pending/", "");
+                const completedKey = `completed/${filename}`;
+
+                try {
+                    await s3Helper.moveFile(bucket, key, completedKey, traceId);
+                    logger.info("File moved to completed folder", {
+                        traceId,
+                        bucket,
+                        sourceKey: key,
+                        destinationKey: completedKey,
+                        method: "TempusService.processDNAFile",
+                    });
+                } catch (moveError) {
+                    logger.error("Error moving file to completed folder", {
+                        traceId,
+                        bucket,
+                        sourceKey: key,
+                        destinationKey: completedKey,
+                        error: moveError,
+                    });
+                }
+            }
 
         } catch (error) {
             logger.error("Error processing DNA file", {
@@ -206,6 +270,7 @@ class TempusService {
                         traceId,
                         dnaResultKitId: dnaResultKit.id,
                         error: error instanceof Error ? error.message : String(error),
+                        method: "TempusService.processDNAFile",
                     });
                 }
             } catch (updateError) {
@@ -332,6 +397,7 @@ class TempusService {
             totalRecords: data.length,
             batchSize: BATCH_SIZE,
             allowedSNPsCount: ALLOWED_SNPS_SET.size,
+            method: "TempusService.createDNABreakdownRecords",
         });
 
         for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -339,23 +405,7 @@ class TempusService {
 
             const recordsToCreate = batch
                 .map((row) => {
-                    if (!this.isSNPAllowed(row.snpName)) {
-                        logger.debug("SNP not in allowed list, skipping record", {
-                            traceId,
-                            snpName: row.snpName,
-                        });
-                        return null;
-                    }
-
                     const position = parseInt(row.position, 10);
-                    if (isNaN(position)) {
-                        logger.warn("Invalid position value, skipping record", {
-                            traceId,
-                            snpName: row.snpName,
-                            position: row.position,
-                        });
-                        return null;
-                    }
 
                     const referenceAllele = row.allele1?.trim() || "";
                     const alternateAllele = row.allele2?.trim() || "";
@@ -377,6 +427,7 @@ class TempusService {
                         position: position,
                         referenceAllele: referenceAllele,
                         alternateAllele: alternateAllele,
+                        genotype: `${referenceAllele}${alternateAllele}`,
                     };
                 })
                 .filter((record): record is NonNullable<typeof record> => record !== null);
@@ -424,9 +475,211 @@ class TempusService {
             dnaResultKitId,
             totalCreated,
             totalRecords: data.length,
+            method: "TempusService.createDNABreakdownRecords",
         });
 
         return totalCreated;
+    }
+
+    async updateKitStatus(params: {
+        sampleId: string;
+        status: string;
+        timestamp: string;
+        comment?: string;
+        traceId?: string;
+    }): Promise<void> {
+        const { sampleId, status, timestamp, comment, traceId } = params;
+
+        if (!sampleId || sampleId.trim() === "") {
+            logger.warn("No sample ID provided, skipping status update", {
+                traceId,
+                status,
+                method: "TempusService.updateKitStatus",
+            });
+            return;
+        }
+
+        try {
+            logger.info("Updating DNA kit status from Tempus", {
+                traceId,
+                sampleId,
+                status,
+                timestamp,
+                comment,
+                method: "TempusService.updateKitStatus",
+            });
+
+            let dnaResultKit = await prisma.patientDNAResultKit.findFirst({
+                where: {
+                    barcode: sampleId,
+                    deletedAt: null,
+                },
+            });
+
+            const mappedStatus = this.mapTempusStatusToDNAResultStatus(status);
+
+            if (!dnaResultKit) {
+                logger.info("DNA result kit not found for sample ID, creating new record", {
+                    traceId,
+                    sampleId,
+                    status,
+                    mappedStatus,
+                    method: "TempusService.updateKitStatus",
+                });
+
+                dnaResultKit = await prisma.patientDNAResultKit.create({
+                    data: {
+                        barcode: sampleId,
+                        organizationId: null,
+                        patientId: null,
+                        status: mappedStatus || DNAResultStatus.KIT_RECEIVED,
+                        isProcessed: false,
+                        isFailedProcessing: mappedStatus ? this.isFailedStatus(mappedStatus) : false,
+                        failedProcessingReason: mappedStatus && this.isFailedStatus(mappedStatus) && comment
+                            ? comment
+                            : null,
+                        fileMetadata: {},
+                    },
+                });
+
+                logger.info("Created new DNA result kit", {
+                    traceId,
+                    dnaResultKitId: dnaResultKit.id,
+                    sampleId,
+                    status: mappedStatus || DNAResultStatus.KIT_RECEIVED,
+                    method: "TempusService.updateKitStatus",
+                });
+            }
+
+            if (!mappedStatus) {
+                logger.warn("Unknown Tempus status received", {
+                    traceId,
+                    sampleId,
+                    status,
+                });
+                return;
+            }
+
+            const isAlreadyGenotypingAccepted = dnaResultKit.status === DNAResultStatus.GENOTYPING_ACCEPTED;
+
+            if (isAlreadyGenotypingAccepted) {
+                logger.info("DNA result kit already has GENOTYPING_ACCEPTED status, logging activity but skipping status update", {
+                    traceId,
+                    dnaResultKitId: dnaResultKit.id,
+                    sampleId,
+                    currentStatus: dnaResultKit.status,
+                    requestedStatus: status,
+                    method: "TempusService.updateKitStatus",
+                });
+            }
+
+            const activityMessage = this.mapStatusToActivityMessage(status);
+
+            const updatePromises: Promise<any>[] = [
+                prisma.patientDNAResultActivity.create({
+                    data: {
+                        patientDNAResultId: dnaResultKit.id,
+                        activity: activityMessage,
+                        status: mappedStatus,
+                        metadata: {
+                            tempusStatus: status,
+                            timestamp,
+                            comment: comment || null,
+                            sampleId,
+                            statusUpdateSkipped: isAlreadyGenotypingAccepted,
+                        },
+                    },
+                }),
+            ];
+
+            if (!isAlreadyGenotypingAccepted) {
+                updatePromises.push(
+                    prisma.patientDNAResultKit.update({
+                        where: { id: dnaResultKit.id },
+                        data: {
+                            status: mappedStatus,
+                            isFailedProcessing: this.isFailedStatus(mappedStatus),
+                            failedProcessingReason: this.isFailedStatus(mappedStatus) && comment
+                                ? comment
+                                : null,
+                        },
+                    })
+                );
+            }
+
+            await Promise.all(updatePromises);
+
+            logger.info("DNA kit status updated successfully", {
+                traceId,
+                dnaResultKitId: dnaResultKit.id,
+                sampleId,
+                oldStatus: dnaResultKit.status,
+                newStatus: mappedStatus,
+                tempusStatus: status,
+                method: "TempusService.updateKitStatus",
+            });
+        } catch (error) {
+            logger.error("Error updating DNA kit status", {
+                traceId,
+                sampleId,
+                status,
+                error: error,
+            });
+            throw error;
+        }
+    }
+
+    private mapTempusStatusToDNAResultStatus(tempusStatus: string): DNAResultStatus | null {
+        const statusMap: Record<string, DNAResultStatus> = {
+            KIT_RECEIVED: DNAResultStatus.KIT_RECEIVED,
+            QC_PASSED: DNAResultStatus.QC_PASSED,
+            QC_FAILED: DNAResultStatus.QC_FAILED,
+            DNA_EXTRACTION_ACCEPTED: DNAResultStatus.DNA_EXTRACTION_ACCEPTED,
+            DNA_EXTRACTION_FAILED: DNAResultStatus.DNA_EXTRACTION_FAILED,
+            DNA_EXTRACTION_2ND_ACCEPTED: DNAResultStatus.DNA_EXTRACTION_2ND_ACCEPTED,
+            DNA_EXTRACTION_2ND_FAILED: DNAResultStatus.DNA_EXTRACTION_2ND_FAILED,
+            GENOTYPING_ACCEPTED: DNAResultStatus.GENOTYPING_ACCEPTED,
+            GENOTYPING_FAILED: DNAResultStatus.GENOTYPING_FAILED,
+            GENOTYPING_2ND_ACCEPTED: DNAResultStatus.GENOTYPING_2ND_ACCEPTED,
+            GENOTYPING_2ND_FAILED: DNAResultStatus.GENOTYPING_2ND_FAILED,
+            DATA_DELIVERED: DNAResultStatus.PROCESS,
+            CANCELED: DNAResultStatus.CANCEL,
+        };
+
+        return statusMap[tempusStatus] || null;
+    }
+
+    private mapStatusToActivityMessage(status: string): string {
+        const statusMessages: Record<string, string> = {
+            KIT_RECEIVED: "Kit received by laboratory",
+            QC_PASSED: "Quality control passed - sample approved for processing",
+            QC_FAILED: "Quality control failed - sample cannot be processed",
+            DNA_EXTRACTION_ACCEPTED: "DNA extraction completed successfully",
+            DNA_EXTRACTION_FAILED: "DNA extraction failed",
+            DNA_EXTRACTION_2ND_ACCEPTED: "DNA extraction completed successfully on second attempt",
+            DNA_EXTRACTION_2ND_FAILED: "DNA extraction failed on second attempt",
+            GENOTYPING_ACCEPTED: "Genotyping completed successfully - data will be delivered shortly",
+            GENOTYPING_FAILED: "Genotyping failed",
+            GENOTYPING_2ND_ACCEPTED: "Genotyping completed successfully on second attempt - data will be delivered shortly",
+            GENOTYPING_2ND_FAILED: "Genotyping failed on second attempt",
+            DATA_DELIVERED: "Data delivery completed",
+            CANCELED: "Sample processing canceled",
+        };
+
+        return statusMessages[status] || `Status update: ${status}`;
+    }
+
+    private isFailedStatus(status: DNAResultStatus): boolean {
+        const failedStatuses: DNAResultStatus[] = [
+            DNAResultStatus.QC_FAILED,
+            DNAResultStatus.DNA_EXTRACTION_FAILED,
+            DNAResultStatus.DNA_EXTRACTION_2ND_FAILED,
+            DNAResultStatus.GENOTYPING_FAILED,
+            DNAResultStatus.GENOTYPING_2ND_FAILED,
+            DNAResultStatus.CANCEL,
+            DNAResultStatus.DISCARD,
+        ];
+        return failedStatuses.includes(status);
     }
 }
 
