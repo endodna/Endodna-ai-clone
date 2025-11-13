@@ -99,3 +99,9 @@ variable "cloudwatch_log_group_arn" {
   type        = string
   default     = ""
 }
+
+variable "s3_bucket_arns" {
+  description = "List of S3 bucket ARNs to allow access to"
+  type        = list(string)
+  default     = []
+}

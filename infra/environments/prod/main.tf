@@ -294,6 +294,12 @@ module "elastic_beanstalk" {
     module.api_gateway_lab.sqs_queue_arn
   ]
   
+  # S3 bucket ARNs for access
+  s3_bucket_arns = [
+    module.s3_processing.private_bucket_arn,
+    module.s3_processing.dmz_bucket_arn
+  ]
+  
   # CloudWatch log group ARN
   cloudwatch_log_group_arn = lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_ARN", "") != "" ? lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_ARN", "") : (
     lookup(var.backend_environment_variables, "CLOUDWATCH_LOG_GROUP", "") != "" ? 
