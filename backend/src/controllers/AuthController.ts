@@ -314,19 +314,48 @@ class AuthController {
 
       const userId = verifyToken.id;
 
-      const supasbasPasswordUpdate = await supabase.auth.admin.updateUserById(
+      const supabasePasswordUpdate = await supabase.auth.admin.updateUserById(
         userId,
         {
           password: password,
         },
       );
-      if (supasbasPasswordUpdate.error) {
+      if (supabasePasswordUpdate.error) {
         return sendResponse(res, {
           status: StatusCode.INTERNAL_SERVER_ERROR,
-          error: supasbasPasswordUpdate.error,
+          error: supabasePasswordUpdate.error,
           message: "FailedToUpdatePassword",
         });
       }
+
+      const organizationUser = await prisma.organizationUser.findFirst({
+        where: {
+          userId: userId,
+        },
+      });
+
+      try {
+        if (organizationUser) {
+          await prisma.organizationUser.update({
+            where: {
+              organizationId_userId: {
+                organizationId: organizationUser.organizationId,
+                userId: userId,
+              },
+            },
+            data: {
+              status: Status.ACTIVE,
+            },
+          });
+        }
+      } catch (error) {
+        logger.error("Failed to get organization id", {
+          traceId: req.traceId,
+          method: "setPassword",
+          error: error,
+        });
+      }
+
       await Promise.all([
         prisma.user.update({
           where: {
@@ -344,6 +373,7 @@ class AuthController {
             priority: Priority.HIGH,
           },
         }),
+
       ]);
 
       return sendResponse(res, {

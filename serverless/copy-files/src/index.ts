@@ -29,7 +29,7 @@ export const handler = async (event: S3Event): Promise<LambdaResponse> => {
       const copyCommand = new CopyObjectCommand({
         CopySource: `${bucket}/${key}`,
         Bucket: privateBucket,
-        Key: key
+        Key: `pending/${key}`
       });
 
       await s3Client.send(copyCommand);

@@ -7,6 +7,7 @@ import {
   createOrganizationAdminSchema,
   createSuperAdminSchema,
   provisionOrganizationSchema,
+  triggerCronActionSchema,
 } from "../../schemas";
 
 const sAdminRouter = Router().use("/", Authentication, SAdminAuthorization);
@@ -32,5 +33,12 @@ sAdminRouter.post(
   SAdminController.createOrganizationAdmin,
 );
 sAdminRouter.get("/organization/list", SAdminController.getOrganizations);
+
+// OPS routes
+sAdminRouter.post(
+  "/ops/cron/trigger",
+  validate(triggerCronActionSchema),
+  SAdminController.triggerCronActions,
+);
 
 export default sAdminRouter;

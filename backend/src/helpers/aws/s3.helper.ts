@@ -6,6 +6,7 @@ import {
     HeadObjectCommand,
     ListObjectsV2Command,
     PutObjectCommandInput,
+    CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "../logger.helper";
@@ -83,6 +84,7 @@ class S3Helper {
                 key,
                 location,
                 etag: response.ETag,
+                method: "S3Helper.uploadFile",
             });
 
             return {
@@ -121,6 +123,7 @@ class S3Helper {
                 traceId,
                 bucket,
                 count: results.length,
+                method: "S3Helper.uploadFiles",
             });
             return results;
         } catch (error) {
@@ -149,6 +152,7 @@ class S3Helper {
                 traceId,
                 bucket,
                 key,
+                method: "S3Helper.deleteFile",
             });
         } catch (error) {
             logger.error("Error deleting file from S3", {
@@ -170,6 +174,7 @@ class S3Helper {
                 traceId,
                 bucket,
                 count: keys.length,
+                method: "S3Helper.deleteFiles",
             });
         } catch (error) {
             logger.error("Error deleting files from S3", {
@@ -410,6 +415,52 @@ class S3Helper {
             "text/plain": "txt",
         };
         return mimeToExt[fileType] || "pdf";
+    }
+
+    async moveFile(
+        bucket: string,
+        sourceKey: string,
+        destinationKey: string,
+        traceId?: string,
+    ): Promise<void> {
+        const s3Client: S3Client = aws.getS3Client();
+
+        try {
+            const copyCommand = new CopyObjectCommand({
+                Bucket: bucket,
+                CopySource: `${bucket}/${sourceKey}`,
+                Key: destinationKey,
+            });
+
+            await s3Client.send(copyCommand);
+
+            logger.info("File copied in S3", {
+                traceId,
+                bucket,
+                sourceKey,
+                destinationKey,
+                method: "S3Helper.moveFile",
+            });
+
+            await this.deleteFile(bucket, sourceKey, traceId);
+
+            logger.info("File moved in S3 successfully", {
+                traceId,
+                bucket,
+                sourceKey,
+                destinationKey,
+                method: "S3Helper.moveFile",
+            });
+        } catch (error) {
+            logger.error("Error moving file in S3", {
+                traceId,
+                bucket,
+                sourceKey,
+                destinationKey,
+                error: error,
+            });
+            throw error;
+        }
     }
 }
 
