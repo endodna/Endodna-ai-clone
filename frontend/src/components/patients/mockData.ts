@@ -15,12 +15,21 @@ export const mockPatients: PatientRow[] = [
       {
         id: "dna-1",
         status: "GENOTYPING_ACCEPTED",
+        updatedAt: "2025-11-13T10:00:00Z",
       },
     ],
     patientGoals: [
       {
         id: "goal-1",
         description: "Set a health goal to improve your overall wellness and maintain a balanced lifestyle through regular exercise and proper nutrition",
+      },
+    ],
+    patientActivities: [
+      {
+        id: 1,
+        activity: "DNA extraction completed successfully",
+        status: "ACHIEVED",
+        createdAt: "2025-11-13T10:00:00Z",
       },
     ],
     managingDoctor: {
@@ -40,6 +49,20 @@ export const mockPatients: PatientRow[] = [
       {
         id: "dna-2",
         status: "DNA_EXTRACTION_ACCEPTED",
+        updatedAt: "2025-11-13T10:00:00Z",
+      },
+      {
+        id: "dna-2",
+        status: "DNA_EXTRACTION_ACCEPTED",
+        updatedAt: "2025-11-12T10:00:00Z",
+      },
+    ],  
+    patientActivities: [
+      {
+        id: 2,
+        activity: "DNA extraction completed successfully",
+        status: "PENDING",
+        createdAt: "2025-11-12T10:00:00Z",
       },
     ],
     patientGoals: [

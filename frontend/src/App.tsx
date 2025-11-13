@@ -5,6 +5,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { MenuProvider } from "./contexts/MenuContext";
 import { router } from "./router";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 function AppContent() {
   return <RouterProvider router={router} />;
@@ -16,8 +17,10 @@ function App() {
       <SupabaseProvider>
         <AuthProvider>
           <MenuProvider>
-            <Toaster />
-            <AppContent />
+            <TooltipProvider delayDuration={0}>
+              <Toaster />
+              <AppContent />
+            </TooltipProvider>
           </MenuProvider>
         </AuthProvider>
       </SupabaseProvider>

@@ -1,55 +1,40 @@
 import { Button } from "@/components/ui/button";
-import { PATIENT_STATUS, PatientRow } from "@/types/patient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DNAResultStatus, PatientRow } from "@/types/patient";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
-  Ban,
-  CircleDashed,
-  CircleDot,
-  EllipsisVertical
+  EllipsisVertical,
 } from "lucide-react";
+import { Badge } from "../ui/badge";
+import { formatDate } from "@/utils/date.utils";
+import { formatStatusText, getDNAStatusDisplay } from "@/utils/patient.utils";
+import { AlertIcon } from "./AlertIcon";
 
-function AlertIcon({ patient }: { patient: PatientRow }) {
-  const status = patient.status;
-
-  switch (status) {
-    case PATIENT_STATUS.PENDING:
-      return <Ban className="h-5 w-5 text-amber-600" />;
-    case PATIENT_STATUS.INVITED:
-      return <CircleDashed className="h-5 w-5 text-blue-600" />;
-    case PATIENT_STATUS.ACTIVE:
-      return <CircleDot className="h-5 w-5 text-lime-600" />;
-    default:
-      return <></>;
-  }
-}
-
-/**
- * Formats date to MM/DD/YYYY
- */
-function formatDate(date: string | Date | null | undefined): string {
-  if (!date) return "";
-  try {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) return "";
-    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const day = String(dateObj.getDate()).padStart(2, "0");
-    const year = dateObj.getFullYear();
-    return `${month}/${day}/${year}`;
-  } catch {
-    return "";
-  }
-}
 
 export const patientColumns: ColumnDef<PatientRow>[] = [
   {
     id: "alert",
     header: "",
     cell: ({ row }) => {
+      const patientStatus = row.original.status;
+      const statusText = formatStatusText(patientStatus);
+      
       return (
-        <div className="flex items-center justify-center p-2">
-          <AlertIcon patient={row.original} />
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-center p-2">
+              <AlertIcon status={patientStatus} />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="center">
+            {statusText}
+          </TooltipContent>
+        </Tooltip>
       );
     },
   },
@@ -115,14 +100,36 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
       );
     },
     enableSorting: true,
-    cell: () => <></>,
+    cell: ({ row }) => {
+      const patient = row.original;
+      // Get the most recent DNA result based on updatedAt
+      const latestDNAResult = patient.patientDNAResults
+        ?.filter(result => result.status) // Only results with a status
+        .sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        })[0];
+
+      if (!latestDNAResult) {
+        return <span className="text-neutral-400">-</span>;
+      }
+
+      const { text } = getDNAStatusDisplay(latestDNAResult.status as DNAResultStatus);
+
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="px-2 py-[3px] text-xs font-medium leading-normal bg-neutral-100">{text}</Badge>
+        </div>
+      );
+    },
     meta: {
       headerClassName: "",
     },
   },
   {
-    id: "lastActivity",
-    accessorKey: "lastActivity",
+    id: "patientActivities",
+    accessorKey: "patientActivities",
     header: ({ column }) => {
       return (
         <Button
@@ -136,10 +143,35 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
       );
     },
     enableSorting: true,
-    cell: () => {
+    cell: ({ row }) => {
+      const patient = row.original;
+      // Get the most recent activity based on dateCompleted (preferred) or createdAt (fallback)
+      const latestActivity = patient.patientActivities
+        ?.filter(activity => activity.activity) // Only activities with an activity field
+        .sort((a, b) => {
+          // Prefer dateCompleted, fallback to createdAt
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        })[0];
+
+      if (!latestActivity) {
+        return <span className="text-neutral-400">-</span>;
+      }
+
+      // Get the date from dateCompleted or createdAt
+      const activityDate = latestActivity.createdAt;
+      const formattedDate = formatDate(activityDate);
+
       return (
-        <span className="text-neutral-700">
-        </span>
+        <div className="flex flex-col items-start">
+          <span className="text-neutral-950 font-normal text-sm leading-normal">
+            Lab Results
+          </span>
+          <span className="text-muted-foreground text-xs font-normal leading-normal">
+            {formattedDate}
+          </span>
+        </div>
       );
     },
     meta: {
