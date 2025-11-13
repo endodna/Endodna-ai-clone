@@ -7,6 +7,7 @@ import Error404 from "./pages/Error404";
 import AcceptInvitation from "./pages/Auth/AcceptInvitation";
 import DashboardLayout from "./Layouts/DashboardLayout";
 import PatientListPage from "./pages/Patients/PatientListPage";
+import PatientDetailPage from "./pages/Patients/PatientDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
       {
         path: "patients",
         Component: () => <PatientListPage />,
+      },
+      {
+        path: "patients/:patientId",
+        Component: () => <PatientDetailPage />,
       },
       {
         path: "care-strategy",

@@ -18,7 +18,7 @@ export const useDoctorPatients = (
 ) => {
     return useQuery<ApiResponse<PatientsApiResponse>, Error>({
         queryKey: queryKeys.doctor.patients.list(params),
-        queryFn: () => doctorsApi.getPatients(), //Todo: Add params once backend is updated
+        queryFn: () => doctorsApi.getPatients(params),
         placeholderData: (previousData) => previousData,
         refetchOnWindowFocus: false,
         retry: 1,

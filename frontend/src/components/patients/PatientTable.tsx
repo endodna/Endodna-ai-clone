@@ -3,6 +3,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { PatientRow } from "@/types/patient";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
 import { patientColumns } from "./columns";
+import { useNavigate } from "react-router-dom";
 
 interface PatientTableProps {
   /**
@@ -37,6 +38,11 @@ export function PatientTable({
   onRetry,
   isRefetching = false,
 }: PatientTableProps) {
+  const navigate = useNavigate();
+
+  const handleRowClick = (patient: PatientRow) => {
+    navigate(`/dashboard/patients/${patient.id}`);
+  };
   // Handle loading state
   if (isLoading) {
     return (
@@ -94,6 +100,7 @@ export function PatientTable({
         data={data}
         enableSorting={true}
         enableFiltering={true}
+        onRowClick={handleRowClick}
       />
     </div>
   );

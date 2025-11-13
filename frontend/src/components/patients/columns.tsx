@@ -241,7 +241,7 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
     id: "actions",
     header: "",
     cell: () => (
-      <div className="text-right last:rounded-r-xl">
+      <div className="text-right last:rounded-r-xl" onClick={(e) => e.stopPropagation()}>
         <button className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-200">
           <EllipsisVertical className="h-5 w-5 text-neutral-500" />
         </button>
