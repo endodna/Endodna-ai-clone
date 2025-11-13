@@ -4,56 +4,56 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch to deploy'
+        description: "Branch to deploy"
         required: true
-        default: 'main'
-        type: 'string'
+        default: "main"
+        type: "string"
       environment:
-        description: 'Environment to deploy to'
+        description: "Environment to deploy to"
         required: true
-        default: 'production'
-        type: 'choice'
+        default: "production"
+        type: "choice"
         options:
           - production
           - staging
       deploy_frontend:
-        description: 'Deploy Frontend (React App)'
+        description: "Deploy Frontend (React App)"
         required: true
-        default: true
-        type: 'boolean'
+        default: false
+        type: "boolean"
       deploy_backend:
-        description: 'Deploy Backend (Node.js API)'
+        description: "Deploy Backend (Node.js API)"
         required: true
-        default: true
-        type: 'boolean'
+        default: false
+        type: "boolean"
       # Frontend specific inputs
       frontend_s3_bucket:
-        description: 'Frontend S3 Bucket Name (leave empty to use FRONTEND_S3_BUCKET env var)'
+        description: "Frontend S3 Bucket Name (leave empty to use FRONTEND_S3_BUCKET env var)"
         required: false
-        default: ''
-        type: 'string'
+        default: ""
+        type: "string"
       cloudfront_distribution_id:
-        description: 'CloudFront Distribution ID (leave empty to use CLOUDFRONT_DISTRIBUTION_ID env var)'
+        description: "CloudFront Distribution ID (leave empty to use CLOUDFRONT_DISTRIBUTION_ID env var)"
         required: false
-        default: ''
-        type: 'string'
+        default: ""
+        type: "string"
       # Backend specific inputs
       backend_app_name:
-        description: 'Backend Elastic Beanstalk Application Name (leave empty to use BACKEND_APP_NAME env var)'
+        description: "Backend Elastic Beanstalk Application Name (leave empty to use BACKEND_APP_NAME env var)"
         required: false
-        default: ''
-        type: 'string'
+        default: ""
+        type: "string"
       backend_s3_bucket:
-        description: 'Backend S3 Bucket for deployment artifacts (leave empty to use BACKEND_S3_BUCKET env var)'
+        description: "Backend S3 Bucket for deployment artifacts (leave empty to use BACKEND_S3_BUCKET env var)"
         required: false
-        default: ''
-        type: 'string'
+        default: ""
+        type: "string"
       # Common inputs
       aws_region:
-        description: 'AWS Region'
+        description: "AWS Region"
         required: true
-        default: 'us-east-1'
-        type: 'string'
+        default: "us-east-1"
+        type: "string"
 
 jobs:
   validate-inputs:
@@ -78,20 +78,20 @@ jobs:
     if: ${{ needs.validate-inputs.outputs.deploy-frontend == 'true' }}
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
-          
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: "20"
+          cache: "yarn"
           cache-dependency-path: frontend/yarn.lock
-          
+
       - name: Install dependencies
         working-directory: ./frontend
         run: yarn install --frozen-lockfile
@@ -129,8 +129,7 @@ jobs:
           else
             echo "VITE_API_BASE_URL secret is missing"
           fi
-        
-        
+
       - name: Build frontend
         working-directory: ./frontend
         env:
@@ -138,14 +137,14 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: yarn build
-    
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ github.event.inputs.aws_region }}
-          
+
       - name: Deploy to S3
         working-directory: ./frontend
         run: |
@@ -156,7 +155,7 @@ jobs:
           fi
           echo "Deploying to S3 bucket: $S3_BUCKET"
           aws s3 sync dist/ s3://$S3_BUCKET --delete --region ${{ github.event.inputs.aws_region }}
-          
+
       - name: Invalidate CloudFront
         run: |
           CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || vars.CLOUDFRONT_DISTRIBUTION_ID }}"
@@ -172,40 +171,40 @@ jobs:
     if: ${{ needs.validate-inputs.outputs.deploy-backend == 'true' }}
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
-          
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: "20"
+          cache: "yarn"
           cache-dependency-path: backend/yarn.lock
-          
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
-          
+          python-version: "3.9"
+
       - name: Install dependencies
         working-directory: ./backend
         run: yarn install --frozen-lockfile
-        
+
       - name: Build backend
         working-directory: ./backend
         run: yarn build
-        
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ github.event.inputs.aws_region }}
-          
+
       - name: Create deployment package
         working-directory: ./backend
         run: |
@@ -215,7 +214,7 @@ jobs:
             exit 1
           fi
           python3 scripts/zip.py "$APP_NAME"
-          
+
       - name: Generate version label
         id: version
         run: |
@@ -225,7 +224,7 @@ jobs:
           echo "version_label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
           echo "s3_key=${VERSION_LABEL}.zip" >> $GITHUB_OUTPUT
           echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
-          
+
       - name: Upload to S3
         working-directory: ./backend
         run: |
@@ -235,7 +234,7 @@ jobs:
             exit 1
           fi
           aws s3 cp "${{ steps.version.outputs.app_name }}.zip" "s3://$S3_BUCKET/${{ steps.version.outputs.s3_key }}" --region "${{ github.event.inputs.aws_region }}"
-          
+
       - name: Create Elastic Beanstalk application version
         run: |
           APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
@@ -247,7 +246,7 @@ jobs:
             --source-bundle "S3Bucket=$S3_BUCKET,S3Key=${{ steps.version.outputs.s3_key }}" \
             --description "Deployed from branch ${{ github.event.inputs.branch }} on $(date)" \
             --auto-create-application
-            
+
       - name: Deploy to Elastic Beanstalk
         run: |
           APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
@@ -256,7 +255,7 @@ jobs:
             --environment-name "$ENVIRONMENT_NAME" \
             --version-label "${{ steps.version.outputs.version_label }}" \
             --region "${{ github.event.inputs.aws_region }}" || echo "Environment update failed - environment may not exist yet"
-            
+
       - name: Cleanup
         if: always()
         working-directory: ./backend
@@ -270,7 +269,7 @@ jobs:
     needs: [validate-inputs, deploy-frontend, deploy-backend]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Deployment Summary
         run: |
@@ -278,13 +277,13 @@ jobs:
           CLOUDFRONT_ID="${{ github.event.inputs.cloudfront_distribution_id || vars.CLOUDFRONT_DISTRIBUTION_ID }}"
           BACKEND_APP_NAME="${{ github.event.inputs.backend_app_name || vars.BACKEND_APP_NAME }}"
           BACKEND_S3_BUCKET="${{ github.event.inputs.backend_s3_bucket || vars.BACKEND_S3_BUCKET }}"
-          
+
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.event.inputs.branch }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **AWS Region**: ${{ github.event.inputs.aws_region }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ needs.validate-inputs.outputs.deploy-frontend }}" = "true" ]; then
             echo "### Frontend Deployment" >> $GITHUB_STEP_SUMMARY
             echo "- **S3 Bucket**: $FRONTEND_S3_BUCKET" >> $GITHUB_STEP_SUMMARY
@@ -292,14 +291,14 @@ jobs:
             echo "- **Status**: ${{ needs.deploy-frontend.result }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [ "${{ needs.validate-inputs.outputs.deploy-backend }}" = "true" ]; then
             echo "### Backend Deployment" >> $GITHUB_STEP_SUMMARY
             echo "- **Application Name**: $BACKEND_APP_NAME" >> $GITHUB_STEP_SUMMARY
             echo "- **S3 Bucket**: $BACKEND_S3_BUCKET" >> $GITHUB_STEP_SUMMARY
             echo "- **Status**: ${{ needs.deploy-backend.result }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment Variables Used" >> $GITHUB_STEP_SUMMARY
           echo "- **FRONTEND_S3_BUCKET**: ${{ vars.FRONTEND_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY

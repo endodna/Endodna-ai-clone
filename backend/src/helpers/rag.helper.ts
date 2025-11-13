@@ -58,6 +58,7 @@ class RAGHelper {
                 organizationId,
                 cacheKey,
                 deleted,
+                method: "RAGHelper.invalidatePatientSummaryCache",
             });
         } catch (error) {
             logger.error("Error invalidating patient summary cache", {
@@ -80,6 +81,7 @@ class RAGHelper {
             if (allKeys.length === 0) {
                 logger.info("No patient summary caches to invalidate", {
                     traceId,
+                    method: "RAGHelper.invalidateAllPatientSummaryCaches",
                 });
                 return;
             }
@@ -96,6 +98,7 @@ class RAGHelper {
                 traceId,
                 totalKeys: allKeys.length,
                 deletedCount,
+                method: "RAGHelper.invalidateAllPatientSummaryCaches",
             });
         } catch (error) {
             logger.error("Error invalidating all patient summary caches", {
@@ -266,6 +269,7 @@ class RAGHelper {
                 traceId,
                 patientId,
                 organizationId,
+                method: "RAGHelper.findRelevantChunks",
             });
 
             const fallbackChunks = await prisma.patientMedicalRecordChunk.findMany({
@@ -315,6 +319,87 @@ class RAGHelper {
                     createdAt: chunk.patientMedicalRecord.createdAt,
                 },
             }));
+        }
+    }
+
+    async getRelevantMedicalRecordContext(
+        query: string,
+        patientId: string,
+        organizationId: number,
+        limit: number = 5,
+        traceId?: string,
+    ): Promise<{
+        context: string;
+        citations: Array<{
+            chunkId: number;
+            medicalRecordId: number;
+            title: string | null;
+            type: string | null;
+            similarity: number | null;
+            chunkIndex: number;
+            textExcerpt: string;
+        }>;
+    }> {
+        try {
+            const embeddingResult = await bedrockHelper.generateEmbedding({
+                text: query,
+                organizationId,
+                patientId,
+                taskType: TaskType.SIMILARITY_SEARCH,
+                traceId,
+            });
+
+            const chunks = await this.findRelevantChunks(
+                embeddingResult.embedding,
+                patientId,
+                organizationId,
+                limit,
+                0.7,
+                traceId,
+            );
+
+            if (chunks.length === 0) {
+                return {
+                    context: "",
+                    citations: [],
+                };
+            }
+
+            const citations = chunks.map((chunk) => ({
+                chunkId: chunk.id,
+                medicalRecordId: chunk.patientMedicalRecord.id,
+                title: chunk.patientMedicalRecord.title,
+                type: chunk.patientMedicalRecord.type,
+                similarity: chunk.similarity,
+                chunkIndex: chunk.chunkIndex,
+                textExcerpt: chunk.chunkText,
+            }));
+
+            let context = `RELEVANT MEDICAL RECORD CONTEXT:\n`;
+            chunks.forEach((chunk, index) => {
+                context += `[Context ${index + 1}]\n`;
+                context += `${chunk.chunkText}\n`;
+                if (chunk.patientMedicalRecord.title) {
+                    context += `Source: ${chunk.patientMedicalRecord.title} (${chunk.patientMedicalRecord.type || "N/A"})\n`;
+                }
+                context += `\n`;
+            });
+
+            return {
+                context,
+                citations,
+            };
+        } catch (error) {
+            logger.warn("Failed to retrieve medical record context", {
+                traceId,
+                patientId,
+                organizationId,
+                error,
+            });
+            return {
+                context: "",
+                citations: [],
+            };
         }
     }
 
@@ -373,12 +458,6 @@ class RAGHelper {
         }
         if (patient.gender) {
             formatted += `Gender: ${patient.gender}<br>`;
-        }
-        if (patient.phoneNumber) {
-            formatted += `Phone: ${patient.phoneNumber}<br>`;
-        }
-        if (patient.email) {
-            formatted += `Email: ${patient.email}<br>`;
         }
         formatted += `<br>`;
 
@@ -557,6 +636,7 @@ class RAGHelper {
                 traceId,
                 patientId,
                 organizationId,
+                method: "RAGHelper.generatePatientSummary",
             });
 
             const cachedResult = await redis.get(cacheKey);
@@ -576,6 +656,7 @@ class RAGHelper {
                         organizationId,
                         cacheKey,
                         cacheHitCount,
+                        method: "RAGHelper.generatePatientSummary",
                     });
 
                     await tokenUsageHelper.recordUsage({
@@ -787,6 +868,7 @@ class RAGHelper {
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
+                method: "RAGHelper.generatePatientSummary",
             });
 
             return summaryResult;
