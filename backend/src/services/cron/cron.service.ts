@@ -51,7 +51,7 @@ class CronService {
     }
 
     private scheduleMedicalRecordsProcessing(): void {
-        const schedule = process.env.MEDICAL_RECORDS_PROCESSING_CRON || "*/2 * * * *";
+        const schedule = process.env.MEDICAL_RECORDS_PROCESSING_CRON || "*/3 * * * *";
         const runImmediately = process.env.RUN_MEDICAL_RECORDS_PROCESSING_ON_START === "true";
 
         if (runImmediately) {

@@ -19,6 +19,9 @@ import { uploadMultiple } from "../../middlewares/FileUpload";
 
 const doctorRouter = Router().use("/", Authentication, DoctorAuthorization);
 
+// Doctor Routes
+doctorRouter.get("/doctors", DoctorController.getDoctors);
+
 // Patient Routes
 doctorRouter.post(
   "/patient",
