@@ -199,6 +199,27 @@ export const miscApi = {
   },
 };
 
+// Doctors API
+export const doctorsApi = {
+  getPatients: async (params?: any): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.DOCTOR.PATIENTS.LIST, {
+        params,
+      });
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patients",
+      };
+    }
+  },
+};
+
 export const api = {
   auth: authApi,
   patients: patientsApi,

@@ -17,6 +17,15 @@ export const API_ENDPOINTS = {
     CREATE: "/patients",
     GET_BY_ID: (id: string) => `/patients/${id}`,
   },
+
+  // Doctor role endpoints
+  DOCTOR: {
+    PATIENTS: {
+      LIST: "/doctor/patients",
+      CREATE: "/doctor/patient",
+      GET_BY_ID: (id: string) => `/doctor/patients/${id}`,
+    },
+  },
 } as const;
 
 export const getEndpoint = (
