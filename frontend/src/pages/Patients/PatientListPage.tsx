@@ -1,4 +1,3 @@
-import { PatientPagination } from "@/components/patients/PatientPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -182,9 +181,6 @@ export default function PatientListPage() {
                 error={errorMessage}
                 onRetry={refetch}
                 isRefetching={isRefetching}
-            />
-
-            <PatientPagination
                 pagination={pagination}
                 onPageChange={setPage}
             />
