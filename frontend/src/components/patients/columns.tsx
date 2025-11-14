@@ -68,7 +68,7 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
         <div className="flex items-start gap-3">
 
           <div className="flex flex-col">
-            <span className="text-neutral-950 text-sm font-normal leading-normal">
+            <span className="text-neutral-950 text-sm font-normal leading-normal capitalize">
               {fullName ?? ''}
             </span>
             <div className="space-x-2 text-xs text-muted-foreground font-semibold leading-normal">
@@ -137,7 +137,7 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
 
       return (
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="px-2 py-[3px] text-xs font-medium leading-normal bg-neutral-100">{text}</Badge>
+          <Badge variant="secondary" className="px-2 py-[3px] text-xs font-medium leading-normal bg-neutral-100 capitalize">{text}</Badge>
         </div>
       );
     },

@@ -44,3 +44,12 @@ export const DNAResultStatus = {
   DISCARD: "DISCARD",
 } as const;
 
+/**
+ * Gender options for patient form
+ */
+export const GENDER_OPTIONS = [
+  { value: "male", label: "Male" } as const,
+  { value: "female", label: "Female" } as const,
+  { value: "other", label: "Other" } as const,
+  { value: "prefer_not_to_say", label: "Prefer not to say" } as const,
+] as const;

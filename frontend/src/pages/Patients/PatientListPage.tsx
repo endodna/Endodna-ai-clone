@@ -1,4 +1,4 @@
-import { PatientPagination } from "@/components/patients/PatientPagination";
+import { AddPatientDialog } from "@/components/patients/AddPatientDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,11 +8,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useGetDoctorPatients, useGetDoctors, useGetConstants } from "@/hooks/useDoctor";
+import { useGetConstants, useGetDoctorPatients, useGetDoctors } from "@/hooks/useDoctor";
+import debounce from "@/utils/utils";
 import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PatientTable } from "../../components/patients/PatientTable";
-import debounce from "@/utils/utils";
 
 export default function PatientListPage() {
     const [page, setPage] = useState(1);
@@ -21,6 +21,7 @@ export default function PatientListPage() {
     const [search, setSearch] = useState("");
     const [selectedPhysician, setSelectedPhysician] = useState<string>("all");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
+    const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false);
 
     // Fetch doctors and constants for filters
     const { data: doctorsResponse } = useGetDoctors();
@@ -39,18 +40,19 @@ export default function PatientListPage() {
         page,
         limit,
         search: search || undefined,
-        doctorId: selectedPhysician !== "all" ? selectedPhysician : undefined,
-        status: selectedStatus !== "all" ? selectedStatus : undefined,
+        doctorId: selectedPhysician === "all" ? undefined : selectedPhysician,
+        status: selectedStatus === "all" ? undefined : selectedStatus,
     });
 
     const patients: PatientRow[] = apiResponse?.data?.items ?? [];
     const pagination = apiResponse?.data?.pagination;
 
-    const errorMessage = error
-        ? (error as any)?.message ?? apiResponse?.message ?? "Failed to fetch patients"
-        : apiResponse?.error
-            ? apiResponse.message
-            : null;
+    let errorMessage: string | null = null;
+    if (error) {
+        errorMessage = (error as any)?.message ?? apiResponse?.message ?? "Failed to fetch patients";
+    } else if (apiResponse?.error) {
+        errorMessage = apiResponse.message;
+    }
 
     // Debounced search handler
     const debouncedSetSearch = useMemo(
@@ -71,13 +73,13 @@ export default function PatientListPage() {
     const physicianOptions = useMemo(() => {
         const options = [{ value: "all", label: "All Physicians" }];
         if (doctors && doctors.length > 0) {
-            doctors.forEach((doctor) => {
+            for (const doctor of doctors) {
                 const fullName = `${doctor.firstName} ${doctor.lastName}`.trim();
                 options.push({
                     value: doctor.id,
                     label: fullName ?? doctor.email,
                 });
-            });
+            }
         }
         return options;
     }, [doctors]);
@@ -88,12 +90,12 @@ export default function PatientListPage() {
         if (constants) {
             // Add DNA result statuses
             if (constants.dnaResultStatus && constants.dnaResultStatus.length > 0) {
-                constants.dnaResultStatus.forEach((status) => {
+                for (const status of constants.dnaResultStatus) {
                     options.push({
                         value: status,
                         label: status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
                     });
-                });
+                }
             }
         }
         return options;
@@ -115,14 +117,20 @@ export default function PatientListPage() {
 
     return (
         <div className="space-y-6 flex flex-col h-full w-full">
+
+            {/* Title and add new patient button */}
             <div className="flex items-center justify-between">
                 <h1 className="text-5xl font-semibold text-neutral-900">Patients</h1>
-                <Button className="bg-violet-700 hover:bg-violet-400 text-neutral-50 text-sm font-medium rounded-lg ">
+                <Button
+                    onClick={() => setIsAddPatientDialogOpen(true)}
+                    className="bg-violet-700 hover:bg-violet-400 text-neutral-50 text-sm font-medium rounded-lg "
+                >
                     <UserPlus className="w-4 h-4" />
                     Add new patient
                 </Button>
             </div>
 
+            {/* Search and filter */}
             <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-2 rounded-2xl">
                 <div className="flex-1 min-w-60">
                     <div className="relative">
@@ -182,11 +190,13 @@ export default function PatientListPage() {
                 error={errorMessage}
                 onRetry={refetch}
                 isRefetching={isRefetching}
-            />
-
-            <PatientPagination
                 pagination={pagination}
                 onPageChange={setPage}
+            />
+
+            <AddPatientDialog
+                open={isAddPatientDialogOpen}
+                onOpenChange={setIsAddPatientDialogOpen}
             />
         </div>
     );

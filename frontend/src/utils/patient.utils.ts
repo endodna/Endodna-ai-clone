@@ -2,7 +2,7 @@
  * Patient-related utility functions
  */
 
-import { DNAResultStatus } from "@/constants/patient";
+import { DNAResultStatus } from "@/components/constants/patient";
 
 /**
  * Formats status string to a readable format

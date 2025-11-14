@@ -250,6 +250,31 @@ export const doctorsApi = {
       };
     }
   },
+
+  createPatient: async (patientData: any): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.DOCTOR.PATIENTS.CREATE,
+        patientData,
+      );
+      return response.data;
+    } catch (error: any) {
+      // Return the error response data if available (includes validation errors)
+      // The backend returns { data: { errors: [...] }, error: true, message: "..." }
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      // Fallback for network errors or other cases
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create patient",
+      };
+    }
+  },
 };
 
 export const api = {

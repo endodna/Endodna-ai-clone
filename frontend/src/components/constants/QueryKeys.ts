@@ -12,6 +12,7 @@ export const queryKeys = {
       lists: () => [...queryKeys.doctor.patients.all(), "list"] as const,
       list: (params?: { page?: number; limit?: number; search?: string; doctorId?: string; status?: string }) =>
         [...queryKeys.doctor.patients.lists(), params] as const,
+      create: (patientData: AddPatientData) => [...queryKeys.doctor.patients.all(), "create", patientData] as const,
     },
   },
   misc: {

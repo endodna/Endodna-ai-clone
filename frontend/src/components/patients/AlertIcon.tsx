@@ -12,7 +12,7 @@ import {
   Lock,
   Trash,
 } from "lucide-react";
-import { PatientStatus } from "@/constants/patient";
+import { PatientStatus } from "@/components/constants/patient";
 
 interface AlertIconProps {
   status: string;

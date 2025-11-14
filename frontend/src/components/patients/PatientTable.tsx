@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, PaginationInfo } from "@/components/ui/data-table";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
 import { patientColumns } from "./columns";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,14 @@ interface PatientTableProps {
    * Whether data is being refetched in the background
    */
   isRefetching?: boolean;
+  /**
+   * Pagination information
+   */
+  pagination?: PaginationInfo | null;
+  /**
+   * Callback when page changes
+   */
+  onPageChange?: (page: number) => void;
 }
 
 /**
@@ -36,6 +44,8 @@ export function PatientTable({
   error = null,
   onRetry,
   isRefetching = false,
+  pagination,
+  onPageChange,
 }: PatientTableProps) {
   const navigate = useNavigate();
 
@@ -100,6 +110,8 @@ export function PatientTable({
         enableSorting={true}
         enableFiltering={true}
         onRowClick={handleRowClick}
+        pagination={pagination}
+        onPageChange={onPageChange}
       />
     </div>
   );

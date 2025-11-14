@@ -1,6 +1,7 @@
-import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { queryKeys } from "@/components/constants/QueryKeys";
+import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
+import { AddPatientFormData } from "@/schemas/patient.schema";
+import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 
 
 /** 
@@ -49,6 +50,29 @@ export const useGetConstants = (
         refetchOnWindowFocus: false,
         retry: 1,
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes since constants don't change often
+        ...options,
+    });
+};
+
+/**
+ * Hook for creating a new patient
+ */
+export const useCreatePatient = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientAddedResponse>, Error, AddPatientFormData>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<ApiResponse<PatientAddedResponse>, Error, AddPatientFormData>({
+        mutationFn: async (patientData) => {
+            const response = await doctorsApi.createPatient(patientData);
+            return response;
+        },
+        onSuccess: () => {
+            // Invalidate and refetch patients list
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.patients.lists(),
+            });
+        },
         ...options,
     });
 };
