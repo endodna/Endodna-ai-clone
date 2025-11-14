@@ -84,6 +84,7 @@ model Organization {
   patientChatConversations PatientChatConversation[]
   tokenUsage               TokenUsage[]
   patientChartNotes        PatientChartNote[]
+  systemAuditLogs          SystemAuditLog[]
 }
 
 model OrganizationCustomization {
@@ -129,6 +130,8 @@ model User {
   middleName               String?
   photo                    String?
   phoneNumber              String?
+  workPhoneNumber          String?
+  homePhoneNumber          String?
   dateOfBirth              DateTime?
   managingDoctorId         String?
   gender                   String?
@@ -164,6 +167,7 @@ model User {
   tokenUsage               TokenUsage[]
   patientChartNotes        PatientChartNote[]        @relation("Patient")
   doctorChartNotes         PatientChartNote[]        @relation("Doctor")
+  systemAuditLogs          SystemAuditLog[]
 }
 
 model PatientActivity {
@@ -437,6 +441,7 @@ enum Status {
 enum DNAResultStatus {
   PENDING
   KIT_RECEIVED
+  KIT_REGISTERED
   QC_FAILED
   QC_PASSED
   DNA_EXTRACTION_2ND_FAILED
@@ -586,4 +591,18 @@ model PatientChartNote {
   @@index([doctorId, organizationId])
   @@index([patientId, doctorId, organizationId])
   @@index([createdAt])
+}
+
+model SystemAuditLog {
+  id             Int          @id @default(autoincrement())
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  action         String
+  description    String
+  priority       Priority
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }

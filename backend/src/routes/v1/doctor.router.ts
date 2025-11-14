@@ -13,6 +13,7 @@ import {
   createPatientConversationSchema,
   sendPatientMessageSchema,
   updateConversationTitleSchema,
+  registerPatientDNAKitSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -32,6 +33,12 @@ doctorRouter.get(
   "/patients",
   validateQuery(getPatientsSchema),
   DoctorController.getPatients,
+);
+doctorRouter.post(
+  "/patients/:patientId/lab-orders/kit",
+  validateParams(patientIdParamsSchema),
+  validate(registerPatientDNAKitSchema),
+  DoctorController.registerPatientDNAKit,
 );
 doctorRouter.get("/patients/:patientId",
   validateParams(patientIdParamsSchema),

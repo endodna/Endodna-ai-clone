@@ -12,6 +12,8 @@ class CronService {
             method: "CronService.initialize",
         });
 
+        // For future, create cron job to invalidate sessions that are over 8 hours
+        // Go over features and see if there are any other cron jobs that need to be created for data cleanup or remediation etc.
         this.scheduleMedicalRecordsProcessing();
         this.schedulePendingDNAFilesProcessing();
 

@@ -1,8 +1,9 @@
-import { DNAResultStatus, Status } from "@prisma/client";
+import { DNAResultStatus, Priority, Status } from "@prisma/client";
 import { logger } from "../helpers/logger.helper";
 import s3Helper from "../helpers/aws/s3.helper";
 import { prisma } from "../lib/prisma";
 import { ALLOWED_SNPS_SET } from "../utils/constants";
+import { TempusActions } from "../types";
 
 interface DNAFileHeader {
     gsgtVersion?: string;
@@ -680,6 +681,298 @@ class TempusService {
             DNAResultStatus.DISCARD,
         ];
         return failedStatuses.includes(status);
+    }
+
+    private async getTempusAccessToken(): Promise<string> {
+        const authUrl = process.env.TEMPUS_AUTH_URL;
+        const username = process.env.TEMPUS_USERNAME;
+        const password = process.env.TEMPUS_PASSWORD;
+        const clientId = process.env.TEMPUS_CLIENT_ID;
+
+        if (!authUrl || !username || !password || !clientId) {
+            throw new Error("Tempus API credentials are not configured");
+        }
+
+        const params = new URLSearchParams();
+        params.append("username", username);
+        params.append("password", password);
+        params.append("grant_type", "password");
+        params.append("client_id", clientId);
+
+        const response = await fetch(authUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+                `Failed to get Tempus access token: ${response.status} ${errorText}`,
+            );
+        }
+
+        const data = (await response.json()) as {
+            access_token?: string;
+            token_type?: string;
+            expires_in?: number;
+        };
+        if (!data.access_token) {
+            throw new Error("Access token not found in Tempus response");
+        }
+
+        return data.access_token;
+    }
+
+    async setKitStatus(params: {
+        action: TempusActions;
+        sampleId: string;
+        adminId?: string;
+        organizationId: number;
+        traceId?: string;
+    }): Promise<{ success: boolean; message?: string; error?: string }> {
+        const { action, sampleId, adminId, organizationId, traceId } = params;
+
+        const apiUrl = process.env.TEMPUS_API_URL;
+        const company = process.env.TEMPUS_COMPANY;
+
+        const payload = {
+            sample_id: sampleId,
+            action: action,
+            company: company || "",
+        };
+
+        try {
+            if (!apiUrl || !company) {
+                throw new Error("Tempus API URL or company is not configured");
+            }
+
+            logger.info("Setting kit status in Tempus", {
+                traceId,
+                action,
+                sampleId,
+                method: "TempusService.setKitStatus",
+            });
+
+            const accessToken = await this.getTempusAccessToken();
+
+            const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: {
+                    Authorization: `bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                logger.error("Failed to set kit status in Tempus", {
+                    traceId,
+                    action,
+                    sampleId,
+                    status: response.status,
+                    error: errorText,
+                    method: "TempusService.setKitStatus",
+                });
+
+                const auditLogPromises = [];
+
+                auditLogPromises.push(
+                    prisma.systemAuditLog.create({
+                        data: {
+                            userId: adminId || "system",
+                            organizationId: organizationId,
+                            action: `TEMPUS_SET_KIT_STATUS_${action}`,
+                            description: `Failed to set kit status in Tempus: ${action} for sample ${sampleId}`,
+                            metadata: {
+                                payload,
+                                action,
+                                sampleId,
+                                error: errorText,
+                                status: response.status,
+                                traceId,
+                            },
+                            priority: Priority.HIGH,
+                        },
+                    }).catch((error) => {
+                        logger.error("Failed to create system audit log", {
+                            traceId,
+                            error: error,
+                            method: "TempusService.setKitStatus",
+                        });
+                    }),
+                );
+
+                if (adminId) {
+                    auditLogPromises.push(
+                        prisma.adminAuditLog.create({
+                            data: {
+                                adminId,
+                                description: `Failed to set kit status in Tempus: ${action} for sample ${sampleId}`,
+                                metadata: {
+                                    action,
+                                    sampleId,
+                                    error: errorText,
+                                    status: response.status,
+                                    traceId,
+                                },
+                                priority: Priority.HIGH,
+                            },
+                        }).catch((error) => {
+                            logger.error("Failed to create admin audit log", {
+                                traceId,
+                                error: error,
+                                method: "TempusService.setKitStatus",
+                            });
+                        }),
+                    );
+                }
+
+                await Promise.all(auditLogPromises);
+
+                return {
+                    success: false,
+                    error: `Tempus API error: ${response.status} ${errorText}`,
+                };
+            }
+
+            const responseData = (await response.json().catch(() => ({}))) as Record<string, any>;
+
+            logger.info("Successfully set kit status in Tempus", {
+                traceId,
+                action,
+                sampleId,
+                response: responseData,
+                method: "TempusService.setKitStatus",
+            });
+
+            const auditLogPromises = [];
+
+            auditLogPromises.push(
+                prisma.systemAuditLog.create({
+                    data: {
+                        userId: adminId || "system",
+                        organizationId: organizationId,
+                        action: `TEMPUS_SET_KIT_STATUS_${action}`,
+                        description: `Set kit status in Tempus: ${action} for sample ${sampleId}`,
+                        metadata: {
+                            payload,
+                            action,
+                            sampleId,
+                            response: responseData || null,
+                            traceId: traceId || null,
+                        },
+                        priority: Priority.MEDIUM,
+                    },
+                }).catch((error) => {
+                    logger.error("Failed to create system audit log", {
+                        traceId,
+                        error: error,
+                        method: "TempusService.setKitStatus",
+                    });
+                }),
+            );
+
+            if (adminId) {
+                auditLogPromises.push(
+                    prisma.adminAuditLog.create({
+                        data: {
+                            adminId,
+                            description: `Set kit status in Tempus: ${action} for sample ${sampleId}`,
+                            metadata: {
+                                action,
+                                sampleId,
+                                response: responseData || null,
+                                traceId: traceId || null,
+                            },
+                            priority: Priority.MEDIUM,
+                        },
+                    }).catch((error) => {
+                        logger.error("Failed to create admin audit log", {
+                            traceId,
+                            error: error,
+                            method: "TempusService.setKitStatus",
+                        });
+                    }),
+                );
+            }
+
+            await Promise.all(auditLogPromises);
+
+            return {
+                success: true,
+                message: `Successfully set kit status to ${action} for sample ${sampleId}`,
+            };
+        } catch (error) {
+            logger.error("Error setting kit status in Tempus", {
+                traceId,
+                action,
+                sampleId,
+                error: error,
+                method: "TempusService.setKitStatus",
+            });
+
+            const auditLogPromises = [];
+
+            auditLogPromises.push(
+                prisma.systemAuditLog.create({
+                    data: {
+                        userId: adminId || "system",
+                        organizationId: organizationId,
+                        action: `TEMPUS_SET_KIT_STATUS_${action}`,
+                        description: `Error setting kit status in Tempus: ${action} for sample ${sampleId}`,
+                        metadata: {
+                            payload,
+                            action,
+                            sampleId,
+                            error: String(error),
+                            traceId,
+                        },
+                        priority: Priority.HIGH,
+                    },
+                }).catch((auditError) => {
+                    logger.error("Failed to create system audit log", {
+                        traceId,
+                        error: auditError,
+                        method: "TempusService.setKitStatus",
+                    });
+                }),
+            );
+
+            if (adminId) {
+                auditLogPromises.push(
+                    prisma.adminAuditLog.create({
+                        data: {
+                            adminId,
+                            description: `Error setting kit status in Tempus: ${action} for sample ${sampleId}`,
+                            metadata: {
+                                action,
+                                sampleId,
+                                error: String(error),
+                                traceId,
+                            },
+                            priority: Priority.HIGH,
+                        },
+                    }).catch((auditError) => {
+                        logger.error("Failed to create admin audit log", {
+                            traceId,
+                            error: auditError,
+                            method: "TempusService.setKitStatus",
+                        });
+                    }),
+                );
+            }
+
+            await Promise.all(auditLogPromises);
+
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
     }
 }
 

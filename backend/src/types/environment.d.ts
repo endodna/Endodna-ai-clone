@@ -19,6 +19,12 @@ declare global {
       MEDICAL_RECORDS_PROCESSING_CRON: string;
       AWS_REGION: string;
       RUN_MEDICAL_RECORDS_PROCESSING_ON_START: string;
+      TEMPUS_AUTH_URL: string;
+      TEMPUS_API_URL: string;
+      TEMPUS_USERNAME: string;
+      TEMPUS_PASSWORD: string;
+      TEMPUS_CLIENT_ID: string;
+      TEMPUS_COMPANY: string;
     }
   }
 }

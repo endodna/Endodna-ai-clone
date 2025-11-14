@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "DNAResultStatus" ADD VALUE 'KIT_REGISTERED';
