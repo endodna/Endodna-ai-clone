@@ -10,6 +10,7 @@ import {
   CreatePatientConversationSchema,
   SendPatientMessageSchema,
   UpdateConversationTitleSchema,
+  RegisterPatientDNAKitSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -42,6 +43,8 @@ class DoctorController {
         gender,
         dateOfBirth,
         phoneNumber,
+        workPhoneNumber,
+        homePhoneNumber,
       } = req.body as CreatePatientSchema;
 
       const result = await UserService.createUser({
@@ -53,6 +56,8 @@ class DoctorController {
         gender,
         dateOfBirth,
         phoneNumber,
+        workPhoneNumber,
+        homePhoneNumber,
         userType: PrismaUserType.PATIENT,
         organizationId: organizationId!,
         userId: userId,
@@ -81,6 +86,7 @@ class DoctorController {
         status: StatusCode.OK,
         data: {
           ...req.body,
+          id: result.userId,
           password: undefined,
         },
         message: "Organization patient created successfully",
@@ -1069,7 +1075,11 @@ class DoctorController {
 
       const patient = await prisma.user.findFirst({
         select: {
-          id: true, patientDNAResults: {
+          id: true,
+          patientDNAResults: {
+            where: {
+              isProcessed: true,
+            },
             select: {
               status: true,
               isProcessed: true,
@@ -1098,7 +1108,7 @@ class DoctorController {
         },
         where: buildOrganizationUserFilter(organizationId!, {
           id: patientId,
-          userType: PrismaUserType.PATIENT,
+          userType: PrismaUserType.PATIENT
         }),
       });
 
@@ -1537,6 +1547,86 @@ class DoctorController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to get doctors",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async registerPatientDNAKit(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
+    try {
+      const { patientId } = req.params;
+      const { organizationId, userId } = req.user!;
+      const { barcode } = req.body as RegisterPatientDNAKitSchema;
+
+      const patient = await prisma.user.findFirst({
+        where: {
+          id: patientId,
+          organizationUsers: {
+            some: {
+              organizationId: organizationId!,
+              userType: PrismaUserType.PATIENT,
+            },
+          },
+        },
+      });
+
+      if (!patient) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const result = await UserService.registerPatientDNAKit({
+        barcode,
+        patientId,
+        organizationId: organizationId!,
+        traceId: req.traceId,
+      });
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error || "Failed to register DNA kit",
+        });
+      }
+
+      await UserService.createUserAuditLog({
+        userId: userId,
+        description: "Patient DNA kit registration",
+        metadata: {
+          patientId,
+          barcode,
+          dnaResultKitId: result.dnaResultKitId,
+        },
+        priority: Priority.MEDIUM,
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          dnaResultKitId: result.dnaResultKitId,
+        },
+        message: result.message || "DNA kit registered successfully",
+      });
+    } catch (err) {
+      logger.error("Register patient DNA kit failed", {
+        traceId: req.traceId,
+        method: "registerPatientDNAKit.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to register DNA kit",
         },
         req,
       );

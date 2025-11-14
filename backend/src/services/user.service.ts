@@ -5,6 +5,7 @@ import {
   UserType as PrismaUserType,
   Priority,
   User,
+  DNAResultStatus,
 } from "@prisma/client";
 import { UserResponse } from "@supabase/supabase-js";
 import { AuthenticatedRequest, StatusCode, UserType } from "../types";
@@ -27,6 +28,8 @@ export interface CreateUserParams {
   gender?: string;
   dateOfBirth?: Date;
   phoneNumber?: string;
+  workPhoneNumber?: string;
+  homePhoneNumber?: string;
   traceId?: string;
 }
 
@@ -62,6 +65,8 @@ export class UserService {
         gender,
         dateOfBirth,
         phoneNumber,
+        workPhoneNumber,
+        homePhoneNumber,
         status,
       } = params;
 
@@ -172,6 +177,8 @@ export class UserService {
           gender,
           dateOfBirth,
           phoneNumber,
+          workPhoneNumber,
+          homePhoneNumber,
         },
       });
 
@@ -381,5 +388,139 @@ export class UserService {
       error: false,
       message: "Login successful",
     };
+  }
+
+  public static async registerPatientDNAKit(params: {
+    barcode: string;
+    patientId: string;
+    organizationId: number;
+    traceId?: string;
+  }): Promise<{
+    success: boolean;
+    dnaResultKitId?: number;
+    error?: string;
+    message?: string;
+  }> {
+    try {
+      const { barcode, patientId, organizationId, traceId } = params;
+
+      const existingKit = await prisma.patientDNAResultKit.findFirst({
+        where: {
+          barcode: {
+            equals: barcode,
+            mode: "insensitive",
+          },
+          deletedAt: null,
+        },
+      });
+
+      if (existingKit) {
+        if (existingKit.patientId) {
+          logger.info("DNA kit already linked to a patient", {
+            traceId,
+            dnaResultKitId: existingKit.id,
+            barcode,
+            existingPatientId: existingKit.patientId,
+            requestedPatientId: patientId,
+            method: "UserService.registerPatientDNAKit",
+          });
+
+          return {
+            success: false,
+            error: "DNA Kit already registered",
+            message: "DNA kit is already linked to a patient",
+          };
+        }
+
+        const updatedKit = await prisma.patientDNAResultKit.update({
+          where: {
+            id: existingKit.id,
+          },
+          data: {
+            patientId,
+            organizationId,
+          },
+        });
+
+        await prisma.patientDNAResultActivity.create({
+          data: {
+            patientDNAResultId: updatedKit.id,
+            activity: "Kit registered",
+            status: DNAResultStatus.KIT_REGISTERED,
+            metadata: {
+              barcode,
+              patientId,
+              organizationId,
+            },
+          },
+        });
+
+        logger.info("Updated existing DNA result kit with patient ID", {
+          traceId,
+          dnaResultKitId: updatedKit.id,
+          barcode,
+          patientId,
+          organizationId,
+          method: "UserService.registerPatientDNAKit",
+        });
+
+        return {
+          success: true,
+          dnaResultKitId: updatedKit.id,
+          message: "DNA kit registered successfully",
+        };
+      }
+
+      const newKit = await prisma.patientDNAResultKit.create({
+        data: {
+          barcode,
+          patientId,
+          organizationId,
+          status: DNAResultStatus.KIT_REGISTERED,
+          isProcessed: false,
+          isFailedProcessing: false,
+          fileMetadata: {},
+        },
+      });
+
+      await prisma.patientDNAResultActivity.create({
+        data: {
+          patientDNAResultId: newKit.id,
+          activity: "Kit registered",
+          status: DNAResultStatus.KIT_REGISTERED,
+          metadata: {
+            barcode,
+            patientId,
+            organizationId,
+          },
+        },
+      });
+
+      logger.info("Created new DNA result kit", {
+        traceId,
+        dnaResultKitId: newKit.id,
+        barcode,
+        patientId,
+        organizationId,
+        method: "UserService.registerPatientDNAKit",
+      });
+
+      return {
+        success: true,
+        dnaResultKitId: newKit.id,
+        message: "DNA kit registered successfully",
+      };
+    } catch (error) {
+      logger.error("Error registering patient DNA kit", {
+        traceId: params.traceId,
+        error: error,
+        method: "UserService.registerPatientDNAKit",
+      });
+      return {
+        success: false,
+        error: "InternalServerError",
+        message: "Failed to register DNA kit",
+      };
+    }
   }
 }

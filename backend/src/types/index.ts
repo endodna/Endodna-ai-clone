@@ -49,6 +49,12 @@ export enum PermissionAction {
   CREATE = "create",
 }
 
+export enum TempusActions {
+  HOLD = "HOLD",
+  PROCESS = "PROCESS",
+  CANCEL = "CANCEL",
+}
+
 export interface MenuItem {
   id: string;
   label: string;
