@@ -103,8 +103,8 @@ export const createPatientSchema = z
     gender: z.string().optional(),
     dateOfBirth: z.coerce.date().optional(),
     phoneNumber: z.string().optional(),
-    workPhoneNumber: z.string().optional(),
-    homePhoneNumber: z.string().optional(),
+    workPhone: z.string().optional(),
+    homePhone: z.string().optional(),
   })
   .strict();
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
