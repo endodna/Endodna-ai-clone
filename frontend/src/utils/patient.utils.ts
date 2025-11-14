@@ -2,7 +2,7 @@
  * Patient-related utility functions
  */
 
-import { DNAResultStatus } from "@/types/patient";
+import { DNAResultStatus } from "@/constants/patient";
 
 /**
  * Formats status string to a readable format
@@ -19,12 +19,12 @@ export function formatStatusText(status: string): string {
 }
 
 /**
- * Maps DNA result status enum to display text
- * @param status - DNA result status enum value
+ * Maps DNA result status to display text
+ * @param status - DNA result status string
  * @returns Object with display text for the status
  */
-export function getDNAStatusDisplay(status: DNAResultStatus): { text: string } {
-  const statusMap: Record<DNAResultStatus, string> = {
+export function getDNAStatusDisplay(status: string): { text: string } {
+  const statusMap: Record<string, string> = {
     [DNAResultStatus.PENDING]: "Pending",
     [DNAResultStatus.KIT_RECEIVED]: "Kit received",
     [DNAResultStatus.QC_FAILED]: "QC failed",

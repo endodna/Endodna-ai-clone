@@ -8,13 +8,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useDoctorPatients } from "@/hooks/useDoctor";
-import { PatientRow } from "@/types/patient";
+import { useGetDoctorPatients, useGetDoctors, useGetConstants } from "@/hooks/useDoctor";
 import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PatientTable } from "../../components/patients/PatientTable";
 import debounce from "@/utils/utils";
-import { PHYSICIAN_OPTIONS, STATUS_OPTIONS } from "@/components/patients/constants";
 
 export default function PatientListPage() {
     const [page, setPage] = useState(1);
@@ -24,68 +22,29 @@ export default function PatientListPage() {
     const [selectedPhysician, setSelectedPhysician] = useState<string>("all");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
+    // Fetch doctors and constants for filters
+    const { data: doctorsResponse } = useGetDoctors();
+    const { data: constantsResponse } = useGetConstants();
+
+    const doctors = doctorsResponse?.data ?? [];
+    const constants = constantsResponse?.data;
+
     const {
         data: apiResponse,
         isLoading,
         error,
         isRefetching,
         refetch,
-    } = useDoctorPatients({
+    } = useGetDoctorPatients({
         page,
         limit,
         search: search || undefined,
+        doctorId: selectedPhysician !== "all" ? selectedPhysician : undefined,
+        status: selectedStatus !== "all" ? selectedStatus : undefined,
     });
 
-    const allPatients: PatientRow[] = apiResponse?.data?.items ?? [];
+    const patients: PatientRow[] = apiResponse?.data?.items ?? [];
     const pagination = apiResponse?.data?.pagination;
-
-    // Client-side filtering (Till backend is updated)
-    const filteredPatients = useMemo(() => {
-        let filtered = [...allPatients];
-
-        // Filter by physician
-        if (selectedPhysician !== "all") {
-            filtered = filtered.filter((patient) => {
-                return patient.managingDoctor?.id === selectedPhysician;
-            });
-        }
-
-        // Filter by status
-        if (selectedStatus !== "all") {
-            filtered = filtered.filter((patient) => {
-                // Map UI status values to actual patient data
-                switch (selectedStatus) {
-                    case "invite":
-                        // Invite Pending - patients with PENDING status
-                        return patient.status === "PENDING";
-                    case "labs":
-                        // Labs Pending - patients with DNA results in pending/processing states
-                        const hasPendingLabs = patient.patientDNAResults?.some(
-                            (result) =>
-                                result.status === "KIT_RECEIVED" ||
-                                result.status === "PROCESS" ||
-                                result.status === "QC_PASSED" ||
-                                result.status === "DNA_EXTRACTION_ACCEPTED"
-                        );
-                        return hasPendingLabs || patient.patientDNAResults?.length === 0;
-                    case "dna":
-                        // DNA Ready - patients with completed DNA results
-                        const hasCompletedDNA = patient.patientDNAResults?.some(
-                            (result) =>
-                                result.status === "GENOTYPING_ACCEPTED" ||
-                                result.status === "GENOTYPING_2ND_ACCEPTED"
-                        );
-                        return hasCompletedDNA;
-                    default:
-                        return true;
-                }
-            });
-        }
-
-        return filtered;
-    }, [allPatients, selectedPhysician, selectedStatus]);
-
-    const patients = filteredPatients;
 
     const errorMessage = error
         ? (error as any)?.message ?? apiResponse?.message ?? "Failed to fetch patients"
@@ -98,7 +57,7 @@ export default function PatientListPage() {
         () => debounce((value: string) => {
             setSearch(value);
             setPage(1);
-        }, 500),
+        }, 300),
         []
     );
 
@@ -107,6 +66,38 @@ export default function PatientListPage() {
         setSearchInput(value); // Update input immediately
         debouncedSetSearch(value); // Trigger debounced API call
     };
+
+    // Build physician options from fetched doctors
+    const physicianOptions = useMemo(() => {
+        const options = [{ value: "all", label: "All Physicians" }];
+        if (doctors && doctors.length > 0) {
+            doctors.forEach((doctor) => {
+                const fullName = `${doctor.firstName} ${doctor.lastName}`.trim();
+                options.push({
+                    value: doctor.id,
+                    label: fullName ?? doctor.email,
+                });
+            });
+        }
+        return options;
+    }, [doctors]);
+
+    // Build status options from fetched constants
+    const statusOptions = useMemo(() => {
+        const options = [{ value: "all", label: "All Statuses" }];
+        if (constants) {
+            // Add DNA result statuses
+            if (constants.dnaResultStatus && constants.dnaResultStatus.length > 0) {
+                constants.dnaResultStatus.forEach((status) => {
+                    options.push({
+                        value: status,
+                        label: status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+                    });
+                });
+            }
+        }
+        return options;
+    }, [constants]);
 
     // Handle pagination changes
     useEffect(() => {
@@ -157,7 +148,7 @@ export default function PatientListPage() {
                             <SelectValue placeholder="All Physicians" />
                         </SelectTrigger>
                         <SelectContent>
-                            {PHYSICIAN_OPTIONS.map((option) => (
+                            {physicianOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
                                     {option.label}
                                 </SelectItem>
@@ -175,7 +166,7 @@ export default function PatientListPage() {
                             <SelectValue placeholder="All Statuses" />
                         </SelectTrigger>
                         <SelectContent>
-                            {STATUS_OPTIONS.map((option) => (
+                            {statusOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
                                     {option.label}
                                 </SelectItem>

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { PatientRow } from "@/types/patient";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
 import { patientColumns } from "./columns";
 import { useNavigate } from "react-router-dom";

@@ -4,7 +4,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { DNAResultStatus, PatientRow } from "@/types/patient";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -100,6 +99,25 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
       );
     },
     enableSorting: true,
+    sortingFn: (rowA, rowB) => {
+      // Get the most recent DNA result for each patient
+      const getLatestDNAStatus = (patient: PatientRow): string => {
+        const latestDNAResult = patient.patientDNAResults
+          ?.filter(result => result.status)
+          .sort((a, b) => {
+            const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            return dateB - dateA;
+          })[0];
+        return latestDNAResult?.status || "";
+      };
+
+      const statusA = getLatestDNAStatus(rowA.original);
+      const statusB = getLatestDNAStatus(rowB.original);
+      
+      // Sort alphabetically by status string
+      return statusA.localeCompare(statusB);
+    },
     cell: ({ row }) => {
       const patient = row.original;
       // Get the most recent DNA result based on updatedAt
@@ -115,7 +133,7 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
         return <span className="text-neutral-400">-</span>;
       }
 
-      const { text } = getDNAStatusDisplay(latestDNAResult.status as DNAResultStatus);
+      const { text } = getDNAStatusDisplay(latestDNAResult.status);
 
       return (
         <div className="flex items-center gap-2">

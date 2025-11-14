@@ -8,7 +8,6 @@ import React, {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { authApi } from "@/handlers/api/api";
-import { UserType } from "@/types";
 import { toast } from "sonner";
 
 interface UserConfig {

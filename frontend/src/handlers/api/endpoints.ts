@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
 
   MISC: {
     GET_MENU: "/misc/menu",
+    GET_CONSTANTS: "/misc/constants",
   },
 
   PATIENTS: {
@@ -20,6 +21,9 @@ export const API_ENDPOINTS = {
 
   // Doctor role endpoints
   DOCTOR: {
+    DOCTORS: {
+      LIST: "/doctor/doctors",
+    },
     PATIENTS: {
       LIST: "/doctor/patients",
       CREATE: "/doctor/patient",

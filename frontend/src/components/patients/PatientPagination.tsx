@@ -8,7 +8,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { PatientsApiResponse } from "@/types/patient";
 import { cn } from "@/lib/utils";
 
 interface PatientPaginationProps {
