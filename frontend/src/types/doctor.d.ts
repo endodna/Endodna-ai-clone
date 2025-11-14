@@ -70,3 +70,32 @@ interface PatientsApiResponse {
         hasPreviousPage: boolean;
     };
 }
+
+/**
+ * Add patient data
+ */
+interface AddPatientData {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    email: string;
+    phoneNumber: string;
+    homePhone?: string;
+    workPhone?: string;
+}
+
+/**
+ * patient added response
+ */
+interface PatientAddedResponse {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber: string;
+    homePhone?: string;
+    workPhone?: string;
+}

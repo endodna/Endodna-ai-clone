@@ -101,7 +101,7 @@ export function DataTable<TData, TValue>({
   pagination,
   onPageChange,
   paginationConfig,
-}: DataTableProps<TData, TValue>) {
+}: Readonly<DataTableProps<TData, TValue>>) {
   const {
     maxVisiblePages = 7,
     siblingCount = 1,
@@ -252,7 +252,7 @@ export function DataTable<TData, TValue>({
                     onPageChange(pagination.page - 1);
                   }
                 }}
-                className={!pagination.hasPreviousPage ? "pointer-events-none opacity-50" : ""}
+                className={pagination.hasPreviousPage ? "" : "pointer-events-none opacity-50"}
               />
             </PaginationItem>
 
