@@ -132,6 +132,22 @@ export class UserService {
           email,
           password,
           email_confirm: true,
+          user_metadata: {
+            userType: userType.toString(),
+            organizationId,
+            firstName,
+            lastName,
+            middleName,
+            status,
+            organization: {
+              id: organization.id,
+              name: organization.name,
+              email: organization.createdByAdmin?.email,
+            },
+            invitedBy: {
+              ...invitedBy,
+            },
+          }
         });
       } else {
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(email, {
