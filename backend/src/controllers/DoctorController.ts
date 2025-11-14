@@ -43,8 +43,8 @@ class DoctorController {
         gender,
         dateOfBirth,
         phoneNumber,
-        workPhoneNumber,
-        homePhoneNumber,
+        workPhone,
+        homePhone,
       } = req.body as CreatePatientSchema;
 
       const result = await UserService.createUser({
@@ -56,8 +56,8 @@ class DoctorController {
         gender,
         dateOfBirth,
         phoneNumber,
-        workPhoneNumber,
-        homePhoneNumber,
+        workPhoneNumber: workPhone,
+        homePhoneNumber: homePhone,
         userType: PrismaUserType.PATIENT,
         organizationId: organizationId!,
         userId: userId,
