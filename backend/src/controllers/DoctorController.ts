@@ -54,7 +54,7 @@ class DoctorController {
         lastName,
         middleName,
         gender,
-        dateOfBirth,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         phoneNumber,
         workPhoneNumber: workPhone,
         homePhoneNumber: homePhone,
