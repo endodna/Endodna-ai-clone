@@ -101,7 +101,11 @@ export const createPatientSchema = z
     lastName: z.string().min(1, "Last name is required"),
     middleName: z.string().optional(),
     gender: z.string().optional(),
-    dateOfBirth: z.coerce.date().optional(),
+    dateOfBirth: z
+      .coerce
+      .date()
+      .transform((val) => val.toISOString())
+      .optional(),
     phoneNumber: z.string().optional(),
     workPhone: z.string().optional(),
     homePhone: z.string().optional(),
@@ -154,8 +158,16 @@ export const createPatientActiveMedicationSchema = z
     drugName: z.string().min(1, "Drug name is required"),
     dosage: z.string().min(1, "Dosage is required"),
     frequency: z.string().min(1, "Frequency is required"),
-    startDate: z.coerce.date().optional(),
-    endDate: z.coerce.date().optional(),
+    startDate: z
+      .coerce
+      .date()
+      .transform((val) => val.toISOString())
+      .optional(),
+    endDate: z
+      .coerce
+      .date()
+      .transform((val) => val.toISOString())
+      .optional(),
     reason: z.string().min(1, "Reason is required"),
     notes: z.string().optional(),
   })
