@@ -168,6 +168,8 @@ model User {
   patientChartNotes        PatientChartNote[]        @relation("Patient")
   doctorChartNotes         PatientChartNote[]        @relation("Doctor")
   systemAuditLogs          SystemAuditLog[]
+  patientTokenUsages       TokenUsage[]              @relation("Patient")
+  doctorTokenUsages        TokenUsage[]              @relation("Doctor")
 }
 
 model PatientActivity {
@@ -555,7 +557,9 @@ model TokenUsage {
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String?
-  patient        User?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patient        User?        @relation(name: "Patient", fields: [patientId], references: [id], onDelete: SetNull)
+  doctorId       String?
+  doctor         User?        @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: SetNull)
   taskId         Int?
   taskType       TaskType
   requestType    RequestType
@@ -571,6 +575,8 @@ model TokenUsage {
   latencyMs      Int?
   metadata       Json?
   createdAt      DateTime     @default(now())
+  user           User?        @relation(fields: [userId], references: [id])
+  userId         String?
 }
 
 model PatientChartNote {

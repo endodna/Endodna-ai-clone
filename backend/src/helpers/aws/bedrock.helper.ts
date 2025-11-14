@@ -9,6 +9,7 @@ export interface GenerateEmbeddingParams {
     text: string;
     organizationId: number;
     patientId?: string;
+    doctorId?: string;
     taskId?: number;
     taskType: TaskType;
     cacheKey?: string;
@@ -59,7 +60,7 @@ class BedrockHelper {
         params: GenerateEmbeddingParams,
     ): Promise<EmbeddingResult> {
         const startTime = Date.now();
-        const { text, organizationId, patientId, taskId, taskType, traceId } = params
+        const { text, organizationId, patientId, doctorId, taskId, taskType, traceId } = params
 
         if (!this.enableBedrock) {
             logger.debug("Bedrock embeddings disabled, returning mock embedding", {
@@ -78,6 +79,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: "EMBEDDING",
@@ -147,6 +149,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: "EMBEDDING",
@@ -227,6 +230,7 @@ class BedrockHelper {
             userPrompt: string;
             organizationId: number;
             patientId?: string;
+            doctorId?: string;
             taskId?: number;
             taskType: TaskType;
             maxTokens?: number;
@@ -245,6 +249,7 @@ class BedrockHelper {
             userPrompt,
             organizationId,
             patientId,
+            doctorId,
             taskId,
             taskType,
             maxTokens = 4096,
@@ -269,6 +274,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: "TEXT_GENERATION",
@@ -350,6 +356,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: "TEXT_GENERATION",
@@ -400,6 +407,7 @@ class BedrockHelper {
             messages: Array<{ role: string; content: string }>;
             organizationId: number;
             patientId?: string;
+            doctorId?: string;
             taskId?: number;
             taskType: TaskType;
             maxTokens?: number;
@@ -418,6 +426,7 @@ class BedrockHelper {
             messages,
             organizationId,
             patientId,
+            doctorId,
             taskId,
             taskType,
             maxTokens = 4096,
@@ -442,6 +451,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: RequestType.CHAT_COMPLETION,
@@ -521,6 +531,7 @@ class BedrockHelper {
             await tokenUsageHelper.recordUsage({
                 organizationId,
                 patientId,
+                doctorId,
                 taskId,
                 taskType,
                 requestType: RequestType.CHAT_COMPLETION,
