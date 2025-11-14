@@ -1,4 +1,4 @@
-export enum UserType {
+enum UserType {
   PATIENT = "PATIENT",
   ADMIN = "ADMIN",
   SUPER_ADMIN = "SUPER_ADMIN",
