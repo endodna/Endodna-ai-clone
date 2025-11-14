@@ -9,6 +9,7 @@ import tokenUsageHelper, { MODEL_ID } from "./token-usage.helper";
 export interface PatientSummaryParams {
     patientId: string;
     organizationId: number;
+    doctorId?: string;
     traceId?: string;
 }
 
@@ -627,7 +628,7 @@ class RAGHelper {
     async generatePatientSummary(
         params: PatientSummaryParams,
     ): Promise<PatientSummaryResult> {
-        const { patientId, organizationId, traceId } = params;
+        const { patientId, organizationId, doctorId, traceId } = params;
         const cacheKey = this.getPatientSummaryCacheKey(organizationId, patientId);
         const CACHE_TTL_SECONDS = 7200; // 2 hours
 
@@ -662,6 +663,7 @@ class RAGHelper {
                     await tokenUsageHelper.recordUsage({
                         organizationId,
                         patientId,
+                        doctorId,
                         taskType: TaskType.PATIENT_SUMMARY_GENERATION,
                         requestType: "TEXT_GENERATION",
                         modelId: MODEL_ID.CHAT_COMPLETION,
@@ -818,6 +820,7 @@ class RAGHelper {
                 userPrompt,
                 organizationId,
                 patientId,
+                doctorId,
                 taskType: TaskType.PATIENT_SUMMARY_GENERATION,
                 maxTokens: 4096,
                 temperature: 0.1,

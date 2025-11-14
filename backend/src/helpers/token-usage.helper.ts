@@ -11,6 +11,7 @@ export const MODEL_ID = {
 export interface RecordTokenUsageParams {
     organizationId: number;
     patientId?: string;
+    doctorId?: string;
     taskId?: number;
     taskType: TaskType;
     requestType: RequestType;
@@ -93,6 +94,7 @@ class TokenUsageHelper {
                 data: {
                     organizationId: params.organizationId,
                     patientId: params.patientId,
+                    doctorId: params.doctorId,
                     taskId: params.taskId,
                     taskType: params.taskType,
                     requestType: params.requestType,
@@ -114,6 +116,7 @@ class TokenUsageHelper {
                 traceId: params.traceId,
                 organizationId: params.organizationId,
                 patientId: params.patientId,
+                doctorId: params.doctorId,
                 taskId: params.taskId,
                 taskType: params.taskType,
                 modelId: params.modelId,
@@ -125,6 +128,7 @@ class TokenUsageHelper {
                 traceId: params.traceId,
                 organizationId: params.organizationId,
                 patientId: params.patientId,
+                doctorId: params.doctorId,
                 taskId: params.taskId,
                 error: error,
             });

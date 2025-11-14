@@ -310,6 +310,7 @@ class PatientChatHelper {
                 messages: messages as any,
                 organizationId,
                 patientId,
+                doctorId,
                 taskType: TaskType.DIAGNOSIS_ASSISTANCE,
                 maxTokens: 4096,
                 temperature: 0.6,

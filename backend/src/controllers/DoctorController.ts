@@ -1030,9 +1030,11 @@ class DoctorController {
         });
       }
 
+      const { userId } = req.user!;
       const result = await ragHelper.generatePatientSummary({
         patientId,
         organizationId,
+        doctorId: userId,
         traceId: req.traceId,
       });
 
