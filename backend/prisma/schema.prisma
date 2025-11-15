@@ -164,7 +164,6 @@ model User {
   doctorGivenMedications   PatientActiveMedication[] @relation("Doctor")
   patientChatConversations PatientChatConversation[] @relation("Patient")
   doctorChatConversations  PatientChatConversation[] @relation("Doctor")
-  tokenUsage               TokenUsage[]
   patientChartNotes        PatientChartNote[]        @relation("Patient")
   doctorChartNotes         PatientChartNote[]        @relation("Doctor")
   systemAuditLogs          SystemAuditLog[]
@@ -575,8 +574,6 @@ model TokenUsage {
   latencyMs      Int?
   metadata       Json?
   createdAt      DateTime     @default(now())
-  user           User?        @relation(fields: [userId], references: [id])
-  userId         String?
 }
 
 model PatientChartNote {

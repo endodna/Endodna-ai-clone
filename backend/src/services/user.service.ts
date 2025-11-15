@@ -8,11 +8,12 @@ import {
   DNAResultStatus,
 } from "@prisma/client";
 import { UserResponse } from "@supabase/supabase-js";
-import { AuthenticatedRequest, StatusCode, UserType } from "../types";
+import { AuthenticatedRequest, StatusCode, TempusActions, UserType } from "../types";
 import { buildRedisSession } from "../helpers/misc.helper";
 import { SESSION_KEY } from "../utils/constants";
 import redis from "../lib/redis";
 import { logger } from "../helpers/logger.helper";
+import tempusService from "./tempus.service";
 
 export interface CreateUserParams {
   email: string;
@@ -410,6 +411,7 @@ export class UserService {
     barcode: string;
     patientId: string;
     organizationId: number;
+    adminId?: string;
     traceId?: string;
   }): Promise<{
     success: boolean;
@@ -418,7 +420,7 @@ export class UserService {
     message?: string;
   }> {
     try {
-      const { barcode, patientId, organizationId, traceId } = params;
+      const { barcode, patientId, organizationId, traceId, adminId } = params;
 
       const existingKit = await prisma.patientDNAResultKit.findFirst({
         where: {
@@ -463,6 +465,27 @@ export class UserService {
             patientDNAResultId: updatedKit.id,
             activity: "Kit registered",
             status: DNAResultStatus.KIT_REGISTERED,
+            metadata: {
+              barcode,
+              patientId,
+              organizationId,
+            },
+          },
+        });
+
+        await tempusService.setKitStatus({
+          action: TempusActions.PROCESS,
+          sampleId: barcode,
+          organizationId,
+          traceId,
+          adminId,
+        });
+
+        await prisma.patientDNAResultActivity.create({
+          data: {
+            patientDNAResultId: updatedKit.id,
+            activity: "Kit sent to processing",
+            status: DNAResultStatus.PROCESS,
             metadata: {
               barcode,
               patientId,
