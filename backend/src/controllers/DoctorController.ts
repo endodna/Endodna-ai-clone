@@ -1589,6 +1589,7 @@ class DoctorController {
         patientId,
         organizationId: organizationId!,
         traceId: req.traceId,
+        adminId: userId,
       });
 
       if (!result.success) {

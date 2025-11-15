@@ -119,6 +119,56 @@ class RAGHelper {
         traceId?: string,
     ): Promise<RelevantChunk[]> {
         try {
+            if (!queryEmbedding || queryEmbedding.length === 0) {
+                const fallbackChunks = await prisma.patientMedicalRecordChunk.findMany({
+                    where: {
+                        patientMedicalRecord: {
+                            patientId,
+                            organizationId,
+                            deletedAt: null,
+                            isProcessed: true,
+                        },
+                    },
+                    select: {
+                        id: true,
+                        chunkText: true,
+                        chunkIndex: true,
+                        patientMedicalRecord: {
+                            select: {
+                                id: true,
+                                title: true,
+                                type: true,
+                                createdAt: true,
+                            },
+                        },
+                    },
+                    orderBy: [
+                        {
+                            patientMedicalRecord: {
+                                createdAt: "desc",
+                            },
+                        },
+                        {
+                            chunkIndex: "asc",
+                        },
+                    ],
+                    take: limit,
+                });
+
+                return fallbackChunks.map((chunk: any) => ({
+                    id: chunk.id,
+                    chunkText: chunk.chunkText,
+                    chunkIndex: chunk.chunkIndex,
+                    similarity: null,
+                    patientMedicalRecord: {
+                        id: chunk.patientMedicalRecord.id,
+                        title: chunk.patientMedicalRecord.title,
+                        type: chunk.patientMedicalRecord.type,
+                        createdAt: chunk.patientMedicalRecord.createdAt,
+                    },
+                }));
+            }
+
             const embeddingString = `[${queryEmbedding.join(",")}]`;
 
             let chunks = await prisma.$queryRawUnsafe<any[]>(`

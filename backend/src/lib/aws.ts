@@ -1,6 +1,7 @@
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { CloudWatchLogsClient } from "@aws-sdk/client-cloudwatch-logs";
 import { S3Client } from "@aws-sdk/client-s3";
+import { SESClient } from "@aws-sdk/client-ses";
 import { logger } from "../helpers/logger.helper";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import https from "https";
@@ -9,6 +10,7 @@ class AWSHandler {
   private sqsClient: SQSClient | null = null;
   private cloudWatchLogsClient: CloudWatchLogsClient | null = null;
   private s3Client: S3Client | null = null;
+  private sesClient: SESClient | null = null;
   private region: string;
 
   constructor() {
@@ -17,6 +19,7 @@ class AWSHandler {
     this.initializeSQS();
     this.initializeCloudWatchLogs();
     this.initializeS3();
+    this.initializeSES();
   }
 
   private createHttpAgent() {
@@ -118,6 +121,42 @@ class AWSHandler {
       }
     }
     return this.s3Client;
+  }
+
+  private initializeSES(): void {
+    try {
+      const httpAgent = this.createHttpAgent();
+      const requestHandler = new NodeHttpHandler({
+        httpsAgent: httpAgent,
+        connectionTimeout: 5000,
+        socketTimeout: 60000,
+      });
+
+      this.sesClient = new SESClient({
+        region: this.region,
+        requestHandler,
+        maxAttempts: 3,
+      });
+
+      logger.info("AWS SES Client initialized", {
+        region: this.region,
+      });
+    } catch (error) {
+      logger.error("Failed to initialize AWS SES Client", {
+        error: error,
+        region: this.region,
+      });
+    }
+  }
+
+  getSESClient(): SESClient {
+    if (!this.sesClient) {
+      this.initializeSES();
+      if (!this.sesClient) {
+        throw new Error("SES client failed to initialize");
+      }
+    }
+    return this.sesClient;
   }
 
   getRegion(): string {

@@ -4,6 +4,8 @@ import s3Helper from "../helpers/aws/s3.helper";
 import { prisma } from "../lib/prisma";
 import { ALLOWED_SNPS_SET } from "../utils/constants";
 import { TempusActions } from "../types";
+import ragHelper from "../helpers/rag.helper";
+import emailHelper from "../helpers/email.helper";
 
 interface DNAFileHeader {
     gsgtVersion?: string;
@@ -199,6 +201,9 @@ class TempusService {
                             },
                         },
                     }),
+                );
+                updatePromises.push(
+                    ragHelper.invalidatePatientSummaryCache(dnaResultKit.organizationId, dnaResultKit.patientId, traceId)
                 );
             }
 
@@ -499,6 +504,7 @@ class TempusService {
             });
             return;
         }
+        let holdStatus = false;
 
         try {
             logger.info("Updating DNA kit status from Tempus", {
@@ -550,6 +556,14 @@ class TempusService {
                     status: mappedStatus || DNAResultStatus.KIT_RECEIVED,
                     method: "TempusService.updateKitStatus",
                 });
+
+                await this.setKitStatus({
+                    action: TempusActions.HOLD,
+                    sampleId,
+                    organizationId: 2,
+                    traceId,
+                });
+                holdStatus = true;
             }
 
             if (!mappedStatus) {
@@ -593,6 +607,7 @@ class TempusService {
                 }),
             ];
 
+
             if (!isAlreadyGenotypingAccepted) {
                 updatePromises.push(
                     prisma.patientDNAResultKit.update({
@@ -609,6 +624,39 @@ class TempusService {
             }
 
             await Promise.all(updatePromises);
+
+            if (holdStatus) {
+                await prisma.patientDNAResultActivity.create({
+                    data: {
+                        patientDNAResultId: dnaResultKit.id,
+                        activity: "Kit set to HOLD status",
+                        status: DNAResultStatus.HOLD,
+                        metadata: {
+                            tempusStatus: status,
+                            timestamp,
+                            comment: comment || null,
+                            sampleId
+                        },
+                    },
+                });
+
+                const emailMessage = `A DNA kit has been set to HOLD status.\n\nSample ID: ${sampleId}${dnaResultKit.barcode ? `\nBarcode: ${dnaResultKit.barcode}` : ""}${dnaResultKit.organizationId ? `\nOrganization ID: ${dnaResultKit.organizationId}` : ""}\n\nPlease review and take appropriate action.`;
+                emailHelper.sendNotificationEmail(
+                    emailHelper.adminEmails,
+                    "DNA Kit Set to HOLD Status",
+                    emailMessage,
+                    undefined,
+                    undefined,
+                    traceId,
+                ).catch((error) => {
+                    logger.error("Failed to send HOLD notification email to admins", {
+                        traceId,
+                        sampleId,
+                        error: error,
+                        method: "TempusService.updateKitStatus",
+                    });
+                });
+            }
 
             logger.info("DNA kit status updated successfully", {
                 traceId,
@@ -783,7 +831,7 @@ class TempusService {
                 auditLogPromises.push(
                     prisma.systemAuditLog.create({
                         data: {
-                            userId: adminId || "system",
+                            userId: adminId || null,
                             organizationId: organizationId,
                             action: `TEMPUS_SET_KIT_STATUS_${action}`,
                             description: `Failed to set kit status in Tempus: ${action} for sample ${sampleId}`,
@@ -854,7 +902,7 @@ class TempusService {
             auditLogPromises.push(
                 prisma.systemAuditLog.create({
                     data: {
-                        userId: adminId || "system",
+                        userId: adminId || null,
                         organizationId: organizationId,
                         action: `TEMPUS_SET_KIT_STATUS_${action}`,
                         description: `Set kit status in Tempus: ${action} for sample ${sampleId}`,
@@ -878,9 +926,9 @@ class TempusService {
 
             if (adminId) {
                 auditLogPromises.push(
-                    prisma.adminAuditLog.create({
+                    prisma.userAuditLog.create({
                         data: {
-                            adminId,
+                            userId: adminId,
                             description: `Set kit status in Tempus: ${action} for sample ${sampleId}`,
                             metadata: {
                                 action,
@@ -920,7 +968,7 @@ class TempusService {
             auditLogPromises.push(
                 prisma.systemAuditLog.create({
                     data: {
-                        userId: adminId || "system",
+                        userId: adminId || null,
                         organizationId: organizationId,
                         action: `TEMPUS_SET_KIT_STATUS_${action}`,
                         description: `Error setting kit status in Tempus: ${action} for sample ${sampleId}`,
@@ -944,9 +992,9 @@ class TempusService {
 
             if (adminId) {
                 auditLogPromises.push(
-                    prisma.adminAuditLog.create({
+                    prisma.userAuditLog.create({
                         data: {
-                            adminId,
+                            userId: adminId,
                             description: `Error setting kit status in Tempus: ${action} for sample ${sampleId}`,
                             metadata: {
                                 action,
