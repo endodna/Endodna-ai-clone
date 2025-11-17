@@ -15,6 +15,26 @@ class RedisHandler {
 
     this.client = createClient({
       url: redisUrl,
+      pingInterval: 10000,
+      socket: {
+        reconnectStrategy: (retries: number) => {
+          if (retries > 10) {
+            logger.error("Redis reconnection failed after 10 attempts", {
+              retries,
+              method: "RedisHandler.constructor",
+            });
+            return new Error("Redis reconnection limit exceeded");
+          }
+          const delay = Math.min(retries * 100, 3000);
+          logger.info("Redis reconnecting", {
+            retries,
+            delay,
+            method: "RedisHandler.constructor",
+          });
+          return delay;
+        },
+        keepAlive: 30000,
+      },
     });
 
     this.client.on("error", (err) => {
@@ -38,6 +58,19 @@ class RedisHandler {
     this.client.on("disconnect", () => {
       logger.debug("Redis Client Disconnected");
       this.isConnected = false;
+    });
+
+    this.client.on("end", () => {
+      logger.warn("Redis connection ended, will attempt to reconnect", {
+        method: "RedisHandler.constructor",
+      });
+      this.isConnected = false;
+    });
+
+    this.client.on("reconnecting", () => {
+      logger.info("Redis reconnecting...", {
+        method: "RedisHandler.constructor",
+      });
     });
   }
 

@@ -101,6 +101,7 @@ export const createPatientSchema = z
     lastName: z.string().min(1, "Last name is required"),
     middleName: z.string().optional(),
     gender: z.string().optional(),
+    bloodType: z.string().optional(),
     dateOfBirth: z
       .coerce
       .date()

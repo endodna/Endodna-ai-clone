@@ -49,6 +49,7 @@ class DoctorController {
         phoneNumber,
         workPhone,
         homePhone,
+        bloodType,
       } = req.body as CreatePatientSchema;
 
       const result = await UserService.createUser({
@@ -58,6 +59,7 @@ class DoctorController {
         lastName,
         middleName,
         gender,
+        bloodType,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         phoneNumber,
         workPhoneNumber: workPhone,
@@ -294,6 +296,7 @@ class DoctorController {
           status: true,
           dateOfBirth: true,
           gender: true,
+          bloodType: true,
           patientDNAResults: {
             select: {
               uuid: true,

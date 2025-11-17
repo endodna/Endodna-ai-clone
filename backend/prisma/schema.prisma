@@ -133,6 +133,7 @@ model User {
   workPhoneNumber          String?
   homePhoneNumber          String?
   dateOfBirth              DateTime?
+  bloodType                String?
   managingDoctorId         String?
   gender                   String?
   address                  Json?
