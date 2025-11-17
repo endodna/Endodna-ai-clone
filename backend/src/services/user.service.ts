@@ -27,6 +27,7 @@ export interface CreateUserParams {
   status: Status;
   managingDoctorId?: string;
   gender?: string;
+  bloodType?: string;
   dateOfBirth?: Date;
   phoneNumber?: string;
   workPhoneNumber?: string;
@@ -64,6 +65,7 @@ export class UserService {
         userId,
         managingDoctorId,
         gender,
+        bloodType,
         dateOfBirth,
         phoneNumber,
         workPhoneNumber,
@@ -192,6 +194,7 @@ export class UserService {
           userType,
           managingDoctorId,
           gender,
+          bloodType,
           dateOfBirth,
           phoneNumber,
           workPhoneNumber,
