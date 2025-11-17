@@ -1,5 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "./providers/QueryClientProvider";
+import { ReduxProvider } from "./providers/ReduxProvider";
 import { SupabaseProvider } from "./contexts/SupabaseContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MenuProvider } from "./contexts/MenuContext";
@@ -13,18 +14,20 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider>
-      <SupabaseProvider>
-        <AuthProvider>
-          <MenuProvider>
-            <TooltipProvider delayDuration={0}>
-              <Toaster />
-              <AppContent />
-            </TooltipProvider>
-          </MenuProvider>
-        </AuthProvider>
-      </SupabaseProvider>
-    </QueryClientProvider>
+    <ReduxProvider>
+      <QueryClientProvider>
+        <SupabaseProvider>
+          <AuthProvider>
+            <MenuProvider>
+              <TooltipProvider delayDuration={0}>
+                <Toaster />
+                <AppContent />
+              </TooltipProvider>
+            </MenuProvider>
+          </AuthProvider>
+        </SupabaseProvider>
+      </QueryClientProvider>
+    </ReduxProvider>
   );
 }
 

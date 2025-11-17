@@ -13,15 +13,25 @@ import debounce from "@/utils/utils";
 import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PatientTable } from "../../components/patients/PatientTable";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { openAddPatientDialog, closeAddPatientDialog } from "@/store/features/patient";
+
+const formatStatusLabel = (status: string) =>
+    status
+        .split("_")
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+        .join(" ");
 
 export default function PatientListPage() {
+    const dispatch = useAppDispatch();
+    const { isAddPatientDialogOpen } = useAppSelector((state) => state.patientDialog);
+    
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [selectedPhysician, setSelectedPhysician] = useState<string>("all");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
-    const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false);
 
     // Fetch doctors and constants for filters
     const { data: doctorsResponse } = useGetDoctors();
@@ -93,7 +103,7 @@ export default function PatientListPage() {
                 for (const status of constants.dnaResultStatus) {
                     options.push({
                         value: status,
-                        label: status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+                        label: formatStatusLabel(status),
                     });
                 }
             }
@@ -122,7 +132,7 @@ export default function PatientListPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-5xl font-semibold text-neutral-900">Patients</h1>
                 <Button
-                    onClick={() => setIsAddPatientDialogOpen(true)}
+                    onClick={() => dispatch(openAddPatientDialog())}
                     className="bg-violet-700 hover:bg-violet-400 text-neutral-50 text-sm font-medium rounded-lg "
                 >
                     <UserPlus className="w-4 h-4" />
@@ -196,7 +206,11 @@ export default function PatientListPage() {
 
             <AddPatientDialog
                 open={isAddPatientDialogOpen}
-                onOpenChange={setIsAddPatientDialogOpen}
+                onOpenChange={(open: boolean) => {
+                    if (!open) {
+                        dispatch(closeAddPatientDialog());
+                    }
+                }}
             />
         </div>
     );

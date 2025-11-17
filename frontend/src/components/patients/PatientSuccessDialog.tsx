@@ -7,32 +7,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { closeSuccessDialog, openUploadDialog, setCurrentPatientId } from "@/store/features/patient";
+import { toast } from "sonner";
 
-interface PatientSuccessDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onClose: () => void;
-  onUploadRecords: () => void;
-}
+export function PatientSuccessDialog() {
+  const dispatch = useAppDispatch();
+  const { isSuccessDialogOpen, currentPatientId } = useAppSelector((state) => state.patientDialog);
 
-export function PatientSuccessDialog({
-  open,
-  onOpenChange,
-  onClose,
-  onUploadRecords,
-}: Readonly<PatientSuccessDialogProps>) {
   const handleClose = () => {
-    onClose();
-    onOpenChange(false);
+    dispatch(closeSuccessDialog());
+    dispatch(setCurrentPatientId(null));
   };
 
   const handleUploadRecords = () => {
-    onUploadRecords();
-    onOpenChange(false);
+    if (!currentPatientId) {
+      toast.error("Unable to determine patient. Please try creating the patient again.");
+      return;
+    }
+    dispatch(closeSuccessDialog());
+    dispatch(openUploadDialog());
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      handleClose();
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isSuccessDialogOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="p-4 md:p-8 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader className="space-y-1 md:space-y-4">
           <DialogTitle>
@@ -58,7 +62,8 @@ export function PatientSuccessDialog({
           <Button
             type="button"
             onClick={handleUploadRecords}
-            className="px-4 py-[7.5px] bg-violet-700 hover:bg-violet-400 text-neutral-50 rounded-lg"
+            disabled={!currentPatientId}
+            className="px-4 py-[7.5px] bg-violet-700 hover:bg-violet-400 text-neutral-50 rounded-lg disabled:opacity-50 disabled:pointer-events-none"
           >
             <span className="text-sm font-medium leading-normal">
               Upload Records

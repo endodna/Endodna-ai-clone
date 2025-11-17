@@ -18,7 +18,7 @@ interface PatientPaginationProps {
 export function PatientPagination({
   pagination,
   onPageChange,
-}: PatientPaginationProps) {
+}: Readonly<PatientPaginationProps>) {
   if (!pagination || pagination.totalPages <= 1) {
     return null;
   }
@@ -76,7 +76,7 @@ export function PatientPagination({
                 onPageChange(currentPage - 1);
               }
             }}
-            className={!hasPreviousPage ? "pointer-events-none opacity-50" : ""}
+            className={hasPreviousPage ? "" : "pointer-events-none opacity-50"}
           />
         </PaginationItem>
 
