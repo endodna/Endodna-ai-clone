@@ -173,6 +173,7 @@ model User {
 
 model PatientActivity {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
@@ -189,6 +190,7 @@ model PatientActivity {
 
 model PatientDoctor {
   id          Int       @id @unique @default(autoincrement())
+  uuid        String    @unique @default(uuid())
   patientId   String
   doctorId    String
   patient     User      @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
@@ -201,6 +203,7 @@ model PatientDoctor {
 
 model PatientAllergy {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String
@@ -214,6 +217,7 @@ model PatientAllergy {
 
 model PatientActiveMedication {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String
@@ -234,6 +238,7 @@ model PatientActiveMedication {
 
 model PatientProblemList {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String
@@ -250,6 +255,7 @@ model PatientProblemList {
 
 model PatientGoal {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String
@@ -269,6 +275,7 @@ model PatientGoal {
 
 model PatientTreatmentPlan {
   id               Int          @id @unique @default(autoincrement())
+  uuid             String       @unique @default(uuid())
   organizationId   Int
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId        String
@@ -286,6 +293,7 @@ model PatientTreatmentPlan {
 
 model PatientMedicalRecord {
   id                     Int                         @id @unique @default(autoincrement())
+  uuid                   String                      @unique @default(uuid())
   organizationId         Int
   organization           Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId              String
@@ -310,6 +318,7 @@ model PatientMedicalRecord {
 
 model PatientMedicalRecordChunk {
   id                     Int                          @id @unique @default(autoincrement())
+  uuid                   String                       @unique @default(uuid())
   patientMedicalRecordId Int
   patientMedicalRecord   PatientMedicalRecord         @relation(fields: [patientMedicalRecordId], references: [id], onDelete: Cascade)
   chunkText              String
@@ -324,6 +333,7 @@ model PatientMedicalRecordChunk {
 
 model PatientDNAResultKit {
   id                        Int                         @id @unique @default(autoincrement())
+  uuid                      String                      @unique @default(uuid())
   organizationId            Int?
   organization              Organization?               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId                 String?
@@ -343,6 +353,7 @@ model PatientDNAResultKit {
 
 model PatientDNAResultBreakdown {
   id                 Int                 @id @unique @default(autoincrement())
+  uuid               String              @unique @default(uuid())
   patientDNAResultId Int
   patientDNAResult   PatientDNAResultKit @relation(fields: [patientDNAResultId], references: [id], onDelete: Cascade)
   snpName            String
@@ -357,6 +368,7 @@ model PatientDNAResultBreakdown {
 
 model PatientDNAResultActivity {
   id                 Int                 @id @unique @default(autoincrement())
+  uuid               String              @unique @default(uuid())
   patientDNAResultId Int
   patientDNAResult   PatientDNAResultKit @relation(fields: [patientDNAResultId], references: [id], onDelete: Cascade)
   activity           String
@@ -368,6 +380,7 @@ model PatientDNAResultActivity {
 
 model PatientLabResult {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String
@@ -578,6 +591,7 @@ model TokenUsage {
 
 model PatientChartNote {
   id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientId      String

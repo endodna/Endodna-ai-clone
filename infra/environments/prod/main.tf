@@ -297,7 +297,8 @@ module "elastic_beanstalk" {
   # S3 bucket ARNs for access
   s3_bucket_arns = [
     module.s3_processing.private_bucket_arn,
-    module.s3_processing.dmz_bucket_arn
+    module.s3_processing.dmz_bucket_arn,
+    module.s3_private.bucket_arn
   ]
   
   # CloudWatch log group ARN
