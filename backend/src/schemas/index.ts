@@ -191,7 +191,7 @@ export type PatientIdParamsSchema = z.infer<typeof patientIdParamsSchema>;
 
 export const medicationIdParamsSchema = z.object({
   patientId: z.string().uuid("Invalid patient ID"),
-  medicationId: z.string().transform(val => Number(val))
+  medicationId: z.string().uuid("Invalid medication ID")
 }).strict();
 export type MedicationIdParamsSchema = z.infer<typeof medicationIdParamsSchema>;
 
@@ -226,3 +226,21 @@ export const registerPatientDNAKitSchema = z.object({
   barcode: z.string().min(1, "Barcode is required"),
 }).strict();
 export type RegisterPatientDNAKitSchema = z.infer<typeof registerPatientDNAKitSchema>;
+
+export const createPatientChartNoteSchema = z.object({
+  title: z.string().optional(),
+  content: z.string().min(1, "Content is required"),
+}).strict();
+export type CreatePatientChartNoteSchema = z.infer<typeof createPatientChartNoteSchema>;
+
+export const updatePatientChartNoteSchema = z.object({
+  title: z.string().optional(),
+  content: z.string().min(1, "Content is required"),
+}).strict();
+export type UpdatePatientChartNoteSchema = z.infer<typeof updatePatientChartNoteSchema>;
+
+export const chartNoteIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  chartNoteId: z.string().uuid("Invalid chart note ID")
+}).strict();
+export type ChartNoteIdParamsSchema = z.infer<typeof chartNoteIdParamsSchema>;

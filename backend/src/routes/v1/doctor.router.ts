@@ -14,6 +14,9 @@ import {
   sendPatientMessageSchema,
   updateConversationTitleSchema,
   registerPatientDNAKitSchema,
+  createPatientChartNoteSchema,
+  updatePatientChartNoteSchema,
+  chartNoteIdParamsSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -126,6 +129,30 @@ doctorRouter.patch(
   validateParams(conversationIdParamsSchema),
   validate(updateConversationTitleSchema),
   DoctorController.updatePatientConversationTitle,
+);
+
+// Patient Chart Note Routes
+doctorRouter.post(
+  "/patients/:patientId/chart-notes",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientChartNoteSchema),
+  DoctorController.createPatientChartNote,
+);
+doctorRouter.get(
+  "/patients/:patientId/chart-notes",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientChartNotes,
+);
+doctorRouter.put(
+  "/patients/:patientId/chart-notes/:chartNoteId",
+  validateParams(chartNoteIdParamsSchema),
+  validate(updatePatientChartNoteSchema),
+  DoctorController.updatePatientChartNote,
+);
+doctorRouter.delete(
+  "/patients/:patientId/chart-notes/:chartNoteId",
+  validateParams(chartNoteIdParamsSchema),
+  DoctorController.deletePatientChartNote,
 );
 
 export default doctorRouter;

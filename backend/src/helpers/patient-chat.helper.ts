@@ -59,11 +59,12 @@ class PatientChatHelper {
         - Be clear and concise in your responses
         - If you're uncertain about something, say so
         - Do not provide definitive diagnoses - that's the doctor's responsibility
-        - Focus on providing helpful context and insights based on the patient's medical history
+        - Focus on providing helpful context and insights based on the patient's medical history, including chart notes, medical records, medications, allergies, and lab results
         - Use proper medical terminology when appropriate
         - Format your responses using Markdown for better readability
         - Use line breaks (<br>) for paragraph separation when needed
         - Help doctors understand medical summaries, discuss treatment plans, and provide general medical context as needed
+        - Reference chart notes and clinical observations when relevant to the conversation
         - Adapt your responses based on the conversation context and the doctor's questions`;
     }
 
@@ -149,6 +150,24 @@ class PatientChatHelper {
             formatted += `\n`;
         }
 
+        if (patient.patientChartNotes && patient.patientChartNotes.length > 0) {
+            formatted += `CHART NOTES:\n`;
+            patient.patientChartNotes.forEach((note: any) => {
+                if (note.title) {
+                    formatted += `${note.title}\n`;
+                }
+                formatted += `${note.content}`;
+                if (note.doctor) {
+                    formatted += ` (By: ${note.doctor.firstName} ${note.doctor.lastName})`;
+                }
+                if (note.updatedAt) {
+                    formatted += ` - ${note.updatedAt}`;
+                }
+                formatted += `\n\n`;
+            });
+            formatted += `\n`;
+        }
+
         return formatted;
     }
 
@@ -225,6 +244,23 @@ class PatientChatHelper {
                         where: {
                             organizationId,
                             deletedAt: null,
+                        },
+                    },
+                    patientChartNotes: {
+                        where: {
+                            organizationId,
+                            deletedAt: null,
+                        },
+                        include: {
+                            doctor: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                },
+                            },
+                        },
+                        orderBy: {
+                            updatedAt: "desc",
                         },
                     },
                 },

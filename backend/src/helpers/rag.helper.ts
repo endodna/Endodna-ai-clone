@@ -582,6 +582,24 @@ class RAGHelper {
             formatted += `<br>`;
         }
 
+        if (patient.patientChartNotes && patient.patientChartNotes.length > 0) {
+            formatted += `CHART NOTES:<br>`;
+            patient.patientChartNotes.forEach((note: any) => {
+                if (note.title) {
+                    formatted += `<strong>${note.title}</strong><br>`;
+                }
+                formatted += `${note.content}`;
+                if (note.doctor) {
+                    formatted += ` (By: ${note.doctor.firstName} ${note.doctor.lastName})`;
+                }
+                if (note.updatedAt) {
+                    formatted += ` - ${note.updatedAt}`;
+                }
+                formatted += `<br><br>`;
+            });
+            formatted += `<br>`;
+        }
+
         return formatted;
     }
 
@@ -600,8 +618,8 @@ class RAGHelper {
         2. Use clear section headers (##) for major categories such as demographics, conditions, medications, allergies, and treatments.
         3. Highlight important data using **bold** or bullet points when appropriate.
         4. Be factual and concise — avoid speculation or filler.
-        5. Extract ALL clinical information from medical records, including medications, allergies, diagnoses, treatments, and lab results, even if they are not explicitly listed in the structured patient data section.
-        6. Combine information from both structured patient data and medical record content. If the same information appears in both sources, use the most recent or most detailed version.
+        5. Extract ALL clinical information from medical records and chart notes, including medications, allergies, diagnoses, treatments, lab results, and clinical observations, even if they are not explicitly listed in the structured patient data section.
+        6. Combine information from structured patient data, medical record content, and chart notes. If the same information appears in multiple sources, use the most recent or most detailed version.
         7. For date calculations, ALWAYS use the patient's date of birth when calculating age. Calculate age accurately by subtracting the birthdate from the current date or reference date. When converting dates to years (e.g., age, duration of condition), be precise and accurate.
         8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
         9. Maintain privacy and confidentiality.
@@ -646,13 +664,14 @@ class RAGHelper {
         ### Medical Records
         ${medicalRecords}
         
-        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records, even if it's not explicitly listed in the Patient Data section above. This includes:
+        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records and chart notes, even if it's not explicitly listed in the Patient Data section above. This includes:
         - Medications (current and past) mentioned in medical records
         - Allergies and adverse reactions documented in records
         - Medical conditions, diagnoses, and problem lists
         - Treatment plans and interventions
         - Lab results and diagnostic findings
         - Clinical observations and assessments
+        - Chart notes with clinical observations, progress notes, and provider comments
         
         **DATE CALCULATIONS**: When calculating age or converting dates to years:
         - ALWAYS use the patient's Date of Birth from the Patient Data section above
@@ -668,10 +687,11 @@ class RAGHelper {
         ## Allergies  
         ## Treatment Plans  
         ## Recent Labs and Key Findings  
+        ## Clinical Notes (include relevant information from chart notes)
         ## Medical History Summary  
         
         Each section should be clear and concise — use bullet points or short paragraphs as needed.  
-        Combine information from both the Patient Data section and Medical Records section. If information appears in both, prioritize the most recent or most detailed source.
+        Combine information from the Patient Data section, Medical Records section, and Chart Notes. If information appears in multiple sources, prioritize the most recent or most detailed source.
         Keep the full medical history summary under 5 paragraphs and end with the markdown disclaimer block.`;
     }
 
@@ -829,6 +849,27 @@ class RAGHelper {
                             collectionDate: "desc",
                         },
                         take: 10,
+                    },
+                    patientChartNotes: {
+                        where: {
+                            deletedAt: null,
+                        },
+                        select: {
+                            id: true,
+                            title: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            doctor: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                },
+                            },
+                        },
+                        orderBy: {
+                            updatedAt: "desc",
+                        },
                     },
                 },
             });
