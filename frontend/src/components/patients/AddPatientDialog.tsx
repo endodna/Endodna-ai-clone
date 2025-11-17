@@ -27,10 +27,19 @@ import { AddPatientFormData, addPatientSchema } from "@/schemas/patient.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { GENDER_OPTIONS } from "../constants/patient";
 import { PatientSuccessDialog } from "./PatientSuccessDialog";
+import { PatientUploadRecordsDialog } from "./PatientUploadRecordsDialog";
+import { UploadRecordsSuccessDialog } from "./UploadRecordsSuccessDialog";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  closeAddPatientDialog,
+  openSuccessDialog,
+  setError,
+  clearError,
+  setCurrentPatientId,
+} from "@/store/features/patient";
 
 interface AddPatientDialogProps {
   open: boolean;
@@ -43,8 +52,8 @@ interface ValidationError {
 }
 
 export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDialogProps>) {
-  const [error, setError] = useState<string | null>(null);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const dispatch = useAppDispatch();
+  const { error } = useAppSelector((state) => state.patientDialog);
 
   const {
     register,
@@ -92,41 +101,35 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
           }
         } else {
           // Other error messages
-          setError(response.message || "Failed to create patient");
+          dispatch(setError(response.message || "Failed to create patient"));
         }
       } else {
         // Success - patient created successfully
         reset();
-        setError(null);
+        dispatch(clearError());
         onOpenChange(false);
-        setShowSuccessDialog(true);
+        dispatch(closeAddPatientDialog());
+        dispatch(setCurrentPatientId(response.data?.id ?? null));
+        dispatch(openSuccessDialog());
       }
     },
     onError: (error) => {
-      setError(error.message || "An unexpected error occurred");
+      dispatch(setError(error.message || "An unexpected error occurred"));
     },
   });
 
   const onSubmit = async (data: AddPatientFormData) => {
-    setError(null);
+    dispatch(clearError());
     createPatientMutation.mutate(data);
   };
 
   const handleClose = () => {
     if (!createPatientMutation.isPending) {
       reset();
-      setError(null);
+      dispatch(clearError());
       onOpenChange(false);
+      dispatch(closeAddPatientDialog());
     }
-  };
-
-  const handleSuccessDialogClose = () => {
-    setShowSuccessDialog(false);
-  };
-
-  const handleUploadRecords = () => {
-    // TODO:open upload dialog
-    setShowSuccessDialog(false);
   };
 
   return (
@@ -220,9 +223,14 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                           selected={selectedDate}
                           onSelect={(date) => {
                             if (date) {
-                              // Convert Date to ISO string format (YYYY-MM-DD)
-                              const dateString = format(date, "yyyy-MM-dd");
-                              field.onChange(dateString);
+                              const utcDate = new Date(Date.UTC(
+                                date.getFullYear(),
+                                date.getMonth(),
+                                date.getDate()
+                              ));
+
+                              const utcTimestamp = utcDate.toISOString();
+                              field.onChange(utcTimestamp);
                             } else {
                               field.onChange("");
                             }
@@ -231,6 +239,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                             date > new Date() || date < new Date("1900-01-01")
                           }
                         />
+
                       </PopoverContent>
                     </Popover>
                   );
@@ -319,7 +328,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Work Phone */}
             <div className="space-y-1">
-              <label htmlFor="workPhone"  className="text-sm font-medium leading-normal">
+              <label htmlFor="workPhone" className="text-sm font-medium leading-normal">
                 Work phone
               </label>
               <Input
@@ -352,12 +361,9 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
         </form>
       </DialogContent>
 
-      <PatientSuccessDialog
-        open={showSuccessDialog}
-        onOpenChange={setShowSuccessDialog}
-        onClose={handleSuccessDialogClose}
-        onUploadRecords={handleUploadRecords}
-      />
+      <PatientSuccessDialog />
+      <PatientUploadRecordsDialog />
+      <UploadRecordsSuccessDialog />
     </Dialog>
   );
 }

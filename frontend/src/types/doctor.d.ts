@@ -99,3 +99,22 @@ interface PatientAddedResponse {
     homePhone?: string;
     workPhone?: string;
 }
+
+
+interface UploadedMedicalRecordMetadata {
+    originalName?: string;
+    size?: number;
+    mimetype?: string;
+}
+
+interface UploadedMedicalRecord {
+    id: number;
+    title: string;
+    type: string;
+    metadata: UploadedMedicalRecordMetadata;
+}
+
+interface UploadMedicalRecordsResponse {
+    records: UploadedMedicalRecord[];
+    count: number;
+}

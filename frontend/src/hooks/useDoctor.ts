@@ -2,7 +2,18 @@ import { queryKeys } from "@/components/constants/QueryKeys";
 import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
 import { AddPatientFormData } from "@/schemas/patient.schema";
 import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
+import { AxiosProgressEvent } from "axios";
 
+
+interface UploadMedicalRecordsVariables {
+    patientId: string;
+    files: File[];
+    metadata?: {
+        title?: string;
+        type?: string;
+    };
+    onUploadProgress?: (event: AxiosProgressEvent) => void;
+}
 
 /** 
  * Hook for fetching doctor's patients list
@@ -73,6 +84,16 @@ export const useCreatePatient = (
                 queryKey: queryKeys.doctor.patients.lists(),
             });
         },
+        ...options,
+    });
+};
+
+export const useUploadMedicalRecords = (
+    options?: Omit<UseMutationOptions<ApiResponse<UploadMedicalRecordsResponse>, Error, UploadMedicalRecordsVariables>, "mutationFn">
+) => {
+    return useMutation<ApiResponse<UploadMedicalRecordsResponse>, Error, UploadMedicalRecordsVariables>({
+        mutationFn: ({ patientId, files, metadata, onUploadProgress }) =>
+            doctorsApi.uploadMedicalRecords({ patientId, files, metadata, onUploadProgress }),
         ...options,
     });
 };

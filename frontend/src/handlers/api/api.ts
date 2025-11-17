@@ -1,5 +1,6 @@
 import apiClient from "../../lib/apiClient";
 import { API_ENDPOINTS, getEndpoint } from "./endpoints";
+import { AxiosRequestConfig, AxiosProgressEvent } from "axios";
 
 export interface ApiResponse<T = any> {
   data: T | null;
@@ -275,6 +276,60 @@ export const doctorsApi = {
       };
     }
   },
+
+  uploadMedicalRecords: async ({
+    patientId,
+    files,
+    metadata,
+    onUploadProgress,
+  }: {
+    patientId: string;
+    files: File[];
+    metadata?: { title?: string; type?: string };
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void;
+  }): Promise<ApiResponse<UploadMedicalRecordsResponse>> => {
+    try {
+      const formData = new FormData();
+
+      for (const file of files) {
+        formData.append("files", file);
+      }
+
+      if (metadata?.title) {
+        formData.append("title", metadata.title);
+      }
+      if (metadata?.type) {
+        formData.append("type", metadata.type);
+      }
+
+      const config: AxiosRequestConfig = {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress,
+      };
+
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICAL_RECORDS, patientId),
+        formData,
+        config,
+      );
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to upload medical records",
+      };
+    }
+  },
 };
 
 export const api = {
@@ -283,4 +338,3 @@ export const api = {
   misc: miscApi,
 };
 
-export { apiClient };
