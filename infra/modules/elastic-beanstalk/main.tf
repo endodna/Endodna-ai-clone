@@ -151,6 +151,17 @@ resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
           )
         }
       ] : [],
+      # SES permissions
+      [
+        {
+          Effect = "Allow"
+          Action = [
+            "ses:SendEmail",
+            "ses:SendRawEmail"
+          ]
+          Resource = "*"
+        }
+      ],
       # Bedrock permissions
       [
         {

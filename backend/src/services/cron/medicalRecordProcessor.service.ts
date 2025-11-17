@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { logger } from "../../helpers/logger.helper";
 import s3Helper from "../../helpers/aws/s3.helper";
 import bedrockHelper from "../../helpers/aws/bedrock.helper";
+import emailHelper from "../../helpers/email.helper";
 import { PatientMedicalRecord } from "@prisma/client";
 import { TaskType } from "@prisma/client";
 import mammoth from "mammoth";
@@ -179,6 +180,37 @@ class MedicalRecordProcessorService {
                     failedProcessingReason: errorMessage,
                 },
             });
+
+            const emailMessage = [
+                "A medical record failed to process.",
+                "",
+                `Record ID: ${record.id} (UUID: ${record.uuid})`,
+                `Patient ID: ${record.patientId}`,
+                `Organization ID: ${record.organizationId}`,
+                `File Name: ${(record.fileMetadata as { originalName?: string } | null)?.originalName ?? "Unknown"}`,
+                "",
+                `Error: ${errorMessage}`,
+                "",
+                "This record has been marked as failed processing.",
+            ].join("\n");
+
+            emailHelper
+                .sendNotificationEmail(
+                    emailHelper.adminEmails,
+                    "Medical Record Processing Failed",
+                    emailMessage,
+                    undefined,
+                    undefined,
+                    traceId,
+                )
+                .catch((emailError) => {
+                    logger.error("Failed to send medical record failure notification", {
+                        traceId,
+                        recordId: record.id,
+                        error: emailError,
+                        method: "MedicalRecordProcessorService.processRecord",
+                    });
+                });
 
             return { success: false, error: errorMessage };
         }
