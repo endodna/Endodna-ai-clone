@@ -16,7 +16,7 @@ export interface EmailOptions {
 class EmailHelper {
     private readonly DEFAULT_FROM_EMAIL = "noreply@bios.med";
     private readonly DEFAULT_REPLY_TO = "support@bios.med";
-    public adminEmails: string[] = ["samuel@endodna.com"];
+    public adminEmails: string[] = ["samuel@endodna.com", "andres@endodna.com"];
 
     async sendEmail(options: EmailOptions): Promise<SendEmailResult> {
         const { to, subject, htmlBody, textBody, cc, bcc, replyTo, from, traceId } = options;
