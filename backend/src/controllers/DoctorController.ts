@@ -292,6 +292,8 @@ class DoctorController {
           firstName: true,
           lastName: true,
           status: true,
+          dateOfBirth: true,
+          gender: true,
           patientDNAResults: {
             select: {
               uuid: true,
