@@ -11,6 +11,10 @@ import {
   SendPatientMessageSchema,
   UpdateConversationTitleSchema,
   RegisterPatientDNAKitSchema,
+  CreatePatientChartNoteSchema,
+  UpdatePatientChartNoteSchema,
+  ChartNoteIdParamsSchema,
+  MedicationIdParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -198,20 +202,20 @@ class DoctorController {
             status: true,
             patientDNAResults: {
               select: {
-                id: true,
+                uuid: true,
                 status: true,
                 updatedAt: true,
               },
             },
             patientGoals: {
               select: {
-                id: true,
+                uuid: true,
                 description: true,
               },
             },
             patientActivities: {
               select: {
-                id: true,
+                uuid: true,
                 activity: true,
                 status: true,
                 createdAt: true,
@@ -240,7 +244,21 @@ class DoctorController {
       sendResponse(res, {
         status: StatusCode.OK,
         data: {
-          items: result.data,
+          items: result.data.map((patient: any) => ({
+            ...patient,
+            patientDNAResults: patient.patientDNAResults?.map((result: any) => ({
+              ...result,
+              id: result.uuid,
+            })) || [],
+            patientGoals: patient.patientGoals?.map((goal: any) => ({
+              ...goal,
+              id: goal.uuid,
+            })) || [],
+            patientActivities: patient.patientActivities?.map((activity: any) => ({
+              ...activity,
+              id: activity.uuid,
+            })) || [],
+          })),
           pagination: result.meta,
         },
         message: "Patients fetched successfully",
@@ -276,21 +294,21 @@ class DoctorController {
           status: true,
           patientDNAResults: {
             select: {
-              id: true,
+              uuid: true,
               status: true,
               updatedAt: true,
             },
           },
           patientGoals: {
             select: {
-              id: true,
+              uuid: true,
               description: true,
               createdAt: true,
             },
           },
           patientAllergies: {
             select: {
-              id: true,
+              uuid: true,
               allergen: true,
               reactionType: true,
             },
@@ -320,7 +338,21 @@ class DoctorController {
 
       sendResponse(res, {
         status: StatusCode.OK,
-        data: user,
+        data: {
+          ...user,
+          patientDNAResults: user.patientDNAResults.map((result) => ({
+            ...result,
+            id: result.uuid,
+          })),
+          patientGoals: user.patientGoals.map((goal) => ({
+            ...goal,
+            id: goal.uuid,
+          })),
+          patientAllergies: user.patientAllergies.map((allergy) => ({
+            ...allergy,
+            id: allergy.uuid,
+          })),
+        },
         message: "Patient fetched successfully",
       });
     } catch (err) {
@@ -383,7 +415,7 @@ class DoctorController {
             organizationId: organizationId!,
           },
           select: {
-            id: true,
+            uuid: true,
             drugName: true,
             dosage: true,
             frequency: true,
@@ -414,7 +446,10 @@ class DoctorController {
 
       sendResponse(res, {
         status: StatusCode.OK,
-        data: result,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
         message: "Patient active medication created successfully",
       });
     }
@@ -469,7 +504,7 @@ class DoctorController {
           deletedAt: null,
         },
         select: {
-          id: true,
+          uuid: true,
           drugName: true,
           dosage: true,
           frequency: true,
@@ -483,7 +518,10 @@ class DoctorController {
 
       sendResponse(res, {
         status: StatusCode.OK,
-        data: medications,
+        data: medications.map((med) => ({
+          ...med,
+          id: med.uuid,
+        })),
         message: "Patient active medications fetched successfully",
       });
     } catch (err) {
@@ -509,7 +547,7 @@ class DoctorController {
     res: Response,
   ) {
     try {
-      const { patientId, medicationId } = req.params as unknown as { patientId: string, medicationId: number };
+      const { patientId, medicationId } = req.params as unknown as MedicationIdParamsSchema;
       const { drugName, dosage, frequency, startDate, endDate, reason, notes } =
         req.body as CreatePatientActiveMedicationSchema;
       const { userId, organizationId } = req.user!;
@@ -520,6 +558,10 @@ class DoctorController {
           patientActiveMedications: {
             where: {
               deletedAt: null,
+            },
+            select: {
+              uuid: true,
+              deletedAt: true,
             },
           },
         },
@@ -537,7 +579,7 @@ class DoctorController {
         });
       }
 
-      if (!user.patientActiveMedications.find((medication: { id: number; deletedAt: Date | null }) => medication.id == medicationId && medication.deletedAt === null)) {
+      if (!user.patientActiveMedications.find((medication: { uuid: string; deletedAt: Date | null }) => medication.uuid === medicationId && medication.deletedAt === null)) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -560,12 +602,12 @@ class DoctorController {
             organizationId: organizationId!,
           },
           where: {
-            id: Number(medicationId),
+            uuid: medicationId,
             patientId,
             doctorId: userId!,
           },
           select: {
-            id: true,
+            uuid: true,
             drugName: true,
             dosage: true,
             frequency: true,
@@ -581,7 +623,7 @@ class DoctorController {
           description: `Patient active medication updated: ${drugName}`,
           metadata: {
             patientId,
-            medicationId: Number(medicationId),
+            medicationId: medicationId,
             action: "update",
           },
           priority: Priority.MEDIUM,
@@ -596,7 +638,10 @@ class DoctorController {
 
       sendResponse(res, {
         status: StatusCode.OK,
-        data: result,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
         message: "Patient active medication updated successfully",
       });
     } catch (err) {
@@ -622,7 +667,7 @@ class DoctorController {
     res: Response,
   ) {
     try {
-      const { patientId, medicationId } = req.params as unknown as { patientId: string, medicationId: number };
+      const { patientId, medicationId } = req.params as unknown as MedicationIdParamsSchema;
       const { userId, organizationId } = req.user!;
 
       const user = await prisma.user.findFirst({
@@ -650,7 +695,7 @@ class DoctorController {
 
       const medication = await prisma.patientActiveMedication.findFirst({
         where: {
-          id: Number(medicationId),
+          uuid: medicationId,
           patientId,
           doctorId: userId!,
           deletedAt: null,
@@ -668,7 +713,7 @@ class DoctorController {
       await Promise.all([
         prisma.patientActiveMedication.update({
           where: {
-            id: Number(medicationId),
+            uuid: medicationId,
           },
           data: {
             deletedAt: new Date(),
@@ -679,10 +724,10 @@ class DoctorController {
           description: `Patient active medication deleted`,
           metadata: {
             patientId,
-            medicationId: Number(medicationId),
+            medicationId: medicationId,
             action: "delete",
           },
-          priority: Priority.MEDIUM,
+          priority: Priority.HIGH,
         }),
       ]);
 
@@ -842,7 +887,7 @@ class DoctorController {
               size: (record.fileMetadata as { size?: number })?.size,
               mimetype: (record.fileMetadata as { mimetype?: string })?.mimetype,
             },
-            id: record.id,
+            id: record.uuid,
           })),
           count: medicalRecords.length,
         },
@@ -900,7 +945,7 @@ class DoctorController {
           createdAt: "desc",
         },
         select: {
-          id: true,
+          uuid: true,
           title: true,
           type: true,
           sourceUrl: true,
@@ -947,7 +992,7 @@ class DoctorController {
               logger.error("Failed to generate presigned URL", {
                 traceId: req.traceId,
                 method: "getMedicalRecords.Doctor",
-                recordId: record.id,
+                recordId: record.uuid,
                 key: fileMetadata.key,
                 error: error,
               });
@@ -955,7 +1000,7 @@ class DoctorController {
           }
 
           return {
-            id: record.id,
+            id: record.uuid,
             title: record.title,
             type: record.type,
             isProcessed: record.isProcessed,
@@ -1083,6 +1128,7 @@ class DoctorController {
               isProcessed: true,
             },
             select: {
+              uuid: true,
               status: true,
               isProcessed: true,
               isFailedProcessing: true,
@@ -1124,7 +1170,10 @@ class DoctorController {
       sendResponse(res, {
         status: StatusCode.OK,
         data: {
-          dnaResults: patient.patientDNAResults,
+          dnaResults: patient.patientDNAResults.map((result) => ({
+            ...result,
+            id: result.uuid,
+          })),
         },
         message: "Patient genetics fetched successfully",
       });
@@ -1630,6 +1679,360 @@ class DoctorController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to register DNA kit",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createPatientChartNote(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as { patientId: string };
+      const { title, content } = req.body as CreatePatientChartNoteSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientChartNote.create({
+          data: {
+            title: title || null,
+            content,
+            patientId,
+            doctorId: userId!,
+            organizationId: organizationId!,
+          },
+          select: {
+            uuid: true,
+            title: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient chart note created${title ? `: ${title}` : ""}`,
+          metadata: {
+            patientId,
+            action: "create",
+            title: title || null,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient chart note created successfully",
+      });
+    } catch (err) {
+      logger.error("Create patient chart note failed", {
+        traceId: req.traceId,
+        method: "createPatientChartNote.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create patient chart note",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientChartNote(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, chartNoteId } = req.params as unknown as ChartNoteIdParamsSchema;
+      const { title, content } = req.body as UpdatePatientChartNoteSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const chartNote = await prisma.patientChartNote.findFirst({
+        where: {
+          uuid: chartNoteId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!chartNote) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient chart note not found",
+        });
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientChartNote.update({
+          where: {
+            uuid: chartNoteId,
+          },
+          data: {
+            title: title !== undefined ? (title || null) : undefined,
+            content,
+          },
+          select: {
+            uuid: true,
+            title: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient chart note updated${title ? `: ${title}` : ""}`,
+          metadata: {
+            patientId,
+            chartNoteId: chartNoteId,
+            action: "update",
+            title: title || null,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient chart note updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update patient chart note failed", {
+        traceId: req.traceId,
+        method: "updatePatientChartNote.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient chart note",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deletePatientChartNote(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, chartNoteId } = req.params as unknown as ChartNoteIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const chartNote = await prisma.patientChartNote.findFirst({
+        where: {
+          uuid: chartNoteId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!chartNote) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient chart note not found",
+        });
+      }
+
+      await Promise.all([
+        prisma.patientChartNote.update({
+          where: {
+            uuid: chartNoteId,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient chart note deleted${chartNote.title ? `: ${chartNote.title}` : ""}`,
+          metadata: {
+            patientId,
+            chartNoteId: chartNoteId,
+            action: "delete",
+            title: chartNote.title || null,
+          },
+          priority: Priority.HIGH,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient chart note deleted successfully",
+      });
+    } catch (err) {
+      logger.error("Delete patient chart note failed", {
+        traceId: req.traceId,
+        method: "deletePatientChartNote.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patient chart note",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getPatientChartNotes(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as { patientId: string };
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const chartNotes = await prisma.patientChartNote.findMany({
+        where: {
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          uuid: true,
+          title: true,
+          content: true,
+          doctor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: chartNotes.map((note) => ({
+          ...note,
+          id: note.uuid,
+        })),
+        message: "Patient chart notes fetched successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient chart notes failed", {
+        traceId: req.traceId,
+        method: "getPatientChartNotes.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch patient chart notes",
         },
         req,
       );

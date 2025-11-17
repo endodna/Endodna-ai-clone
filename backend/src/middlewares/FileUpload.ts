@@ -41,7 +41,7 @@ export const upload = multer({
     storage,
     fileFilter,
     limits: {
-        fileSize: 3 * 1024 * 1024, // 3MB max file size
+        fileSize: 5 * 1024 * 1024, // 5MB max file size
     },
 });
 
@@ -64,7 +64,7 @@ const handleMulterError = (
             return res.status(400).json({
                 status: 400,
                 error: true,
-                message: "File size exceeds the maximum limit of 3MB",
+                message: "File size exceeds the maximum limit of 5MB",
             });
         }
 

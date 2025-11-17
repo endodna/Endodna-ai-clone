@@ -8,6 +8,7 @@ import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { createCanvas } = require("canvas");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -671,6 +672,7 @@ class MedicalRecordProcessorService {
 
                 await prisma.$executeRawUnsafe(
                     `INSERT INTO "PatientMedicalRecordChunk" (
+                        "uuid",
                         "patientMedicalRecordId",
                         "chunkText",
                         "chunkIndex",
@@ -682,11 +684,13 @@ class MedicalRecordProcessorService {
                         $1,
                         $2,
                         $3,
-                        $4::vector,
-                        $5::jsonb,
+                        $4,
+                        $5::vector,
+                        $6::jsonb,
                         NOW(),
                         NOW()
                     )`,
+                    randomUUID(),
                     recordId,
                     chunk.chunkText,
                     chunk.chunkIndex,
