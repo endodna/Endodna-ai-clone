@@ -155,7 +155,7 @@ class TempusService {
                         isProcessed: true,
                         isFailedProcessing: false,
                         failedProcessingReason: null,
-                        status: DNAResultStatus.GENOTYPING_ACCEPTED,
+                        status: DNAResultStatus.DATA_DELIVERED,
                         fileMetadata: {
                             ...existingFileMetadata,
                             totalSNPs: parsedFile.totalRows,
@@ -168,7 +168,7 @@ class TempusService {
                     data: {
                         patientDNAResultId: dnaResultKit.id,
                         activity: "DNA file processed successfully",
-                        status: DNAResultStatus.GENOTYPING_ACCEPTED,
+                        status: DNAResultStatus.DATA_DELIVERED,
                         metadata: {
                             recordsCreated,
                             totalSNPs: parsedFile.totalRows,
@@ -575,7 +575,7 @@ class TempusService {
                 return;
             }
 
-            const isAlreadyGenotypingAccepted = dnaResultKit.status === DNAResultStatus.GENOTYPING_ACCEPTED;
+            const isAlreadyGenotypingAccepted = dnaResultKit.status === DNAResultStatus.GENOTYPING_ACCEPTED || dnaResultKit.status === DNAResultStatus.DATA_DELIVERED;
 
             if (isAlreadyGenotypingAccepted) {
                 logger.info("DNA result kit already has GENOTYPING_ACCEPTED status, logging activity but skipping status update", {
@@ -691,8 +691,11 @@ class TempusService {
             GENOTYPING_FAILED: DNAResultStatus.GENOTYPING_FAILED,
             GENOTYPING_2ND_ACCEPTED: DNAResultStatus.GENOTYPING_2ND_ACCEPTED,
             GENOTYPING_2ND_FAILED: DNAResultStatus.GENOTYPING_2ND_FAILED,
-            DATA_DELIVERED: DNAResultStatus.PROCESS,
-            CANCELED: DNAResultStatus.CANCEL,
+            DATA_DELIVERED: DNAResultStatus.DATA_DELIVERED,
+            CANCEL: DNAResultStatus.CANCEL,
+            HOLD: DNAResultStatus.HOLD,
+            PROCESS: DNAResultStatus.PROCESS,
+            DISCARD: DNAResultStatus.DISCARD,
         };
 
         return statusMap[tempusStatus] || null;
@@ -712,7 +715,10 @@ class TempusService {
             GENOTYPING_2ND_ACCEPTED: "Genotyping completed successfully on second attempt - data will be delivered shortly",
             GENOTYPING_2ND_FAILED: "Genotyping failed on second attempt",
             DATA_DELIVERED: "Data delivery completed",
-            CANCELED: "Sample processing canceled",
+            CANCEL: "Sample processing canceled",
+            HOLD: "Sample processing on hold",
+            PROCESS: "Sample processing in progress",
+            DISCARD: "Sample discarded",
         };
 
         return statusMessages[status] || `Status update: ${status}`;
