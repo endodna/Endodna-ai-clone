@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileUpload, FileUploadHandle } from "@/components/upload/FileUpload";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { closeUploadDialog, openUploadSuccessDialog, setCurrentPatientId } from "@/store/features/patient";
-import { useUploadMedicalRecords } from "@/hooks/useDoctor";
-import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileUpload, FileUploadHandle } from "@/components/upload/FileUpload";
+import { useUploadMedicalRecords } from "@/hooks/useDoctor";
+import { closeUploadDialog, openUploadSuccessDialog, setCurrentPatientId } from "@/store/features/patient";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MAX_UPLOAD_FILE_SIZE_MB } from "../constants/patient";
 
 export function PatientUploadRecordsDialog() {
   const dispatch = useAppDispatch();
@@ -18,6 +19,7 @@ export function PatientUploadRecordsDialog() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const uploadMutation = useUploadMedicalRecords();
+
 
   useEffect(() => {
     if (!isUploadDialogOpen) {
@@ -110,6 +112,7 @@ export function PatientUploadRecordsDialog() {
           accept={[".pdf", ".doc", ".docx", ".jpeg", ".jpg"]}
           uploadButtonLabel="Upload files"
           onFilesChange={setFiles}
+          maxFileSizeMB={MAX_UPLOAD_FILE_SIZE_MB}
         />
 
         {submissionError ? (

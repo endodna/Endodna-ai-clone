@@ -1,20 +1,20 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { AlertCircle, Trash2, UploadCloud } from "lucide-react";
 import {
   ChangeEvent,
   DragEvent,
   forwardRef,
   useCallback,
   useEffect,
+  useId,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
-  useId,
 } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { UploadCloud, Trash2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type UploadStatus = "idle" | "uploading" | "uploaded";
 
@@ -36,6 +36,7 @@ export interface FileUploadProps {
   uploadButtonLabel?: string;
   onFilesChange?: (files: File[]) => void;
   onStatusChange?: (status: UploadStatus) => void;
+  maxFileSizeMB?: number;
 }
 
 export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function FileUpload(
@@ -49,6 +50,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
     uploadButtonLabel = "Upload files",
     onFilesChange,
     onStatusChange,
+    maxFileSizeMB = 3,
   },
   ref,
 ) {
@@ -67,6 +69,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
   );
 
   const supportedTypesText = supportedFileTypes?.join(", ");
+  const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
 
   useImperativeHandle(
     ref,
@@ -133,18 +136,23 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
       }
 
       const acceptedFiles: File[] = [];
-      const rejectedFiles: string[] = [];
+      const rejectedMessages: string[] = [];
 
       for (const file of incomingFiles) {
-        if (isFileAccepted(file)) {
-          acceptedFiles.push(file);
-        } else {
-          rejectedFiles.push(file.name);
+        if (!isFileAccepted(file)) {
+          rejectedMessages.push(`${file.name} has an unsupported file type`);
+          continue;
         }
+        if (file.size > maxFileSizeBytes) {
+          rejectedMessages.push(`${file.name} exceeds the ${maxFileSizeMB}MB size limit`);
+          continue;
+        }
+
+        acceptedFiles.push(file);
       }
 
-      if (rejectedFiles.length) {
-        setRejectionMessage(`Unsupported file type: ${rejectedFiles.join(", ")}`);
+      if (rejectedMessages.length) {
+        setRejectionMessage(rejectedMessages.join(". "));
       } else {
         setRejectionMessage(null);
       }
