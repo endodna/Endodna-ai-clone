@@ -3,27 +3,72 @@
  */
 
 /**
- * Formats date to MM/DD/YYYY format
- * @param date - Date string, Date object, null, or undefined
- * @returns Formatted date string in MM/DD/YYYY format, or empty string if invalid
+ * Formats a date using Intl.DateTimeFormat options inferred from tokens.
+ * @param date - Date string, Date object, or undefined
+ * @param formatString - String containing tokens (yyyy, MMM, dd, HH, etc.)
+ * @param locale - Optional locale passed to Intl.DateTimeFormat
+ * @returns Formatted date string
  */
-export function formatDate(date: string | Date | null | undefined): string {
-  if (!date) return "";
-  
-  try {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    
-    if (isNaN(dateObj.getTime())) {
-      return "";
-    }
-    
-    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const day = String(dateObj.getDate()).padStart(2, "0");
-    const year = dateObj.getFullYear();
-    
-    return `${month}/${day}/${year}`;
-  } catch {
+export function formatDate(
+  date: string | Date | undefined | null,
+  formatString = "MM/DD/YYYY",
+  locale?: string,
+): string {
+  if (!date) {
     return "";
   }
+
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) {
+    throw new Error("Invalid date");
+  }
+
+  const uppercaseTokens: Record<string, string> = {
+    YYYY: String(dateObj.getFullYear()),
+    YY: String(dateObj.getFullYear()).slice(-2),
+    MM: String(dateObj.getMonth() + 1).padStart(2, "0"),
+    M: String(dateObj.getMonth() + 1),
+    DD: String(dateObj.getDate()).padStart(2, "0"),
+    D: String(dateObj.getDate()),
+  };
+
+  const uppercasePattern = /(YYYY|YY|MM|M|DD|D)/g;
+  if (uppercasePattern.test(formatString)) {
+    return formatString.replace(
+      uppercasePattern,
+      (token) => uppercaseTokens[token] ?? token,
+    );
+  }
+
+  const tokenMap: Record<string, Intl.DateTimeFormatOptions> = {
+    yyyy: { year: "numeric" },
+    yy: { year: "2-digit" },
+    MMMM: { month: "long" },
+    MMM: { month: "short" },
+    MM: { month: "2-digit" },
+    M: { month: "numeric" },
+    dd: { day: "2-digit" },
+    d: { day: "numeric" },
+    HH: { hour: "2-digit", hour12: false },
+    H: { hour: "numeric", hour12: false },
+    hh: { hour: "2-digit", hour12: true },
+    h: { hour: "numeric", hour12: true },
+    mm: { minute: "2-digit" },
+    m: { minute: "numeric" },
+    ss: { second: "2-digit" },
+    s: { second: "numeric" },
+  };
+
+  const options: Intl.DateTimeFormatOptions = {};
+
+  for (const token of Object.keys(tokenMap)) {
+    if (formatString.includes(token)) {
+      Object.assign(options, tokenMap[token]);
+    }
+  }
+
+  const formatter = new Intl.DateTimeFormat(locale, options);
+  return formatter.format(dateObj);
 }
 
