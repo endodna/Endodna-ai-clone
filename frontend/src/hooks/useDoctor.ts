@@ -97,3 +97,21 @@ export const useUploadMedicalRecords = (
         ...options,
     });
 };
+
+/**
+ * Hook for fetching patient details by ID
+ */
+export const useGetPatientById = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<PatientDetail>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientDetail>, Error>({
+        queryKey: queryKeys.doctor.patients.detail(patientId),
+        queryFn: () => doctorsApi.getPatientById(patientId),
+        enabled: !!patientId,
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};

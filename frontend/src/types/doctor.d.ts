@@ -118,3 +118,48 @@ interface UploadMedicalRecordsResponse {
     records: UploadedMedicalRecord[];
     count: number;
 }
+
+/**
+ * Patient detail structure from getPatientById API
+ */
+interface PatientDetail {
+    id: string;
+    firstName: string;
+    lastName: string;
+    status: string;
+    dateOfBirth?: string | Date | null;
+    gender?: string | null;
+    bloodType?: string | null;
+    patientDNAResults: Array<{
+        uuid: string;
+        status: string;
+        updatedAt?: string | Date;
+        id: string;
+    }>;
+    patientGoals: Array<{
+        uuid: string;
+        description: string;
+        createdAt?: string | Date;
+        id: string;
+    }>;
+    patientAllergies: Array<{
+        uuid: string;
+        allergen: string;
+        reactionType?: string | null;
+        notes?: string | null;
+        id: string;
+    }>;
+    patientAlerts: Array<{
+        uuid: string;
+        description: string;
+        severity?: string | null;
+        notes?: string | null;
+        id: string;
+    }>;
+    managingDoctor: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+    } | null;
+}

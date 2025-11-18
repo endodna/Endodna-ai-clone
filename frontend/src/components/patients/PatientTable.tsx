@@ -46,7 +46,7 @@ export function PatientTable({
   isRefetching = false,
   pagination,
   onPageChange,
-}: PatientTableProps) {
+}: Readonly<PatientTableProps>) {
   const navigate = useNavigate();
 
   const handleRowClick = (patient: PatientRow) => {
