@@ -348,6 +348,24 @@ export const doctorsApi = {
       };
     }
   },
+
+  getPatientSummary: async (id: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.SUMMARY, id),
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient summary",
+      };
+    }
+  },
 };
 
 export const api = {

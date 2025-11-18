@@ -115,3 +115,21 @@ export const useGetPatientById = (
         ...options,
     });
 };
+
+/**
+ * Hook for fetching patient summary by ID
+ */
+export const useGetPatientSummary = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<any>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<any>, Error>({
+        queryKey: queryKeys.doctor.patients.summary(patientId),
+        queryFn: () => doctorsApi.getPatientSummary(patientId),
+        enabled: !!patientId,
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
