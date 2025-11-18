@@ -245,3 +245,77 @@ export const chartNoteIdParamsSchema = z.object({
   chartNoteId: z.string().uuid("Invalid chart note ID")
 }).strict();
 export type ChartNoteIdParamsSchema = z.infer<typeof chartNoteIdParamsSchema>;
+
+export const createPatientAllergySchema = z.object({
+  allergen: z.string().min(1, "Allergen is required"),
+  reactionType: z.string().optional(),
+  severity: z.string().optional(),
+  notes: z.string().optional(),
+}).strict();
+export type CreatePatientAllergySchema = z.infer<typeof createPatientAllergySchema>;
+
+export const updatePatientAllergySchema = z.object({
+  allergen: z.string().min(1, "Allergen is required").optional(),
+  reactionType: z.string().optional(),
+  severity: z.string().optional(),
+  notes: z.string().optional(),
+}).strict();
+export type UpdatePatientAllergySchema = z.infer<typeof updatePatientAllergySchema>;
+
+export const allergyIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  allergyId: z.string().uuid("Invalid allergy ID")
+}).strict();
+export type AllergyIdParamsSchema = z.infer<typeof allergyIdParamsSchema>;
+
+export const createPatientAlertSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  severity: z.string().optional(),
+  notes: z.string().optional(),
+}).strict();
+export type CreatePatientAlertSchema = z.infer<typeof createPatientAlertSchema>;
+
+export const updatePatientAlertSchema = z.object({
+  description: z.string().min(1, "Description is required").optional(),
+  severity: z.string().optional(),
+  notes: z.string().optional(),
+}).strict();
+export type UpdatePatientAlertSchema = z.infer<typeof updatePatientAlertSchema>;
+
+export const alertIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  alertId: z.string().uuid("Invalid alert ID")
+}).strict();
+export type AlertIdParamsSchema = z.infer<typeof alertIdParamsSchema>;
+
+export const updateAlertOrAllergyParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  alertId: z.string().uuid("Invalid alert ID"),
+  type: z.enum(["allergy", "alert"], { errorMap: () => ({ message: "Type must be 'allergy' or 'alert'" }) })
+}).strict();
+export type UpdateAlertOrAllergyParamsSchema = z.infer<typeof updateAlertOrAllergyParamsSchema>;
+
+export const createAlertOrAllergyParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  type: z.enum(["allergy", "alert"], { errorMap: () => ({ message: "Type must be 'allergy' or 'alert'" }) })
+}).strict();
+export type CreateAlertOrAllergyParamsSchema = z.infer<typeof createAlertOrAllergyParamsSchema>;
+
+export const createAlertOrAllergyBodySchema = z.union([
+  createPatientAllergySchema,
+  createPatientAlertSchema,
+]);
+export type CreateAlertOrAllergyBodySchema = z.infer<typeof createAlertOrAllergyBodySchema>;
+
+export const updateAlertOrAllergyBodySchema = z.union([
+  updatePatientAllergySchema,
+  updatePatientAlertSchema,
+]);
+export type UpdateAlertOrAllergyBodySchema = z.infer<typeof updateAlertOrAllergyBodySchema>;
+
+export const deleteAlertOrAllergyParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  alertId: z.string().uuid("Invalid alert ID"),
+  type: z.enum(["allergy", "alert"], { errorMap: () => ({ message: "Type must be 'allergy' or 'alert'" }) })
+}).strict();
+export type DeleteAlertOrAllergyParamsSchema = z.infer<typeof deleteAlertOrAllergyParamsSchema>;

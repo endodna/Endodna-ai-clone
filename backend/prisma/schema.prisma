@@ -85,6 +85,7 @@ model Organization {
   tokenUsage               TokenUsage[]
   patientChartNotes        PatientChartNote[]
   systemAuditLogs          SystemAuditLog[]
+  patientAlerts            PatientAlert[]
 }
 
 model OrganizationCustomization {
@@ -170,6 +171,7 @@ model User {
   systemAuditLogs          SystemAuditLog[]
   patientTokenUsages       TokenUsage[]              @relation("Patient")
   doctorTokenUsages        TokenUsage[]              @relation("Doctor")
+  patientAlerts            PatientAlert[]
 }
 
 model PatientActivity {
@@ -210,7 +212,24 @@ model PatientAllergy {
   patientId      String
   patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   allergen       String
-  reactionType   String
+  reactionType   String?
+  severity       String?
+  notes          String?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PatientAlert {
+  id             Int          @id @unique @default(autoincrement())
+  uuid           String       @unique @default(uuid())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  description    String
+  severity       String?
+  notes          String?
   deletedAt      DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -245,7 +264,7 @@ model PatientProblemList {
   patientId      String
   patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   problem        String
-  severity       String
+  severity       String?
   status         Status       @default(PENDING)
   notes          String
   onsetDate      DateTime

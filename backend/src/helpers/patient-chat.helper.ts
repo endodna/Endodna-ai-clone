@@ -23,12 +23,13 @@ export interface SendMessageParams {
 export interface SendMessageResult {
     messageId: string;
     content: string;
+    followUpPrompts: string[];
     inputTokens: number;
     outputTokens: number;
     latencyMs: number;
     citations: Array<{
         chunkId: number;
-        medicalRecordId: number;
+        medicalRecordId: string;
         title: string | null;
         type: string | null;
         similarity: number | null;
@@ -41,6 +42,31 @@ class PatientChatHelper {
         return Math.ceil(text.length / 4);
     }
 
+    private parseChatResponseWithFollowUps(fullText: string): { content: string; followUpPrompts: string[] } {
+        const followUpSectionRegex = /##\s*Suggested\s*Follow-up\s*Questions\s*\n([\s\S]*?)$/i;
+        const match = fullText.match(followUpSectionRegex);
+
+        let content = fullText;
+        let followUpPrompts: string[] = [];
+
+        if (match) {
+            const followUpSection = match[1].trim();
+            content = fullText.replace(followUpSectionRegex, '').trim();
+
+            const bulletPointRegex = /^[-*]\s*(.+)$/gm;
+            const prompts = [];
+            let promptMatch;
+
+            while ((promptMatch = bulletPointRegex.exec(followUpSection)) !== null) {
+                prompts.push(promptMatch[1].trim());
+            }
+
+            followUpPrompts = prompts.filter(p => p.length > 0);
+        }
+
+        return { content, followUpPrompts };
+    }
+
     private buildSystemPrompt(patientData: string): string {
         return `You are OmniBox, an AI medical assistant helping doctors provide better patient care. You have access to comprehensive patient information and medical records.
 
@@ -50,8 +76,18 @@ class PatientChatHelper {
         - You are a medical AI assistant designed to help doctors with patient care
         - Do not say you are created by Anthropic or that you don't have a name - you are OmniBox
 
-        PATIENT CONTEXT:
+        PATIENT AND MEDICAL RECORDS CONTEXT:
         ${patientData}
+
+        **CRITICAL PRIVACY RULE - MUST BE FOLLOWED:**
+        - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in your responses
+        - **NEVER** include next of kin information, emergency contact details, or family member contact information in your responses
+        - **NEVER** include patient addresses, phone numbers, email addresses, or other contact information in your responses
+        - **NEVER** include social security numbers, government IDs, or other administrative identifiers in your responses
+        - **NEVER** include financial information, payment details, or billing information in your responses
+        - Focus ONLY on clinical information: medical conditions, medications, allergies, lab results, treatments, diagnoses, and clinical observations
+        - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated responses
+        - If you encounter any administrative, identifying, or financial information in the patient data, completely exclude it from your responses
 
         IMPORTANT GUIDELINES:
         - Provide accurate, evidence-based medical information
@@ -65,7 +101,9 @@ class PatientChatHelper {
         - Use line breaks (<br>) for paragraph separation when needed
         - Help doctors understand medical summaries, discuss treatment plans, and provide general medical context as needed
         - Reference chart notes and clinical observations when relevant to the conversation
-        - Adapt your responses based on the conversation context and the doctor's questions`;
+        - Adapt your responses based on the conversation context and the doctor's questions
+        - **NEVER** include health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information in your responses - doctors can access all of this from patient details
+        - At the end of your response, if appropriate, include a "## Suggested Follow-up Questions" section with 2-4 relevant clinical questions that the doctor might want to ask next. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry based on the conversation context and patient information`;
     }
 
     private formatPatientData(patient: any): string {
@@ -353,6 +391,9 @@ class PatientChatHelper {
                 traceId,
             });
 
+
+            const { content: parsedContent, followUpPrompts } = this.parseChatResponseWithFollowUps(result.text);
+
             const assistantMessage = await prisma.patientChatMessage.create({
                 data: {
                     conversationId,
@@ -366,6 +407,7 @@ class PatientChatHelper {
                         chatType,
                         medicalRecordContextUsed: medicalRecordContextResult.citations.length > 0,
                         citations: medicalRecordContextResult.citations,
+                        followUpPrompts,
                     },
                 },
             });
@@ -402,7 +444,8 @@ class PatientChatHelper {
 
             return {
                 messageId: assistantMessage.id,
-                content: result.text,
+                content: parsedContent,
+                followUpPrompts,
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
