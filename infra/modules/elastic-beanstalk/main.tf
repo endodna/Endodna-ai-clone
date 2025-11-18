@@ -171,11 +171,7 @@ resource "aws_iam_role_policy" "eb_instance_profile_sqs_cloudwatch" {
             "bedrock:InvokeModelWithResponseStream",
             "bedrock:ApplyGuardrail"
           ]
-          Resource = [
-            "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v1",
-            "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0",
-            "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
-          ]
+          Resource = "*"
         },
         {
           Effect = "Allow"

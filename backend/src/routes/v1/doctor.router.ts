@@ -17,6 +17,11 @@ import {
   createPatientChartNoteSchema,
   updatePatientChartNoteSchema,
   chartNoteIdParamsSchema,
+  createAlertOrAllergyParamsSchema,
+  updateAlertOrAllergyParamsSchema,
+  deleteAlertOrAllergyParamsSchema,
+  createAlertOrAllergyBodySchema,
+  updateAlertOrAllergyBodySchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -155,4 +160,27 @@ doctorRouter.delete(
   DoctorController.deletePatientChartNote,
 );
 
+// Patient Alert or Allergy Routes
+doctorRouter.post(
+  "/patients/:patientId/alerts/:type",
+  validateParams(createAlertOrAllergyParamsSchema),
+  validate(createAlertOrAllergyBodySchema),
+  DoctorController.createPatientAlertAndAllergy,
+);
+doctorRouter.get(
+  "/patients/:patientId/alerts",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientAlertsAndAllergies,
+);
+doctorRouter.put(
+  "/patients/:patientId/alerts/:alertId/:type",
+  validateParams(updateAlertOrAllergyParamsSchema),
+  validate(updateAlertOrAllergyBodySchema),
+  DoctorController.updatePatientAlertAndAllergy,
+);
+doctorRouter.delete(
+  "/patients/:patientId/alerts/:alertId/:type",
+  validateParams(deleteAlertOrAllergyParamsSchema),
+  DoctorController.deletePatientAlertAndAllergy,
+);
 export default doctorRouter;

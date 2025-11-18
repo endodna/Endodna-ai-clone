@@ -15,6 +15,7 @@ export interface PatientSummaryParams {
 
 export interface PatientSummaryResult {
     summary: string;
+    followUpPrompts: string[];
     inputTokens: number;
     outputTokens: number;
     latencyMs: number;
@@ -27,6 +28,7 @@ interface RelevantChunk {
     similarity: number | null;
     patientMedicalRecord: {
         id: number;
+        uuid: string;
         title: string | null;
         type: string | null;
         createdAt: Date;
@@ -136,6 +138,7 @@ class RAGHelper {
                         patientMedicalRecord: {
                             select: {
                                 id: true,
+                                uuid: true,
                                 title: true,
                                 type: true,
                                 createdAt: true,
@@ -162,6 +165,7 @@ class RAGHelper {
                     similarity: null,
                     patientMedicalRecord: {
                         id: chunk.patientMedicalRecord.id,
+                        uuid: chunk.patientMedicalRecord.uuid,
                         title: chunk.patientMedicalRecord.title,
                         type: chunk.patientMedicalRecord.type,
                         createdAt: chunk.patientMedicalRecord.createdAt,
@@ -178,6 +182,8 @@ class RAGHelper {
                     c."chunkIndex",
                     c."patientMedicalRecordId",
                     (1 - (c.embedding <=> $1::vector)) as similarity,
+                    r.id as "recordId",
+                    r.uuid as "recordUuid",
                     r.title,
                     r.type,
                     r."createdAt"
@@ -217,6 +223,8 @@ class RAGHelper {
                         c."chunkIndex",
                         c."patientMedicalRecordId",
                         (1 - (c.embedding <=> $1::vector)) as similarity,
+                        r.id as "recordId",
+                        r.uuid as "recordUuid",
                         r.title,
                         r.type,
                         r."createdAt"
@@ -263,6 +271,7 @@ class RAGHelper {
                         patientMedicalRecord: {
                             select: {
                                 id: true,
+                                uuid: true,
                                 title: true,
                                 type: true,
                                 createdAt: true,
@@ -289,6 +298,7 @@ class RAGHelper {
                     similarity: null,
                     patientMedicalRecord: {
                         id: chunk.patientMedicalRecord.id,
+                        uuid: chunk.patientMedicalRecord.uuid,
                         title: chunk.patientMedicalRecord.title,
                         type: chunk.patientMedicalRecord.type,
                         createdAt: chunk.patientMedicalRecord.createdAt,
@@ -302,7 +312,8 @@ class RAGHelper {
                 chunkIndex: chunk.chunkIndex,
                 similarity: parseFloat(chunk.similarity),
                 patientMedicalRecord: {
-                    id: chunk.patientMedicalRecordId,
+                    id: chunk.recordId || chunk.patientMedicalRecordId,
+                    uuid: chunk.recordUuid,
                     title: chunk.title,
                     type: chunk.type,
                     createdAt: chunk.createdAt,
@@ -339,6 +350,7 @@ class RAGHelper {
                     patientMedicalRecord: {
                         select: {
                             id: true,
+                            uuid: true,
                             title: true,
                             type: true,
                             createdAt: true,
@@ -365,6 +377,7 @@ class RAGHelper {
                 similarity: null,
                 patientMedicalRecord: {
                     id: chunk.patientMedicalRecord.id,
+                    uuid: chunk.patientMedicalRecord.uuid,
                     title: chunk.patientMedicalRecord.title,
                     type: chunk.patientMedicalRecord.type,
                     createdAt: chunk.patientMedicalRecord.createdAt,
@@ -383,7 +396,7 @@ class RAGHelper {
         context: string;
         citations: Array<{
             chunkId: number;
-            medicalRecordId: number;
+            medicalRecordId: string;
             title: string | null;
             type: string | null;
             similarity: number | null;
@@ -418,7 +431,7 @@ class RAGHelper {
 
             const citations = chunks.map((chunk) => ({
                 chunkId: chunk.id,
-                medicalRecordId: chunk.patientMedicalRecord.id,
+                medicalRecordId: chunk.patientMedicalRecord.uuid,
                 title: chunk.patientMedicalRecord.title,
                 type: chunk.patientMedicalRecord.type,
                 similarity: chunk.similarity,
@@ -610,8 +623,43 @@ class RAGHelper {
         return text.replace(/\n/g, '<br>');
     }
 
+    private parseSummaryWithFollowUps(fullText: string): { summary: string; followUpPrompts: string[] } {
+        const followUpSectionRegex = /##\s*Suggested\s*Follow-up\s*Questions\s*\n([\s\S]*?)(?=\n---|\n\*\*|$)/i;
+        const match = fullText.match(followUpSectionRegex);
+
+        let summary = fullText;
+        let followUpPrompts: string[] = [];
+
+        if (match) {
+            const followUpSection = match[1].trim();
+            summary = fullText.replace(followUpSectionRegex, '').trim();
+
+            const bulletPointRegex = /^[-*]\s*(.+)$/gm;
+            const prompts = [];
+            let promptMatch;
+
+            while ((promptMatch = bulletPointRegex.exec(followUpSection)) !== null) {
+                prompts.push(promptMatch[1].trim());
+            }
+
+            followUpPrompts = prompts.filter(p => p.length > 0);
+        }
+
+        return { summary, followUpPrompts };
+    }
+
     private buildSummarySystemPrompt(): string {
         return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers.
+      
+        **CRITICAL PRIVACY RULE - MUST BE FOLLOWED:**
+        - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
+        - **NEVER** include next of kin information, emergency contact details, or family member contact information in the summary
+        - **NEVER** include patient addresses, phone numbers, email addresses, or other contact information in the summary
+        - **NEVER** include social security numbers, government IDs, or other administrative identifiers in the summary
+        - **NEVER** include financial information, payment details, or billing information in the summary
+        - Focus ONLY on clinical information: medical conditions, medications, allergies, lab results, treatments, diagnoses, and clinical observations
+        - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated summaries
+        - If you encounter any administrative, identifying, or financial information in the source data, completely exclude it from the summary
       
         Guidelines:
         1. Present the entire summary in **Markdown** format.
@@ -622,7 +670,7 @@ class RAGHelper {
         6. Combine information from structured patient data, medical record content, and chart notes. If the same information appears in multiple sources, use the most recent or most detailed version.
         7. For date calculations, ALWAYS use the patient's date of birth when calculating age. Calculate age accurately by subtracting the birthdate from the current date or reference date. When converting dates to years (e.g., age, duration of condition), be precise and accurate.
         8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
-        9. Maintain privacy and confidentiality.
+        9. Maintain privacy and confidentiality - this includes never including health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information.
         10. Do **not** include instructions or meta-comments in the output.
         11. For line breaks in markdown: Use two spaces followed by a newline for line breaks within a paragraph, or use two newlines for paragraph breaks. Do NOT use literal <br> characters - use actual newlines.
         
@@ -673,6 +721,16 @@ class RAGHelper {
         - Clinical observations and assessments
         - Chart notes with clinical observations, progress notes, and provider comments
         
+        **CRITICAL PRIVACY REQUIREMENT - MUST BE FOLLOWED:**
+        - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
+        - **NEVER** include next of kin information, emergency contact details, or family member contact information in the summary
+        - **NEVER** include patient addresses, phone numbers, email addresses, or other contact information in the summary
+        - **NEVER** include social security numbers, government IDs, or other administrative identifiers in the summary
+        - **NEVER** include financial information, payment details, or billing information in the summary
+        - Focus ONLY on clinical information: medical conditions, medications, allergies, lab results, treatments, diagnoses, and clinical observations
+        - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated summaries
+        - If you encounter any administrative, identifying, or financial information in the source data, completely exclude it from the summary
+        
         **DATE CALCULATIONS**: When calculating age or converting dates to years:
         - ALWAYS use the patient's Date of Birth from the Patient Data section above
         - Use the Current Date and Time provided above as the reference date for all calculations
@@ -689,10 +747,13 @@ class RAGHelper {
         ## Recent Labs and Key Findings  
         ## Clinical Notes (include relevant information from chart notes)
         ## Medical History Summary  
+        ## Suggested Follow-up Questions
         
         Each section should be clear and concise — use bullet points or short paragraphs as needed.  
         Combine information from the Patient Data section, Medical Records section, and Chart Notes. If information appears in multiple sources, prioritize the most recent or most detailed source.
-        Keep the full medical history summary under 5 paragraphs and end with the markdown disclaimer block.`;
+        Keep the full medical history summary under 4 paragraphs and end with the markdown disclaimer block.
+        
+        **FOLLOW-UP QUESTIONS**: In the "## Suggested Follow-up Questions" section, provide 3-5 relevant clinical questions that a doctor might want to ask based on the patient's medical history, current conditions, medications, or areas that need further investigation. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry and should be based on the clinical information in the summary.`;
     }
 
     async generatePatientSummary(
@@ -715,6 +776,7 @@ class RAGHelper {
                 try {
                     const parsed = JSON.parse(cachedResult) as PatientSummaryResult;
                     const cleanedSummary = this.replaceNewlinesWithBr(parsed.summary);
+                    const followUpPrompts = parsed.followUpPrompts || [];
 
                     const cacheHitCountKey = this.getPatientSummaryCacheHitCountKey(organizationId, patientId);
                     const cacheHitCount = await redis.incr(cacheHitCountKey);
@@ -753,6 +815,7 @@ class RAGHelper {
                     return {
                         ...parsed,
                         summary: cleanedSummary,
+                        followUpPrompts,
                     };
                 } catch (parseError) {
                     logger.warn("Failed to parse cached patient summary, regenerating", {
@@ -918,10 +981,12 @@ class RAGHelper {
                 traceId,
             });
 
-            const cleanedSummary = this.replaceNewlinesWithBr(result.text);
+            const { summary: summaryText, followUpPrompts } = this.parseSummaryWithFollowUps(result.text);
+            const cleanedSummary = this.replaceNewlinesWithBr(summaryText);
 
             const summaryResult: PatientSummaryResult = {
                 summary: cleanedSummary,
+                followUpPrompts,
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,

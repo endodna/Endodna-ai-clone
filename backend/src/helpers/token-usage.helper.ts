@@ -5,7 +5,7 @@ import { TaskType, RequestType } from "@prisma/client";
 
 export const MODEL_ID = {
     TEXT_EMBEDDING: "amazon.titan-embed-text-v1",
-    CHAT_COMPLETION: "anthropic.claude-3-sonnet-20240229-v1:0",
+    CHAT_COMPLETION: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
 } as const;
 
 export interface RecordTokenUsageParams {

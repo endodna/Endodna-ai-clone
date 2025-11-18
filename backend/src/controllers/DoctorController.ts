@@ -15,6 +15,15 @@ import {
   UpdatePatientChartNoteSchema,
   ChartNoteIdParamsSchema,
   MedicationIdParamsSchema,
+  CreatePatientAllergySchema,
+  UpdatePatientAllergySchema,
+  AllergyIdParamsSchema,
+  CreatePatientAlertSchema,
+  UpdatePatientAlertSchema,
+  AlertIdParamsSchema,
+  CreateAlertOrAllergyParamsSchema,
+  UpdateAlertOrAllergyParamsSchema,
+  DeleteAlertOrAllergyParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -316,6 +325,15 @@ class DoctorController {
               uuid: true,
               allergen: true,
               reactionType: true,
+              notes: true,
+            },
+          },
+          patientAlerts: {
+            select: {
+              uuid: true,
+              description: true,
+              severity: true,
+              notes: true,
             },
           },
           managingDoctor: {
@@ -356,6 +374,10 @@ class DoctorController {
           patientAllergies: user.patientAllergies.map((allergy) => ({
             ...allergy,
             id: allergy.uuid,
+          })),
+          patientAlerts: user.patientAlerts.map((alert) => ({
+            ...alert,
+            id: alert.uuid,
           })),
         },
         message: "Patient fetched successfully",
@@ -1091,7 +1113,8 @@ class DoctorController {
       sendResponse(res, {
         status: StatusCode.OK,
         data: {
-          summary: result.summary
+          summary: result.summary,
+          followUpPrompts: result.followUpPrompts,
         },
         message: "Patient summary fetched successfully",
       });
@@ -1398,8 +1421,8 @@ class DoctorController {
           version: message.version,
           content: message.content,
           createdAt: message.createdAt,
-          citations: (message.metadata as { citations?: Array<{ medicalRecordId: number; title: string | null }> } | null)?.citations?.map((citation) => ({
-            medicalRecordId: citation.medicalRecordId,
+          citations: (message.metadata as { citations?: Array<{ medicalRecordId: string; title: string | null }> } | null)?.citations?.map((citation) => ({
+            id: citation.medicalRecordId,
             title: citation.title,
           })),
         })),
@@ -1466,7 +1489,7 @@ class DoctorController {
         new Map(
           relevantCitations.map((citation) => [
             citation.title,
-            { medicalRecordId: citation.medicalRecordId, title: citation.title },
+            { id: citation.medicalRecordId, title: citation.title },
           ])
         ).values()
       );
@@ -1476,6 +1499,7 @@ class DoctorController {
         data: {
           messageId: result.messageId,
           content: result.content,
+          followUpPrompts: result.followUpPrompts,
           citations: uniqueCitations,
         },
         message: "Message sent successfully",
@@ -2038,6 +2062,566 @@ class DoctorController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to fetch patient chart notes",
+        },
+        req,
+      );
+    }
+  }
+
+
+  public static async createPatientAlertAndAllergy(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, type } = req.params as unknown as CreateAlertOrAllergyParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      if (type === "allergy") {
+        const { allergen, reactionType, severity, notes } = req.body as CreatePatientAllergySchema;
+
+        const [result] = await Promise.all([
+          prisma.patientAllergy.create({
+            data: {
+              allergen,
+              reactionType: reactionType || null,
+              severity: severity || null,
+              notes: notes || null,
+              patientId,
+              organizationId: organizationId!,
+            },
+            select: {
+              uuid: true,
+              allergen: true,
+              reactionType: true,
+              severity: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient allergy created: ${allergen}`,
+            metadata: {
+              patientId,
+              action: "create",
+              allergen,
+            },
+            priority: Priority.MEDIUM,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            ...result,
+            id: result.uuid,
+          },
+          message: "Patient allergy created successfully",
+        });
+      } else {
+        const { description, severity, notes } = req.body as CreatePatientAlertSchema;
+
+        const [result] = await Promise.all([
+          prisma.patientAlert.create({
+            data: {
+              description,
+              severity: severity || null,
+              notes: notes || null,
+              patientId,
+              organizationId: organizationId!,
+            },
+            select: {
+              uuid: true,
+              description: true,
+              severity: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient alert created: ${description}`,
+            metadata: {
+              patientId,
+              action: "create",
+              description,
+            },
+            priority: Priority.MEDIUM,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            ...result,
+            id: result.uuid,
+          },
+          message: "Patient alert created successfully",
+        });
+      }
+    } catch (err) {
+      logger.error("Create patient alert/allergy failed", {
+        traceId: req.traceId,
+        method: "createPatientAlertAndAllergy.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create patient alert/allergy",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getPatientAlertsAndAllergies(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as { patientId: string };
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const [allergies, alerts] = await Promise.all([
+        prisma.patientAllergy.findMany({
+          where: {
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+          select: {
+            uuid: true,
+            allergen: true,
+            reactionType: true,
+            severity: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+        }),
+        prisma.patientAlert.findMany({
+          where: {
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+          select: {
+            uuid: true,
+            description: true,
+            severity: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          allergies: allergies.map((allergy) => ({
+            ...allergy,
+            id: allergy.uuid,
+          })),
+          alerts: alerts.map((alert) => ({
+            ...alert,
+            id: alert.uuid,
+          })),
+        },
+        message: "Patient alerts and allergies fetched successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient alerts and allergies failed", {
+        traceId: req.traceId,
+        method: "getPatientAlertsAndAllergies.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch patient alerts and allergies",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientAlertAndAllergy(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, alertId, type } = req.params as unknown as UpdateAlertOrAllergyParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      if (type === "allergy") {
+        const allergy = await prisma.patientAllergy.findFirst({
+          where: {
+            uuid: alertId,
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+        });
+
+        if (!allergy) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Patient allergy not found",
+          });
+        }
+
+        const { allergen, reactionType, severity, notes } = req.body as UpdatePatientAllergySchema;
+
+        const updateData: Prisma.PatientAllergyUpdateInput = {};
+        if (allergen !== undefined) updateData.allergen = allergen;
+        if (reactionType !== undefined) updateData.reactionType = reactionType || null;
+        if (severity !== undefined) updateData.severity = severity || null;
+        if (notes !== undefined) updateData.notes = notes || null;
+
+        const [result] = await Promise.all([
+          prisma.patientAllergy.update({
+            where: {
+              uuid: alertId,
+              patientId,
+              organizationId: organizationId!,
+            },
+            data: updateData,
+            select: {
+              uuid: true,
+              allergen: true,
+              reactionType: true,
+              severity: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient allergy updated: ${allergen || "N/A"}`,
+            metadata: {
+              patientId,
+              allergyId: alertId,
+              action: "update",
+            },
+            priority: Priority.MEDIUM,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            ...result,
+            id: result.uuid,
+          },
+          message: "Patient allergy updated successfully",
+        });
+      } else {
+        const alert = await prisma.patientAlert.findFirst({
+          where: {
+            uuid: alertId,
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+        });
+
+        if (!alert) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Patient alert not found",
+          });
+        }
+
+        const { description, severity, notes } = req.body as UpdatePatientAlertSchema;
+
+        const updateData: Prisma.PatientAlertUpdateInput = {};
+        if (description !== undefined) updateData.description = description;
+        if (severity !== undefined) updateData.severity = severity || null;
+        if (notes !== undefined) updateData.notes = notes || null;
+
+        const [result] = await Promise.all([
+          prisma.patientAlert.update({
+            where: {
+              uuid: alertId,
+              patientId,
+              organizationId: organizationId!,
+            },
+            data: updateData,
+            select: {
+              uuid: true,
+              description: true,
+              severity: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient alert updated: ${description || "N/A"}`,
+            metadata: {
+              patientId,
+              alertId: alertId,
+              action: "update",
+            },
+            priority: Priority.MEDIUM,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            ...result,
+            id: result.uuid,
+          },
+          message: "Patient alert updated successfully",
+        });
+      }
+    } catch (err) {
+      logger.error("Update patient alert/allergy failed", {
+        traceId: req.traceId,
+        method: "updatePatientAlertAndAllergy.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient alert/allergy",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deletePatientAlertAndAllergy(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, alertId, type } = req.params as unknown as DeleteAlertOrAllergyParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      if (type === "allergy") {
+        const allergy = await prisma.patientAllergy.findFirst({
+          where: {
+            uuid: alertId,
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+        });
+
+        if (!allergy) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Patient allergy not found",
+          });
+        }
+
+        await Promise.all([
+          prisma.patientAllergy.update({
+            where: {
+              uuid: alertId,
+            },
+            data: {
+              deletedAt: new Date(),
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient allergy deleted`,
+            metadata: {
+              patientId,
+              allergyId: alertId,
+              action: "delete",
+            },
+            priority: Priority.HIGH,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            deletedAt: new Date(),
+          },
+          message: "Patient allergy deleted successfully",
+        });
+      } else {
+        const alert = await prisma.patientAlert.findFirst({
+          where: {
+            uuid: alertId,
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+        });
+
+        if (!alert) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Patient alert not found",
+          });
+        }
+
+        await Promise.all([
+          prisma.patientAlert.update({
+            where: {
+              uuid: alertId,
+            },
+            data: {
+              deletedAt: new Date(),
+            },
+          }),
+          UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient alert deleted`,
+            metadata: {
+              patientId,
+              alertId: alertId,
+              action: "delete",
+            },
+            priority: Priority.HIGH,
+          }),
+        ]);
+
+        await ragHelper.invalidatePatientSummaryCache(
+          organizationId!,
+          patientId,
+          req.traceId,
+        );
+
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: {
+            deletedAt: new Date(),
+          },
+          message: "Patient alert deleted successfully",
+        });
+      }
+    } catch (err) {
+      logger.error("Delete patient alert/allergy failed", {
+        traceId: req.traceId,
+        method: "deletePatientAlertAndAllergy.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patient alert/allergy",
         },
         req,
       );
