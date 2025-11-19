@@ -11,6 +11,7 @@ export interface TabConfig<TProps extends object = Record<string, never>> {
 interface TabNavigationProps<TProps extends object = Record<string, never>> {
     readonly tabs: readonly TabConfig<TProps>[];
     readonly defaultValue?: string;
+    readonly value?: string;
     readonly className?: string;
     readonly onTabChange?: (tabId: string) => void;
     readonly tabProps?: TProps;
@@ -19,6 +20,7 @@ interface TabNavigationProps<TProps extends object = Record<string, never>> {
 export function TabNavigation<TProps extends object = Record<string, never>>({
     tabs,
     defaultValue,
+    value,
     className,
     onTabChange,
     tabProps,
@@ -33,13 +35,17 @@ export function TabNavigation<TProps extends object = Record<string, never>>({
 
     const fallbackValue = tabs[0]?.id ?? "";
     const initialValue = tabs.some((tab) => tab.id === defaultValue) ? defaultValue : fallbackValue;
+    const isControlled = value && tabs.some((tab) => tab.id === value);
+    const tabsControlProps = isControlled ? { value } : { defaultValue: initialValue };
+
+    const handleValueChange = (nextValue: string) => {
+        onTabChange?.(nextValue);
+    };
 
     return (
         <Tabs
-            defaultValue={initialValue}
-            onValueChange={(value) => {
-                onTabChange?.(value);
-            }}
+            {...tabsControlProps}
+            onValueChange={handleValueChange}
             className={cn("flex-1", className)}
         >
             <div className="">
