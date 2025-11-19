@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
       CREATE: "/doctor/patient",
       GET_BY_ID: (id: string) => `/doctor/patients/${id}`,
       MEDICAL_RECORDS: (id: string) => `/doctor/patients/${id}/medical-records`,
+      SUMMARY: (id: string) => `/doctor/patients/${id}/summary`,
     },
   },
 } as const;

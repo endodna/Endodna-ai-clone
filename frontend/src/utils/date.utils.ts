@@ -72,3 +72,27 @@ export function formatDate(
   return formatter.format(dateObj);
 }
 
+/**
+ * Calculates age from date of birth
+ * @param dateOfBirth - Date string or Date object
+ * @returns Age in years or null if invalid
+ */
+export function calculateAge(
+  dateOfBirth: string | Date | null | undefined,
+): number | null {
+  if (!dateOfBirth) return null;
+  try {
+    const dob = typeof dateOfBirth === "string" ? new Date(dateOfBirth) : dateOfBirth;
+    if (Number.isNaN(dob.getTime())) return null;
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return null;
+  }
+}
