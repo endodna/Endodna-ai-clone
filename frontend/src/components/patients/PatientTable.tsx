@@ -3,6 +3,7 @@ import { DataTable, PaginationInfo } from "@/components/ui/data-table";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
 import { patientColumns } from "./columns";
 import { useNavigate } from "react-router-dom";
+import { Loading } from "../Loading";
 
 interface PatientTableProps {
   /**
@@ -55,10 +56,7 @@ export function PatientTable({
   // Handle loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-700" />
-        <p className="text-neutral-500 text-sm">Loading patients...</p>
-      </div>
+      <Loading loadingMessage="Loading patients..." />
     );
   }
 
