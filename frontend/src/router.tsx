@@ -1,13 +1,33 @@
+import {
+  Suspense,
+  lazy,
+  type ComponentType,
+  type LazyExoticComponent,
+} from "react";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "@/pages/Auth/Login";
-import ResetPasswordForm from "./pages/Auth/ResetPassword";
-import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
-import Error404 from "./pages/Error404";
-import AcceptInvitation from "./pages/Auth/AcceptInvitation";
-import DashboardLayout from "./Layouts/DashboardLayout";
-import PatientListPage from "./pages/Patients/PatientListPage";
-import PatientProfilePage from "./pages/Patients/PatientProfilePage";
+import { Loading } from "./components/Loading";
+
+const DashboardLayout = lazy(() => import("./Layouts/DashboardLayout"));
+const ResetPasswordForm = lazy(() => import("./pages/Auth/ResetPassword"));
+const ForgotPasswordForm = lazy(() => import("./pages/Auth/ForgotPassword"));
+const AcceptInvitation = lazy(() => import("./pages/Auth/AcceptInvitation"));
+const PatientListPage = lazy(
+  () => import("./pages/Patients/PatientListPage"),
+);
+const PatientProfilePage = lazy(
+  () => import("./pages/Patients/PatientProfilePage"),
+);
+const Error404 = lazy(() => import("./pages/Error404"));
+
+const withSuspense = (
+  Component: LazyExoticComponent<ComponentType<object>>,
+) => () => (
+  <Suspense fallback={<Loading />}>
+    <Component />
+  </Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -18,13 +38,15 @@ export const router = createBrowserRouter([
     path: "/dashboard",
     Component: () => (
       <ProtectedRoute>
-        <DashboardLayout />
+        <Suspense fallback={<Loading loadingMessage="Loading dashboard..." />}>
+          <DashboardLayout />
+        </Suspense>
       </ProtectedRoute>
     ),
     children: [
       {
         index: true,
-        Component: () => <PatientListPage />,
+        Component: withSuspense(PatientListPage),
       },
       {
         path: "quick-actions",
@@ -36,11 +58,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "patients",
-        Component: () => <PatientListPage />,
+        Component: withSuspense(PatientListPage),
       },
       {
         path: "patients/:patientId",
-        Component: () => <PatientProfilePage />,
+        Component: withSuspense(PatientProfilePage),
       },
       {
         path: "care-strategy",
@@ -65,15 +87,15 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "reset-password",
-        Component: () => <ResetPasswordForm />,
+        Component: withSuspense(ResetPasswordForm),
       },
       {
         path: "forgot-password",
-        Component: () => <ForgotPasswordForm />,
+        Component: withSuspense(ForgotPasswordForm),
       },
       {
         path: "accept-invitation",
-        Component: () => <AcceptInvitation />,
+        Component: withSuspense(AcceptInvitation),
       },
     ],
   },
@@ -90,6 +112,6 @@ export const router = createBrowserRouter([
   },
   {
     path: "*",
-    Component: () => <Error404 />,
+    Component: withSuspense(Error404),
   },
 ]);
