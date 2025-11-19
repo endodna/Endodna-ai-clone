@@ -14,6 +14,7 @@ export const queryKeys = {
         [...queryKeys.doctor.patients.lists(), params] as const,
       detail: (id: string) => [...queryKeys.doctor.patients.all(), "detail", id] as const,
       summary: (id: string) => [...queryKeys.doctor.patients.all(), "summary", id] as const,
+      medications: (id: string) => [...queryKeys.doctor.patients.all(), "medications", id] as const,
       create: (patientData: AddPatientData) => [...queryKeys.doctor.patients.all(), "create", patientData] as const,
     },
   },

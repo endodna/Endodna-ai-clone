@@ -369,6 +369,86 @@ export const doctorsApi = {
       };
     }
   },
+
+  getPatientMedications: async (patientId: string): Promise<ApiResponse<PatientMedication[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.LIST, patientId),
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient medications",
+      };
+    }
+  },
+
+  createPatientMedication: async (patientId: string, payload: CreatePatientMedicationPayload): Promise<ApiResponse<PatientMedication>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.LIST, patientId),
+        payload,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create medication",
+      };
+    }
+  },
+
+  updatePatientMedication: async (patientId: string, medicationId: string, payload: CreatePatientMedicationPayload): Promise<ApiResponse<PatientMedication>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL, patientId, medicationId),
+        payload,
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update medication",
+      };
+    }
+  },
+
+  deletePatientMedication: async (patientId: string, medicationId: string): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL, patientId, medicationId),
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to delete medication",
+      };
+    }
+  },
 };
 
 export const api = {

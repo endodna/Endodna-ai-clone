@@ -163,3 +163,25 @@ interface PatientDetail {
         email: string;
     } | null;
 }
+
+interface PatientMedication {
+    id: string;
+    drugName: string;
+    dosage: string;
+    frequency: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    reason: string;
+    notes?: string | null;
+    createdAt?: string | Date;
+}
+
+interface CreatePatientMedicationPayload {
+    drugName: string;
+    dosage: string;
+    frequency: string;
+    reason: string;
+    notes?: string;
+    startDate?: string;
+    endDate?: string;
+}
