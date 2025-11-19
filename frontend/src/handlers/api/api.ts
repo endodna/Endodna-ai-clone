@@ -353,6 +353,9 @@ export const doctorsApi = {
     try {
       const response = await apiClient.get(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.SUMMARY, id),
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        },
       );
       return response.data;
     } catch (error: any) {

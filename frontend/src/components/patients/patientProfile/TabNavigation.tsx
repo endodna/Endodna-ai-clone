@@ -2,23 +2,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { ComponentType } from "react";
 
-export interface TabConfig {
+export interface TabConfig<TProps extends object = Record<string, never>> {
     readonly id: string;
     readonly label: string;
-    readonly Content: ComponentType;
+    readonly Content: ComponentType<TProps>;
 }
 
-interface TabNavigationProps {
-    readonly tabs: readonly TabConfig[];
+interface TabNavigationProps<TProps extends object = Record<string, never>> {
+    readonly tabs: readonly TabConfig<TProps>[];
     readonly defaultValue?: string;
     readonly className?: string;
     readonly onTabChange?: (tabId: string) => void;
+    readonly tabProps?: TProps;
 }
 
-export function TabNavigation({ tabs, defaultValue, className, onTabChange }: Readonly<TabNavigationProps>) {
+export function TabNavigation<TProps extends object = Record<string, never>>({
+    tabs,
+    defaultValue,
+    className,
+    onTabChange,
+    tabProps,
+}: Readonly<TabNavigationProps<TProps>>) {
     if (!tabs.length) {
         return (
-            <div className={cn("flex-1 rounded-3xl border border-dashed border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500", className)}>
+            <div className={cn("flex-1 rounded-3xl border border-dashed border-neutral-200 bg-white p-6 text-center text-base font-medium text-neutral-500", className)}>
                 No tabs available.
             </div>
         );
@@ -52,9 +59,10 @@ export function TabNavigation({ tabs, defaultValue, className, onTabChange }: Re
 
                 {tabs.map((tab) => {
                     const Content = tab.Content;
+                    const contentProps = (tabProps ?? {}) as TProps;
                     return (
                         <TabsContent key={tab.id} value={tab.id} className="">
-                            <Content />
+                            <Content {...contentProps} />
                         </TabsContent>
                     );
                 })}

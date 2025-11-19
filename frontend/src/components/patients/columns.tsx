@@ -12,6 +12,7 @@ import {
 import { Badge } from "../ui/badge";
 import { formatDate } from "@/utils/date.utils";
 import { formatStatusText, getDNAStatusDisplay } from "@/utils/patient.utils";
+import { truncateText } from "@/utils/utils";
 import { AlertIcon } from "./AlertIcon";
 
 
@@ -202,11 +203,7 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
     header: "Health Goals",
     cell: ({ row }) => {
       const goal = row.original.patientGoals?.[0]?.description || "-";
-      // Truncate text after certain length and add ellipsis
-      const maxLength = 50;
-      const truncated = goal.length > maxLength
-        ? `${goal.substring(0, maxLength)}...`
-        : goal;
+      const truncated = truncateText(goal, 50);
       return (
         <div className="line-clamp-1 text-neutral-700">
           {truncated}
