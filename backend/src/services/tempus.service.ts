@@ -4,7 +4,7 @@ import s3Helper from "../helpers/aws/s3.helper";
 import { prisma } from "../lib/prisma";
 import { ALLOWED_SNPS_SET } from "../utils/constants";
 import { TempusActions } from "../types";
-import ragHelper from "../helpers/rag.helper";
+import ragHelper from "../helpers/llm/rag.helper";
 import emailHelper from "../helpers/email.helper";
 
 interface DNAFileHeader {

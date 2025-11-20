@@ -10,7 +10,6 @@ import {
   getPatientsSchema,
   medicationIdParamsSchema,
   patientIdParamsSchema,
-  createPatientConversationSchema,
   sendPatientMessageSchema,
   updateConversationTitleSchema,
   registerPatientDNAKitSchema,
@@ -22,6 +21,9 @@ import {
   deleteAlertOrAllergyParamsSchema,
   createAlertOrAllergyBodySchema,
   updateAlertOrAllergyBodySchema,
+  createGeneralConversationSchema,
+  sendGeneralMessageSchema,
+  generalConversationIdParamsSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -114,7 +116,6 @@ doctorRouter.get(
 doctorRouter.post(
   "/patients/:patientId/conversations",
   validateParams(patientIdParamsSchema),
-  validate(createPatientConversationSchema),
   DoctorController.createPatientConversation,
 );
 doctorRouter.get(
@@ -134,6 +135,38 @@ doctorRouter.patch(
   validateParams(conversationIdParamsSchema),
   validate(updateConversationTitleSchema),
   DoctorController.updatePatientConversationTitle,
+);
+
+// General AI Chat Routes
+doctorRouter.get(
+  "/conversations/patients",
+  DoctorController.getAllPatientConversations,
+);
+doctorRouter.get(
+  "/conversations",
+  DoctorController.getGeneralConversations,
+);
+doctorRouter.post(
+  "/conversations",
+  validate(createGeneralConversationSchema),
+  DoctorController.createGeneralConversation,
+);
+doctorRouter.get(
+  "/conversations/:conversationId/messages",
+  validateParams(generalConversationIdParamsSchema),
+  DoctorController.getGeneralConversationMessages,
+);
+doctorRouter.post(
+  "/conversations/:conversationId/messages",
+  validateParams(generalConversationIdParamsSchema),
+  validate(sendGeneralMessageSchema),
+  DoctorController.sendGeneralConversationMessage,
+);
+doctorRouter.patch(
+  "/conversations/:conversationId/title",
+  validateParams(generalConversationIdParamsSchema),
+  validate(updateConversationTitleSchema),
+  DoctorController.updateGeneralConversationTitle,
 );
 
 // Patient Chart Note Routes

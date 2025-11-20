@@ -1,9 +1,8 @@
-import { prisma } from "../lib/prisma";
-import { logger } from "./logger.helper";
-import bedrockHelper from "./aws/bedrock.helper";
+import { prisma } from "../../lib/prisma";
 import { TaskType, ChatType, ChatMessageRole } from "@prisma/client";
-import { buildOrganizationUserFilter } from "./organization-user.helper";
+import { buildOrganizationUserFilter } from "../organization-user.helper";
 import ragHelper from "./rag.helper";
+import { BaseChatHelper, BaseMessage } from "./base-chat.helper";
 
 export interface ChatMessage {
     role: ChatMessageRole;
@@ -37,44 +36,12 @@ export interface SendMessageResult {
     }>;
 }
 
-class PatientChatHelper {
-    private estimateTokens(text: string): number {
-        return Math.ceil(text.length / 4);
-    }
-
-    private parseChatResponseWithFollowUps(fullText: string): { content: string; followUpPrompts: string[] } {
-        const followUpSectionRegex = /##\s*Suggested\s*Follow-up\s*Questions\s*\n([\s\S]*?)$/i;
-        const match = fullText.match(followUpSectionRegex);
-
-        let content = fullText;
-        let followUpPrompts: string[] = [];
-
-        if (match) {
-            const followUpSection = match[1].trim();
-            content = fullText.replace(followUpSectionRegex, '').trim();
-
-            const bulletPointRegex = /^[-*]\s*(.+)$/gm;
-            const prompts = [];
-            let promptMatch;
-
-            while ((promptMatch = bulletPointRegex.exec(followUpSection)) !== null) {
-                prompts.push(promptMatch[1].trim());
-            }
-
-            followUpPrompts = prompts.filter(p => p.length > 0);
-        }
-
-        return { content, followUpPrompts };
-    }
+class PatientChatHelper extends BaseChatHelper {
 
     private buildSystemPrompt(patientData: string): string {
         return `You are OmniBox, an AI medical assistant helping doctors provide better patient care. You have access to comprehensive patient information and medical records.
 
-        YOUR IDENTITY:
-        - Your name is OmniBox
-        - When asked about your name or identity, always respond that you are OmniBox
-        - You are a medical AI assistant designed to help doctors with patient care
-        - Do not say you are created by Anthropic or that you don't have a name - you are OmniBox
+        ${this.getOmniBoxIdentityPrompt()}
 
         PATIENT AND MEDICAL RECORDS CONTEXT:
         ${patientData}
@@ -89,21 +56,12 @@ class PatientChatHelper {
         - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated responses
         - If you encounter any administrative, identifying, or financial information in the patient data, completely exclude it from your responses
 
-        IMPORTANT GUIDELINES:
-        - Provide accurate, evidence-based medical information
-        - Always prioritize patient safety
-        - Be clear and concise in your responses
-        - If you're uncertain about something, say so
-        - Do not provide definitive diagnoses - that's the doctor's responsibility
+        ${this.getCommonGuidelinesPrompt()}
         - Focus on providing helpful context and insights based on the patient's medical history, including chart notes, medical records, medications, allergies, and lab results
-        - Use proper medical terminology when appropriate
-        - Format your responses using Markdown for better readability
-        - Use line breaks (<br>) for paragraph separation when needed
         - Help doctors understand medical summaries, discuss treatment plans, and provide general medical context as needed
         - Reference chart notes and clinical observations when relevant to the conversation
-        - Adapt your responses based on the conversation context and the doctor's questions
         - **NEVER** include health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information in your responses - doctors can access all of this from patient details
-        - At the end of your response, if appropriate, include a "## Suggested Follow-up Questions" section with 2-4 relevant clinical questions that the doctor might want to ask next. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry based on the conversation context and patient information`;
+        ${this.getFollowUpQuestionsInstruction()} and patient information`;
     }
 
     private formatPatientData(patient: any): string {
@@ -318,57 +276,12 @@ class PatientChatHelper {
             );
 
             const systemPrompt = this.buildSystemPrompt(patientData + "\n\n" + medicalRecordContextResult.context);
-            const systemPromptTokens = this.estimateTokens(systemPrompt);
-            const newMessageTokens = this.estimateTokens(message);
-            const maxOutputTokens = 4096;
-            const maxInputTokens = 200000;
-            const reservedTokens = systemPromptTokens + newMessageTokens + maxOutputTokens + 1000;
-            const availableTokens = maxInputTokens - reservedTokens;
-
-            const messages: Array<{ role: string; content: string }> = [];
-            let currentTokens = 0;
-
-            const conversationMessages = [...conversation.messages].reverse();
-
-            for (const msg of conversationMessages) {
-                if (msg.role === ChatMessageRole.SYSTEM) {
-                    continue;
-                }
-
-                const bedrockRole = msg.role === ChatMessageRole.USER ? "user" : "assistant";
-                const messageTokens = this.estimateTokens(msg.content) + 10;
-
-                if (currentTokens + messageTokens > availableTokens) {
-                    break;
-                }
-
-                const lastRole = messages.length > 0 ? messages[0].role : null;
-
-                if (lastRole === bedrockRole) {
-                    continue;
-                }
-
-                messages.unshift({
-                    role: bedrockRole,
-                    content: msg.content,
-                });
-
-                currentTokens += messageTokens;
-            }
-
-            const lastMessageRole = messages.length > 0 ? messages[messages.length - 1].role : null;
-
-            if (lastMessageRole === "assistant" || messages.length === 0) {
-                messages.push({
-                    role: "user",
-                    content: message,
-                });
-            } else if (lastMessageRole === "user") {
-                messages[messages.length - 1] = {
-                    role: "user",
-                    content: message,
-                };
-            }
+            const tokenCalc = this.calculateTokens(systemPrompt, message);
+            const { messages } = this.buildMessagesFromHistory(
+                conversation.messages as BaseMessage[],
+                message,
+                tokenCalc.availableTokens,
+            );
 
             const userMessage = await prisma.patientChatMessage.create({
                 data: {
@@ -379,15 +292,15 @@ class PatientChatHelper {
                 },
             });
 
-            const result = await bedrockHelper.generateChatCompletion({
+            const result = await this.generateAIResponse({
                 systemPrompt,
-                messages: messages as any,
+                messages,
                 organizationId,
                 patientId,
                 doctorId,
                 taskType: TaskType.DIAGNOSIS_ASSISTANCE,
-                maxTokens: 4096,
-                temperature: 0.6,
+                maxTokens: this.MAX_OUTPUT_TOKENS,
+                temperature: this.TEMPERATURE,
                 traceId,
             });
 
@@ -428,7 +341,7 @@ class PatientChatHelper {
                 },
             });
 
-            logger.info("Patient chat message sent successfully", {
+            this.logMessageSent({
                 traceId,
                 conversationId,
                 patientId,
@@ -452,13 +365,14 @@ class PatientChatHelper {
                 citations: medicalRecordContextResult.citations,
             };
         } catch (error) {
-            logger.error("Error sending patient chat message", {
+            this.logMessageError({
                 traceId,
                 conversationId,
                 patientId,
                 doctorId,
                 organizationId,
                 error,
+                method: "PatientChatHelper.sendMessage",
             });
             throw error;
         }

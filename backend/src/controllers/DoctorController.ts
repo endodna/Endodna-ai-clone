@@ -7,7 +7,6 @@ import {
   CreatePatientSchema,
   GetPatientsSchema,
   CreatePatientMedicalRecordSchema,
-  CreatePatientConversationSchema,
   SendPatientMessageSchema,
   UpdateConversationTitleSchema,
   RegisterPatientDNAKitSchema,
@@ -17,13 +16,14 @@ import {
   MedicationIdParamsSchema,
   CreatePatientAllergySchema,
   UpdatePatientAllergySchema,
-  AllergyIdParamsSchema,
   CreatePatientAlertSchema,
   UpdatePatientAlertSchema,
-  AlertIdParamsSchema,
   CreateAlertOrAllergyParamsSchema,
   UpdateAlertOrAllergyParamsSchema,
   DeleteAlertOrAllergyParamsSchema,
+  CreateGeneralConversationSchema,
+  SendGeneralMessageSchema,
+  GeneralConversationIdParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -38,9 +38,10 @@ import {
 import PaginationHelper from "../helpers/pagination.helper";
 import { prisma } from "../lib/prisma";
 import s3Helper from "../helpers/aws/s3.helper";
-import ragHelper from "../helpers/rag.helper";
+import ragHelper from "../helpers/llm/rag.helper";
 import { buildOrganizationUserFilter } from "../helpers/organization-user.helper";
-import patientChatHelper from "../helpers/patient-chat.helper";
+import patientChatHelper from "../helpers/llm/patient-chat.helper";
+import generalChatHelper from "../helpers/llm/general-chat.helper";
 import { ChatType } from "@prisma/client";
 
 class DoctorController {
@@ -1258,6 +1259,14 @@ class DoctorController {
               content: true,
               createdAt: true,
             }
+          },
+          patient: {
+            select: {
+              id: true,
+              photo: true,
+              firstName: true,
+              lastName: true,
+            },
           }
         },
         orderBy: {
@@ -1285,6 +1294,66 @@ class DoctorController {
     }
   }
 
+  public static async getAllPatientConversations(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { organizationId, userId } = req.user!;
+
+      const conversations = await prisma.patientChatConversation.findMany({
+        where: {
+          doctorId: userId,
+          organizationId: organizationId!,
+        },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          messages: {
+            take: 1,
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              role: true,
+              content: true,
+              createdAt: true,
+            },
+          },
+          patient: {
+            select: {
+              id: true,
+              photo: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: conversations,
+        message: "All patient conversations retrieved successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Get all patient conversations failed", {
+        traceId: req.traceId,
+        method: "getAllPatientConversations.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get all patient conversations",
+      }, req);
+    }
+  }
+
   public static async createPatientConversation(
     req: AuthenticatedRequest,
     res: Response,
@@ -1292,7 +1361,6 @@ class DoctorController {
     try {
       const { patientId } = req.params as unknown as { patientId: string };
       const { organizationId, userId } = req.user!;
-      const { type } = req.body as CreatePatientConversationSchema;
 
       const patient = await prisma.user.findFirst({
         where: {
@@ -1309,7 +1377,7 @@ class DoctorController {
         }, req);
       }
 
-      const chatType = type || ChatType.GENERAL;
+      const chatType = ChatType.GENERAL;
       const patientName = `${patient.firstName} ${patient.lastName}`.trim();
       const chatTypeDisplay = chatType.split("_")
         .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
@@ -2623,6 +2691,302 @@ class DoctorController {
         },
         req,
       );
+    }
+  }
+
+  public static async getGeneralConversations(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { organizationId, userId } = req.user!;
+
+      const conversations = await prisma.generalChatConversation.findMany({
+        where: {
+          doctorId: userId,
+          organizationId: organizationId!,
+        },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          messages: {
+            take: 1,
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              role: true,
+              content: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: conversations,
+        message: "General conversations retrieved successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Get general conversations failed", {
+        traceId: req.traceId,
+        method: "getGeneralConversations.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get general conversations",
+      }, req);
+    }
+  }
+
+  public static async createGeneralConversation(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { organizationId, userId } = req.user!;
+      const { title } = req.body as CreateGeneralConversationSchema;
+
+      const chatType = ChatType.GENERAL;
+      const date = new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      const defaultTitle = title || `General Chat - ${date}`;
+
+      const [conversation] = await Promise.all([
+        prisma.generalChatConversation.create({
+          data: {
+            doctorId: userId,
+            organizationId: organizationId!,
+            type: chatType,
+            title: defaultTitle,
+          },
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `General conversation created: ${chatType}`,
+          metadata: {
+            chatType,
+            action: "create",
+          },
+          priority: Priority.LOW,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.CREATED,
+        data: conversation,
+        message: "General conversation created successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Create general conversation failed", {
+        traceId: req.traceId,
+        method: "createGeneralConversation.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to create general conversation",
+      }, req);
+    }
+  }
+
+  public static async getGeneralConversationMessages(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+
+      const conversation = await prisma.generalChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          doctorId: userId,
+          organizationId: organizationId!,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      const messages = await prisma.generalChatMessage.findMany({
+        where: {
+          conversationId,
+        },
+        select: {
+          id: true,
+          role: true,
+          version: true,
+          content: true,
+          createdAt: true,
+          metadata: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: messages.map((message) => ({
+          id: message.id,
+          role: message.role,
+          version: message.version,
+          content: message.content,
+          createdAt: message.createdAt,
+        })),
+        message: "General conversation messages retrieved successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Get general conversation messages failed", {
+        traceId: req.traceId,
+        method: "getGeneralConversationMessages.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get general conversation messages",
+      }, req);
+    }
+  }
+
+  public static async sendGeneralConversationMessage(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+      const { message } = req.body as SendGeneralMessageSchema;
+
+      const conversation = await prisma.generalChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          doctorId: userId,
+          organizationId: organizationId!,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      const result = await generalChatHelper.sendMessage({
+        conversationId,
+        doctorId: userId,
+        organizationId: organizationId!,
+        message,
+        traceId: req.traceId,
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          messageId: result.messageId,
+          content: result.content,
+          followUpPrompts: result.followUpPrompts,
+        },
+        message: "Message sent successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Send general conversation message failed", {
+        traceId: req.traceId,
+        method: "sendGeneralConversationMessage.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to send message",
+      }, req);
+    }
+  }
+
+  public static async updateGeneralConversationTitle(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+      const { title } = req.body as UpdateConversationTitleSchema;
+
+      const conversation = await prisma.generalChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          doctorId: userId,
+          organizationId: organizationId!,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      const [updatedConversation] = await Promise.all([
+        prisma.generalChatConversation.update({
+          where: {
+            id: conversationId,
+          },
+          data: {
+            title,
+          },
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `General conversation title updated`,
+          metadata: {
+            conversationId,
+            title,
+            action: "update",
+          },
+          priority: Priority.LOW,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: updatedConversation,
+        message: "Conversation title updated successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Update general conversation title failed", {
+        traceId: req.traceId,
+        method: "updateGeneralConversationTitle.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to update conversation title",
+      }, req);
     }
   }
 }
