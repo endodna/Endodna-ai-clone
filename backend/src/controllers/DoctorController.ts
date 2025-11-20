@@ -1367,6 +1367,12 @@ class DoctorController {
           id: patientId,
           ...buildOrganizationUserFilter(organizationId!),
         },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dateOfBirth: true,
+        },
       });
 
       if (!patient) {
@@ -1387,7 +1393,16 @@ class DoctorController {
         month: "short",
         day: "numeric",
       });
-      const defaultTitle = `${patientName} - ${chatTypeDisplay} - ${date}`;
+
+      let defaultTitle = `${patientName} - ${chatTypeDisplay} - ${date}`;
+      if (patient.dateOfBirth) {
+        const dob = new Date(patient.dateOfBirth).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        defaultTitle = `${patientName} (DOB: ${dob}) - ${chatTypeDisplay} - ${date}`;
+      }
 
       const [conversation] = await Promise.all([
         prisma.patientChatConversation.create({
@@ -1403,6 +1418,13 @@ class DoctorController {
             type: true,
             title: true,
             createdAt: true,
+            patient: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
           }
         }),
         UserService.createUserAuditLog({
