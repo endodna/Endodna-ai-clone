@@ -133,3 +133,69 @@ export const useGetPatientSummary = (
         ...options,
     });
 };
+
+export const useGetPatientMedications = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<PatientMedication[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientMedication[]>, Error>({
+        queryKey: queryKeys.doctor.patients.medications(patientId),
+        queryFn: () => doctorsApi.getPatientMedications(patientId),
+        enabled: !!patientId,
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useCreatePatientMedication = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientMedication>, Error, { patientId: string; payload: CreatePatientMedicationPayload }>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientMedication>, Error, { patientId: string; payload: CreatePatientMedicationPayload }>({
+        mutationFn: ({ patientId, payload }) => doctorsApi.createPatientMedication(patientId, payload),
+        onSuccess: (data, variables) => {
+            if (!data.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.patients.medications(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useUpdatePatientMedication = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientMedication>, Error, { patientId: string; medicationId: string; payload: CreatePatientMedicationPayload }>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientMedication>, Error, { patientId: string; medicationId: string; payload: CreatePatientMedicationPayload }>({
+        mutationFn: ({ patientId, medicationId, payload }) => doctorsApi.updatePatientMedication(patientId, medicationId, payload),
+        onSuccess: (data, variables) => {
+            if (!data.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.patients.medications(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useDeletePatientMedication = (
+    options?: Omit<UseMutationOptions<ApiResponse<null>, Error, { patientId: string; medicationId: string }>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<null>, Error, { patientId: string; medicationId: string }>({
+        mutationFn: ({ patientId, medicationId }) => doctorsApi.deletePatientMedication(patientId, medicationId),
+        onSuccess: (data, variables) => {
+            if (!data.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.patients.medications(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};

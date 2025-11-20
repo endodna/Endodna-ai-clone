@@ -30,6 +30,11 @@ export const API_ENDPOINTS = {
       GET_BY_ID: (id: string) => `/doctor/patients/${id}`,
       MEDICAL_RECORDS: (id: string) => `/doctor/patients/${id}/medical-records`,
       SUMMARY: (id: string) => `/doctor/patients/${id}/summary`,
+      MEDICATIONS: {
+        LIST: (id: string) => `/doctor/patients/${id}/medications`,
+        DETAIL: (patientId: string, medicationId: string) =>
+          `/doctor/patients/${patientId}/medications/${medicationId}`,
+      },
     },
   },
 } as const;
