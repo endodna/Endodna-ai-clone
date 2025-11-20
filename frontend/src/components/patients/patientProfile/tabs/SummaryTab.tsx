@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useGetPatientSummary } from "@/hooks/useDoctor";
 import { truncateText } from "@/utils/utils";
@@ -19,9 +20,13 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
     if (isLoading) {
         return (
-            <div className="rounded-3xl border border-neutral-100 bg-white p-6">
-                <Skeleton className="h-6 w-32 mb-4" />
-                <Skeleton className="h-4 w-full mb-2" />
+            <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-4">
+                <div className="flex items-center gap-3 text-neutral-700">
+                    <Spinner className="size-5" />
+                    <span className="text-sm font-medium">Generating patient summary...</span>
+                </div>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
             </div>
         );
