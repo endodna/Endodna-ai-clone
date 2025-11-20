@@ -208,11 +208,6 @@ export const conversationIdParamsSchema = z.object({
 }).strict();
 export type ConversationIdParamsSchema = z.infer<typeof conversationIdParamsSchema>;
 
-export const createPatientConversationSchema = z.object({
-  type: z.nativeEnum(ChatType).optional(),
-}).strict();
-export type CreatePatientConversationSchema = z.infer<typeof createPatientConversationSchema>;
-
 export const sendPatientMessageSchema = z.object({
   message: z.string().min(1, "Message is required"),
 }).strict();
@@ -222,6 +217,21 @@ export const updateConversationTitleSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
 }).strict();
 export type UpdateConversationTitleSchema = z.infer<typeof updateConversationTitleSchema>;
+
+export const createGeneralConversationSchema = z.object({
+  title: z.string().max(200).optional(),
+}).strict();
+export type CreateGeneralConversationSchema = z.infer<typeof createGeneralConversationSchema>;
+
+export const sendGeneralMessageSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+}).strict();
+export type SendGeneralMessageSchema = z.infer<typeof sendGeneralMessageSchema>;
+
+export const generalConversationIdParamsSchema = z.object({
+  conversationId: z.string().uuid("Invalid conversation ID"),
+}).strict();
+export type GeneralConversationIdParamsSchema = z.infer<typeof generalConversationIdParamsSchema>;
 
 export const registerPatientDNAKitSchema = z.object({
   barcode: z.string().min(1, "Barcode is required"),

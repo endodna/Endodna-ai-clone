@@ -26,7 +26,7 @@ import { UserResponse } from "@supabase/supabase-js";
 import { buildRedisSession } from "../helpers/misc.helper";
 import { UserService } from "../services/user.service";
 import PaginationHelper from "../helpers/pagination.helper";
-import ragHelper from "../helpers/rag.helper";
+import ragHelper from "../helpers/llm/rag.helper";
 
 class SAdminController {
   public static async createSuperAdmin(
