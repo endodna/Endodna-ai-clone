@@ -630,8 +630,7 @@ class DoctorController {
           },
           where: {
             uuid: medicationId,
-            patientId,
-            doctorId: userId!,
+            patientId
           },
           select: {
             uuid: true,
@@ -724,7 +723,6 @@ class DoctorController {
         where: {
           uuid: medicationId,
           patientId,
-          doctorId: userId!,
           deletedAt: null,
         },
       });
