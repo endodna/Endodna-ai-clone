@@ -14,24 +14,25 @@ import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PatientTable } from "../../components/patients/PatientTable";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { openAddPatientDialog, closeAddPatientDialog } from "@/store/features/patient";
+import { closeAddPatientDialog, openAddPatientDialog } from "@/store/features/patient";
 
-const formatStatusLabel = (status: string) =>
-    status
-        .split("_")
-        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
-        .join(" ");
+const DEFAULT_PHYSICIAN_VALUE = "all";
+const DEFAULT_STATUS_VALUE = "all";
+const DEFAULT_FILTERS = {
+    searchInput: "",
+    selectedPhysician: DEFAULT_PHYSICIAN_VALUE,
+    selectedStatus: DEFAULT_STATUS_VALUE,
+    page: 1,
+    limit: 10,
+};
 
 export default function PatientListPage() {
     const dispatch = useAppDispatch();
     const { isAddPatientDialogOpen } = useAppSelector((state) => state.patientDialog);
-    
-    const [page, setPage] = useState(1);
-    const [limit] = useState(10);
-    const [searchInput, setSearchInput] = useState("");
+
+    const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const [search, setSearch] = useState("");
-    const [selectedPhysician, setSelectedPhysician] = useState<string>("all");
-    const [selectedStatus, setSelectedStatus] = useState<string>("all");
+    const { searchInput, selectedPhysician, selectedStatus, page, limit } = filters;
 
     // Fetch doctors and constants for filters
     const { data: doctorsResponse } = useGetDoctors();
@@ -50,8 +51,8 @@ export default function PatientListPage() {
         page,
         limit,
         search: search || undefined,
-        doctorId: selectedPhysician === "all" ? undefined : selectedPhysician,
-        status: selectedStatus === "all" ? undefined : selectedStatus,
+        doctorId: selectedPhysician === DEFAULT_PHYSICIAN_VALUE ? undefined : selectedPhysician,
+        status: selectedStatus === DEFAULT_STATUS_VALUE ? undefined : selectedStatus,
     });
 
     const patients: PatientRow[] = apiResponse?.data?.items ?? [];
@@ -66,22 +67,29 @@ export default function PatientListPage() {
 
     // Debounced search handler
     const debouncedSetSearch = useMemo(
-        () => debounce((value: string) => {
-            setSearch(value);
-            setPage(1);
-        }, 300),
-        []
+        () =>
+            debounce((value: string) => {
+                setSearch(value);
+                setFilters((prev) => ({
+                    ...prev,
+                    page: 1,
+                }));
+            }, 300),
+        [setFilters]
     );
 
     // Handle search input change
     const handleSearchChange = (value: string) => {
-        setSearchInput(value); // Update input immediately
+        setFilters((prev) => ({
+            ...prev,
+            searchInput: value,
+        })); // Update input immediately
         debouncedSetSearch(value); // Trigger debounced API call
     };
 
     // Build physician options from fetched doctors
     const physicianOptions = useMemo(() => {
-        const options = [{ value: "all", label: "All Physicians" }];
+        const options = [{ value: DEFAULT_PHYSICIAN_VALUE, label: "All Physicians" }];
         if (doctors && doctors.length > 0) {
             for (const doctor of doctors) {
                 const fullName = `${doctor.firstName} ${doctor.lastName}`.trim();
@@ -96,14 +104,14 @@ export default function PatientListPage() {
 
     // Build status options from fetched constants
     const statusOptions = useMemo(() => {
-        const options = [{ value: "all", label: "All Statuses" }];
+        const options = [{ value: DEFAULT_STATUS_VALUE, label: "All Statuses" }];
         if (constants) {
             // Add DNA result statuses
             if (constants.dnaResultStatus && constants.dnaResultStatus.length > 0) {
                 for (const status of constants.dnaResultStatus) {
                     options.push({
                         value: status,
-                        label: formatStatusLabel(status),
+                        label: status,
                     });
                 }
             }
@@ -116,14 +124,20 @@ export default function PatientListPage() {
         if (!pagination) return;
 
         if (pagination.totalPages === 0 && page !== 1) {
-            setPage(1);
+            setFilters((prev) => ({
+                ...prev,
+                page: 1,
+            }));
             return;
         }
 
         if (pagination.totalPages > 0 && page > pagination.totalPages) {
-            setPage(pagination.totalPages);
+            setFilters((prev) => ({
+                ...prev,
+                page: pagination.totalPages,
+            }));
         }
-    }, [pagination, page]);
+    }, [pagination, page, setFilters]);
 
     return (
         <div className="space-y-6 flex flex-col h-full w-full">
@@ -157,13 +171,18 @@ export default function PatientListPage() {
                 <div className="flex items-center gap-3 flex-wrap">
                     <Select
                         value={selectedPhysician}
+                        defaultValue={DEFAULT_PHYSICIAN_VALUE}
+                        isClearable
                         onValueChange={(value) => {
-                            setSelectedPhysician(value);
-                            setPage(1); // Reset to first page when filter changes
+                            setFilters((prev) => ({
+                                ...prev,
+                                selectedPhysician: value,
+                                page: 1, // Reset to first page when filter changes
+                            }));
                         }}
                     >
-                        <SelectTrigger className="w-44 bg-white">
-                            <SelectValue placeholder="All Physicians" />
+                        <SelectTrigger className="w-44 bg-white overflow-hidden text-left">
+                            <SelectValue placeholder="All Physicians" className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
                             {physicianOptions.map((option) => (
@@ -174,14 +193,19 @@ export default function PatientListPage() {
                         </SelectContent>
                     </Select>
                     <Select
+                        isClearable={true}
+                        defaultValue={DEFAULT_STATUS_VALUE}
                         value={selectedStatus}
                         onValueChange={(value) => {
-                            setSelectedStatus(value);
-                            setPage(1); // Reset to first page when filter changes
+                            setFilters((prev) => ({
+                                ...prev,
+                                selectedStatus: value,
+                                page: 1, // Reset to first page when filter changes
+                            }));
                         }}
                     >
-                        <SelectTrigger className="w-40 bg-white">
-                            <SelectValue placeholder="All Statuses" />
+                        <SelectTrigger className="w-40 bg-white overflow-hidden text-left">
+                            <SelectValue placeholder="All Statuses" className="truncate" />
                         </SelectTrigger>
                         <SelectContent>
                             {statusOptions.map((option) => (
@@ -201,7 +225,12 @@ export default function PatientListPage() {
                 onRetry={refetch}
                 isRefetching={isRefetching}
                 pagination={pagination}
-                onPageChange={setPage}
+                onPageChange={(nextPage) =>
+                    setFilters((prev) => ({
+                        ...prev,
+                        page: nextPage,
+                    }))
+                }
             />
 
             <AddPatientDialog

@@ -13,9 +13,11 @@ import {
   Trash,
 } from "lucide-react";
 import { PatientStatus } from "@/components/constants/patient";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { formatStatusText } from "@/utils/patient.utils";
 
 interface AlertIconProps {
-  status: string;
+  status?: string;
 }
 
 /**
@@ -24,41 +26,73 @@ interface AlertIconProps {
  * @returns React component with appropriate status icon
  */
 export function AlertIcon({ status }: AlertIconProps) {
+  const statusText = status ? formatStatusText(status) : "Invalid";
+  let icon: React.ReactNode = null;
   switch (status) {
     case PatientStatus.ACTIVE:
-      return <CircleDot className="h-5 w-5 text-lime-600" />;
+      icon = <CircleDot className="h-5 w-5 text-lime-600" />;
+      break;
     case PatientStatus.INACTIVE:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.PENDING:
-      return <Ban className="h-5 w-5 text-amber-600" />;
+      icon = <Ban className="h-5 w-5 text-amber-600" />;
+      break;
     case PatientStatus.DEACTIVATED:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.BLOCKED:
-      return <Lock className="h-5 w-5 text-red-600" />;
+      icon = <Lock className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.DELETED:
-      return <Trash className="h-5 w-5 text-red-600" />;
+      icon = <Trash className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.ACHIEVED:
-      return <CircleCheck className="h-5 w-5 text-lime-600" />;
+      icon = <CircleCheck className="h-5 w-5 text-lime-600" />;
+      break;
     case PatientStatus.IN_PROGRESS:
-      return <CircleDashed className="h-5 w-5 text-blue-600" />;
+      icon = <CircleDashed className="h-5 w-5 text-blue-600" />;
+      break;
     case PatientStatus.CANCELLED:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.RESOLVED:
-      return <CircleCheck className="h-5 w-5 text-lime-600" />;
+      icon = <CircleCheck className="h-5 w-5 text-lime-600" />;
+      break;
     case PatientStatus.IN_RANGE:
-      return <CircleCheck className="h-5 w-5 text-lime-600" />;
+      icon = <CircleCheck className="h-5 w-5 text-lime-600" />;
+      break;
     case PatientStatus.OUT_OF_RANGE:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.LOW:
-      return <CircleCheck className="h-5 w-5 text-lime-600" />;
+      icon = <CircleCheck className="h-5 w-5 text-lime-600" />;
+      break;
     case PatientStatus.HIGH:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.ANOMALOUS:
-      return <CircleX className="h-5 w-5 text-red-600" />;
+      icon = <CircleX className="h-5 w-5 text-red-600" />;
+      break;
     case PatientStatus.READY:
-      return <CircleCheck className="h-5 w-5 text-lime-600" />;
+      icon = <CircleCheck className="h-5 w-5 text-lime-600" />;
+      break;
     default:
-      return <Circle className="h-5 w-5 text-red-600" />;
+      icon = <Circle className="h-5 w-5 text-red-600" />;
+      break;
   }
+
+  return (
+    <Tooltip>
+    <TooltipTrigger asChild>
+      <div className="flex items-center justify-center p-2">
+        {icon}
+      </div>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="capitalize px-2">
+      {statusText}
+    </TooltipContent>
+  </Tooltip>
+  )
 }
 

@@ -1,9 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -11,7 +6,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { formatDate } from "@/utils/date.utils";
-import { formatStatusText, getDNAStatusDisplay } from "@/utils/patient.utils";
+import { getDNAStatusDisplay } from "@/utils/patient.utils";
 import { truncateText } from "@/utils/utils";
 import { AlertIcon } from "./AlertIcon";
 
@@ -22,19 +17,8 @@ export const patientColumns: ColumnDef<PatientRow>[] = [
     header: "",
     cell: ({ row }) => {
       const patientStatus = row.original.status;
-      const statusText = formatStatusText(patientStatus);
-      
       return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center p-2">
-              <AlertIcon status={patientStatus} />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" align="center">
-            {statusText}
-          </TooltipContent>
-        </Tooltip>
+        <AlertIcon status={patientStatus} />
       );
     },
   },
