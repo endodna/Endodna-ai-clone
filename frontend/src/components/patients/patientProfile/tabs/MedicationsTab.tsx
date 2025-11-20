@@ -1,7 +1,18 @@
 import { AddMedicationModal } from "@/components/patients/patientProfile/AddMedicationModal";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Spinner } from "@/components/ui/spinner";
 import { useDeletePatientMedication, useGetPatientMedications } from "@/hooks/useDoctor";
 import { formatDate } from "@/utils/date.utils";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -15,8 +26,10 @@ interface MedicationsTabProps {
 export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMedication, setSelectedMedication] = useState<PatientMedication | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [medicationToDelete, setMedicationToDelete] = useState<PatientMedication | null>(null);
 
-    const { data, isLoading, isError, error } = useGetPatientMedications(patientId ?? "", {
+    const { data, isLoading, isError, error, refetch } = useGetPatientMedications(patientId ?? "", {
         enabled: Boolean(patientId),
     });
 
@@ -26,7 +39,10 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
                 toast.error(response.message || "Failed to delete medication");
                 return;
             }
-            toast.success("Medication deleted");
+            void refetch();
+            toast.success(response.message ?? "Medication deleted successfully");
+            setIsDeleteDialogOpen(false);
+            setMedicationToDelete(null);
         },
         onError: (err) => {
             toast.error(err.message || "Failed to delete medication");
@@ -61,10 +77,35 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
             return;
         }
 
+        setMedicationToDelete(medication);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDeleteMedication = () => {
+        if (!patientId || !medicationToDelete?.id) {
+            toast.error("Unable to delete medication");
+            return;
+        }
+
         deleteMedicationMutation.mutate({
             patientId,
-            medicationId: medication.id,
+            medicationId: medicationToDelete.id,
         });
+    };
+
+    const handleModalSuccess = () => {
+        setSelectedMedication(null);
+        void refetch();
+    };
+    
+    const handleDeleteDialogChange = (open: boolean) => {
+        if (!deleteMedicationMutation.isPending) {
+            setIsDeleteDialogOpen(open);
+        }
+
+        if (!open) {
+            setMedicationToDelete(null);
+        }
     };
 
     const renderContent = () => {
@@ -182,8 +223,40 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
                 onOpenChange={(open) => setIsModalOpen(open)}
                 patientId={patientId}
                 medication={selectedMedication}
-                onSuccess={() => setSelectedMedication(null)}
+                onSuccess={handleModalSuccess}
             />
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+                <AlertDialogContent className="max-w-[420px]">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete medication?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {medicationToDelete
+                                ? `You are about to delete ${medicationToDelete.drugName}. This action cannot be undone.`
+                                : "This action cannot be undone."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleteMedicationMutation.isPending}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-600/90"
+                            onClick={handleConfirmDeleteMedication}
+                            disabled={deleteMedicationMutation.isPending}
+                        >
+                            {deleteMedicationMutation.isPending ? (
+                                <span className="flex items-center gap-2">
+                                    <Spinner className="h-4 w-4" />
+                                    Deleting...
+                                </span>
+                            ) : (
+                                "Delete"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
