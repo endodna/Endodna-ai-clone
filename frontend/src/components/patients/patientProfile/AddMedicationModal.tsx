@@ -1,14 +1,15 @@
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { useCreatePatientMedication, useUpdatePatientMedication } from "@/hooks/useDoctor";
+import { cn } from "@/lib/utils";
+import { medicationSchema, type MedicationFormValues } from "@/schemas/medication.schema";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { cn } from "@/lib/utils";
-import { useCreatePatientMedication, useUpdatePatientMedication } from "@/hooks/useDoctor";
 import { toast } from "sonner";
-import { medicationSchema, type MedicationFormValues } from "@/schemas/medication.schema";
 
 interface AddMedicationModalProps {
     open: boolean;
@@ -35,7 +36,14 @@ export function AddMedicationModal({
 }: Readonly<AddMedicationModalProps>) {
     const isEditing = Boolean(medication?.id);
     const getSubmitLabel = (pending: boolean, editing: boolean) => {
-        if (pending) return "Saving...";
+        if (pending) {
+            return (
+                <span className="flex items-center gap-1 md:gap-2">
+                    <Spinner className="animate-spin h-4 w-4" />
+                    Saving...
+                </span>
+            );
+        }
         return editing ? "Save changes" : "Add Medication";
     };
 
@@ -69,7 +77,7 @@ export function AddMedicationModal({
                 toast.error(response.message || "Failed to add medication");
                 return;
             }
-            toast.success("Medication added");
+            toast.success(response.message ?? "Medication added successfully");
             onSuccess?.();
             onOpenChange(false);
         },
@@ -84,7 +92,7 @@ export function AddMedicationModal({
                 toast.error(response.message || "Failed to update medication");
                 return;
             }
-            toast.success("Medication updated");
+            toast.success(response.message ?? "Medication updated successfully");
             onSuccess?.();
             onOpenChange(false);
         },
