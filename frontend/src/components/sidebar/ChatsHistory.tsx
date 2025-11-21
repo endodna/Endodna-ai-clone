@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  MessageSquare,
+  Plus,
+  Search,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
 const chatHistory = [
   {
@@ -14,121 +19,115 @@ const chatHistory = [
     url: "#",
   },
   {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
+    title: "Mary Ann - Blood test...",
+    date: "12/24/2025 - 09:15 am",
     url: "#",
   },
   {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
-    url: "#",
-  },
-  {
-    title: "Victor B. - Genetics ov...",
-    date: "12/24/2025 - 07:15 am",
+    title: "Mary Ann - Blood test...",
+    date: "12/24/2025 - 09:15 am",
     url: "#",
   },
 ];
 
 export function ChatsHistory() {
-  return chatHistory.length > 1000 ? (
-    <SidebarMenu className="flex flex-col gap-4">
-      {chatHistory.map((item, index) => (
-        <SidebarMenuItem key={index}>
-          <SidebarMenuButton asChild className="justify-between">
-            <Link
-              to={item.url}
-              className="flex items-center justify-between w-full"
+  const [query, setQuery] = useState("");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const filteredChats = useMemo(() => {
+    const normalized = query.toLowerCase().trim();
+    if (!normalized) {
+      return chatHistory;
+    }
+    return chatHistory.filter((chat) =>
+      chat.title.toLowerCase().includes(normalized),
+    );
+  }, [query]);
+
+  if (!chatHistory.length) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-6 text-center">
+        <p className="text-sm text-neutral-600">
+          Start a new conversation to explore insights, ask questions, or kick
+          off a fresh interaction.
+        </p>
+        <Button variant="ghost" size="sm" className="gap-2 text-violet-600">
+          <Plus className="h-4 w-4" />
+          Create new chat
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex w-full flex-col rounded-3xl border border-neutral-100 bg-white",
+        "py-5",
+      )}
+    >
+      <div className="flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+            <MessageSquare className="h-4 w-4" />
+          </span>
+          <p className="text-lg font-semibold text-neutral-900">Chats</p>
+        </div>
+        <button
+          type="button"
+          aria-label={isCollapsed ? "Expand chats" : "Collapse chats"}
+          className="rounded-full  p-2 text-neutral-600 transition hover:bg-neutral-100"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+        >
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
+      {!isCollapsed && (
+        <>
+          <div className="flex items-center gap-2 px-4 pt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 rounded-2xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50"
             >
-              <div className="flex flex-col items-start">
-                <span className="text-sm">{item.title}</span>
-                <span className="text-xs text-gray-500">{item.date}</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  ) : (
-    <div className="flex flex-col items-center justify-center gap-3 bg-neutral-200 p-8 rounded-lg border border-neutral-300 border-2 h-full min-h-0 flex-1">
-      <p className="text-sm text-center text-neutral-600">
-        Start a new conversation to explore insights, ask questions, or kick off
-        a fresh interaction.
-      </p>
-      <Button
-        className={"hover:bg-transparent"}
-        variant="ghost"
-        size={"default"}
-      >
-        <Plus className={"h-4 w-4 text-neutral-950"} />
-        <p className="text-sm font-medium">Create new chat</p>
-      </Button>
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search"
+                className="h-9 rounded-2xl border border-neutral-200 bg-neutral-50 pl-9 text-sm text-neutral-800 placeholder:text-neutral-400 focus-visible:ring-0"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
+            {filteredChats.map((item, index) => (
+              <Link
+                key={`${item.title}-${index}`}
+                to={item.url}
+                className="flex items-center justify-between gap-2 rounded-2xl px-2 py-3 text-left transition hover:bg-neutral-50"
+              >
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium text-neutral-900">
+                    {item.title}
+                  </p>
+                  <p className="text-xs text-neutral-500">{item.date}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-neutral-400" />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
