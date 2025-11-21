@@ -9,7 +9,6 @@ COPY yarn.lock ./
 
 # Install dependencies
 RUN npm install
-RUN npm install -g prisma@6.19.0
 
 # Copy source code
 COPY . .
