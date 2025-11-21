@@ -56,6 +56,7 @@ export default function PatientProfilePage() {
           onTabChange={handleTabChange}
           tabProps={{ patientId }}
         />
+        {/* <AiSummary /> */}
       </div>
     </div>
   );

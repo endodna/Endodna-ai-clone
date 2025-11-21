@@ -92,7 +92,7 @@ export const authApi = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
-        { email },
+        { email }
       );
       return response.data;
     } catch (error: any) {
@@ -148,7 +148,7 @@ export const patientsApi = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.PATIENTS.CREATE,
-        patientData,
+        patientData
       );
       return response.data;
     } catch (error: any) {
@@ -166,7 +166,7 @@ export const patientsApi = {
   getPatientById: async (id: string): Promise<ApiResponse> => {
     try {
       const response = await apiClient.get(
-        getEndpoint(API_ENDPOINTS.PATIENTS.GET_BY_ID, id),
+        getEndpoint(API_ENDPOINTS.PATIENTS.GET_BY_ID, id)
       );
       return response.data;
     } catch (error: any) {
@@ -256,7 +256,7 @@ export const doctorsApi = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.DOCTOR.PATIENTS.CREATE,
-        patientData,
+        patientData
       );
       return response.data;
     } catch (error: any) {
@@ -312,7 +312,7 @@ export const doctorsApi = {
       const response = await apiClient.post(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICAL_RECORDS, patientId),
         formData,
-        config,
+        config
       );
 
       return response.data;
@@ -334,7 +334,7 @@ export const doctorsApi = {
   getPatientById: async (id: string): Promise<ApiResponse> => {
     try {
       const response = await apiClient.get(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GET_BY_ID, id),
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GET_BY_ID, id)
       );
       return response.data;
     } catch (error: any) {
@@ -355,7 +355,7 @@ export const doctorsApi = {
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.SUMMARY, id),
         {
           timeout: 60000, // AI summary generation can take longer on first load
-        },
+        }
       );
       return response.data;
     } catch (error: any) {
@@ -370,10 +370,12 @@ export const doctorsApi = {
     }
   },
 
-  getPatientMedications: async (patientId: string): Promise<ApiResponse<PatientMedication[]>> => {
+  getPatientMedications: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientMedication[]>> => {
     try {
       const response = await apiClient.get(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.LIST, patientId),
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.LIST, patientId)
       );
       return response.data;
     } catch (error: any) {
@@ -388,11 +390,14 @@ export const doctorsApi = {
     }
   },
 
-  createPatientMedication: async (patientId: string, payload: CreatePatientMedicationPayload): Promise<ApiResponse<PatientMedication>> => {
+  createPatientMedication: async (
+    patientId: string,
+    payload: CreatePatientMedicationPayload
+  ): Promise<ApiResponse<PatientMedication>> => {
     try {
       const response = await apiClient.post(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.LIST, patientId),
-        payload,
+        payload
       );
       return response.data;
     } catch (error: any) {
@@ -410,11 +415,19 @@ export const doctorsApi = {
     }
   },
 
-  updatePatientMedication: async (patientId: string, medicationId: string, payload: CreatePatientMedicationPayload): Promise<ApiResponse<PatientMedication>> => {
+  updatePatientMedication: async (
+    patientId: string,
+    medicationId: string,
+    payload: CreatePatientMedicationPayload
+  ): Promise<ApiResponse<PatientMedication>> => {
     try {
       const response = await apiClient.put(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL, patientId, medicationId),
-        payload,
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL,
+          patientId,
+          medicationId
+        ),
+        payload
       );
       return response.data;
     } catch (error: any) {
@@ -432,10 +445,17 @@ export const doctorsApi = {
     }
   },
 
-  deletePatientMedication: async (patientId: string, medicationId: string): Promise<ApiResponse<null>> => {
+  deletePatientMedication: async (
+    patientId: string,
+    medicationId: string
+  ): Promise<ApiResponse<null>> => {
     try {
       const response = await apiClient.delete(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL, patientId, medicationId),
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.MEDICATIONS.DETAIL,
+          patientId,
+          medicationId
+        )
       );
       return response.data;
     } catch (error: any) {
@@ -449,6 +469,275 @@ export const doctorsApi = {
       };
     }
   },
+
+  getPatientConversations: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientChatConversation[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATIONS, patientId)
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient conversations",
+      };
+    }
+  },
+
+  getAllPatientConversations: async (): Promise<
+    ApiResponse<PatientChatConversation[]>
+  > => {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.DOCTOR.CHAT.PATIENT.ALL_CONVERSATIONS
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient conversations",
+      };
+    }
+  },
+
+  createPatientConversation: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientChatConversation>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATIONS, patientId),
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create patient conversation",
+      };
+    }
+  },
+
+  getPatientConversationMessages: async (
+    patientId: string,
+    conversationId: string
+  ): Promise<ApiResponse<ChatMessage[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATION_MESSAGES,
+          patientId,
+          conversationId
+        )
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch conversation messages",
+      };
+    }
+  },
+
+  sendPatientConversationMessage: async (
+    patientId: string,
+    conversationId: string,
+    message: string
+  ): Promise<ApiResponse<SendChatMessageResponse>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATION_MESSAGES,
+          patientId,
+          conversationId
+        ),
+        {
+          message,
+        },
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to send message",
+      };
+    }
+  },
+
+  updatePatientConversationTitle: async (
+    patientId: string,
+    conversationId: string,
+    title: string
+  ): Promise<ApiResponse<PatientChatConversation>> => {
+    try {
+      const response = await apiClient.patch(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.PATIENT.UPDATE_TITLE,
+          patientId,
+          conversationId
+        ),
+        { title }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update conversation title",
+      };
+    }
+  },
+
+  getGeneralConversations: async (): Promise<
+    ApiResponse<GeneralChatConversation[]>
+  > => {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATIONS
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch conversations",
+      };
+    }
+  },
+
+  createGeneralConversation: async (payload?: {
+    title?: string;
+  }): Promise<ApiResponse<GeneralChatConversation>> => {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATIONS,
+        payload ?? {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create conversation",
+      };
+    }
+  },
+
+  getGeneralConversationMessages: async (
+    conversationId: string
+  ): Promise<ApiResponse<ChatMessage[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATION_MESSAGES,
+          conversationId
+        )
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch conversation messages",
+      };
+    }
+  },
+
+  sendGeneralConversationMessage: async (
+    conversationId: string,
+    message: string
+  ): Promise<ApiResponse<SendChatMessageResponse>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATION_MESSAGES,
+          conversationId
+        ),
+        { message },
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to send message",
+      };
+    }
+  },
+
+  updateGeneralConversationTitle: async (
+    conversationId: string,
+    title: string
+  ): Promise<ApiResponse<GeneralChatConversation>> => {
+    try {
+      const response = await apiClient.patch(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.GENERAL.UPDATE_TITLE,
+          conversationId
+        ),
+        { title },
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update conversation title",
+      };
+    }
+  },
 };
 
 export const api = {
@@ -456,4 +745,3 @@ export const api = {
   patients: patientsApi,
   misc: miscApi,
 };
-

@@ -185,3 +185,46 @@ interface CreatePatientMedicationPayload {
     startDate?: string;
     endDate?: string;
 }
+
+interface ChatPatientInfo {
+    id: string;
+    firstName: string;
+    lastName: string;
+    photo?: string | null;
+}
+
+interface ChatConversationPreview {
+    id: string;
+    type: string;
+    title: string;
+    createdAt: string | Date;
+    updatedAt?: string | Date;
+    messages?: Array<{
+        id: string;
+        role: string;
+        content: string;
+        createdAt: string | Date;
+    }>;
+}
+
+interface PatientChatConversation extends ChatConversationPreview {
+    patient?: ChatPatientInfo | null;
+}
+
+interface GeneralChatConversation extends ChatConversationPreview {}
+
+interface ChatMessage {
+    id: string;
+    role: string;
+    version?: string | null;
+    content: string;
+    createdAt: string | Date;
+    citations?: Array<{ id: string; title: string | null }>;
+}
+
+interface SendChatMessageResponse {
+    messageId: string;
+    content: string;
+    followUpPrompts?: string[];
+    citations?: Array<{ id: string; title: string | null }>;
+}

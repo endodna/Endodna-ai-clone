@@ -199,3 +199,178 @@ export const useDeletePatientMedication = (
         ...options,
     });
 };
+
+/* Chat Hooks */
+
+export const useGetPatientConversations = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientChatConversation[]>, Error>({
+        queryKey: queryKeys.doctor.chat.patient.conversations(patientId),
+        queryFn: () => doctorsApi.getPatientConversations(patientId),
+        enabled: !!patientId,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useGetAllPatientConversations = (
+    options?: Omit<UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientChatConversation[]>, Error>({
+        queryKey: queryKeys.doctor.chat.patient.allPatients(),
+        queryFn: () => doctorsApi.getAllPatientConversations(),
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useGetGeneralConversations = (
+    options?: Omit<UseQueryOptions<ApiResponse<GeneralChatConversation[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<GeneralChatConversation[]>, Error>({
+        queryKey: queryKeys.doctor.chat.general.conversations(),
+        queryFn: () => doctorsApi.getGeneralConversations(),
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useGetPatientConversationMessages = (
+    patientId: string,
+    conversationId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<ChatMessage[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<ChatMessage[]>, Error>({
+        queryKey: queryKeys.doctor.chat.patient.conversationMessages(patientId, conversationId),
+        queryFn: () => doctorsApi.getPatientConversationMessages(patientId, conversationId),
+        enabled: !!patientId && !!conversationId,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useGetGeneralConversationMessages = (
+    conversationId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<ChatMessage[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<ChatMessage[]>, Error>({
+        queryKey: queryKeys.doctor.chat.general.conversationMessages(conversationId),
+        queryFn: () => doctorsApi.getGeneralConversationMessages(conversationId),
+        enabled: !!conversationId,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useCreatePatientConversation = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientChatConversation>, Error, { patientId: string }>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientChatConversation>, Error, { patientId: string }>({
+        mutationFn: ({ patientId }) => doctorsApi.createPatientConversation(patientId),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                // Invalidate patient-specific conversations
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.conversations(variables.patientId),
+                });
+                // Invalidate all patient conversations (for sidebar)
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.allPatients(),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useSendPatientConversationMessage = (
+    options?: Omit<
+        UseMutationOptions<ApiResponse<SendChatMessageResponse>, Error, { patientId: string; conversationId: string; message: string }>,
+        "mutationFn"
+    >
+) => {
+    return useMutation<ApiResponse<SendChatMessageResponse>, Error, { patientId: string; conversationId: string; message: string }>({
+        mutationFn: ({ patientId, conversationId, message }) =>
+            doctorsApi.sendPatientConversationMessage(patientId, conversationId, message),
+        ...options,
+    });
+};
+
+export const useUpdatePatientConversationTitle = (
+    options?: Omit<
+        UseMutationOptions<ApiResponse<PatientChatConversation>, Error, { patientId: string; conversationId: string; title: string }>,
+        "mutationFn"
+    >
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientChatConversation>, Error, { patientId: string; conversationId: string; title: string }>({
+        mutationFn: ({ patientId, conversationId, title }) =>
+            doctorsApi.updatePatientConversationTitle(patientId, conversationId, title),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                // Invalidate patient-specific conversations
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.conversations(variables.patientId),
+                });
+                // Invalidate all patient conversations (for sidebar)
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.allPatients(),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useCreateGeneralConversation = (
+    options?: Omit<UseMutationOptions<ApiResponse<GeneralChatConversation>, Error, { title?: string } | void>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<GeneralChatConversation>, Error, { title?: string } | void>({
+        mutationFn: (variables) => doctorsApi.createGeneralConversation(variables ?? {}),
+        onSuccess: (response) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.general.conversations(),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useSendGeneralConversationMessage = (
+    options?: Omit<UseMutationOptions<ApiResponse<SendChatMessageResponse>, Error, { conversationId: string; message: string }>, "mutationFn">
+) => {
+    return useMutation<ApiResponse<SendChatMessageResponse>, Error, { conversationId: string; message: string }>({
+        mutationFn: ({ conversationId, message }) =>
+            doctorsApi.sendGeneralConversationMessage(conversationId, message),
+        ...options,
+    });
+};
+
+export const useUpdateGeneralConversationTitle = (
+    options?: Omit<UseMutationOptions<ApiResponse<GeneralChatConversation>, Error, { conversationId: string; title: string }>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<GeneralChatConversation>, Error, { conversationId: string; title: string }>({
+        mutationFn: ({ conversationId, title }) =>
+            doctorsApi.updateGeneralConversationTitle(conversationId, title),
+        onSuccess: (response) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.general.conversations(),
+                });
+            }
+        },
+        ...options,
+    });
+};
