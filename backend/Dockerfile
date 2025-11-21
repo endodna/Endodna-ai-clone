@@ -25,18 +25,10 @@ FROM node:20 AS production
 
 WORKDIR /app
 
-# Install system dependencies required for canvas and other native modules
-# Also install curl for health checks
+# Install curl for health checks
+
 RUN apt-get update && apt-get install -y \
     curl \
-    build-essential \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
-    pkg-config \
-    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 
