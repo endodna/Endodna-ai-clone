@@ -17,6 +17,22 @@ export const queryKeys = {
       medications: (id: string) => [...queryKeys.doctor.patients.all(), "medications", id] as const,
       create: (patientData: AddPatientData) => [...queryKeys.doctor.patients.all(), "create", patientData] as const,
     },
+    chat: {
+      all: () => [...queryKeys.doctor.all, "chat"] as const,
+      patient: {
+        all: () => [...queryKeys.doctor.chat.all(), "patient"] as const,
+        conversations: (patientId: string) => [...queryKeys.doctor.chat.patient.all(), "conversations", patientId] as const,
+        conversationMessages: (patientId: string, conversationId: string) =>
+          [...queryKeys.doctor.chat.patient.all(), "messages", patientId, conversationId] as const,
+        allPatients: () => [...queryKeys.doctor.chat.patient.all(), "all-patients"] as const,
+      },
+      general: {
+        all: () => [...queryKeys.doctor.chat.all(), "general"] as const,
+        conversations: () => [...queryKeys.doctor.chat.general.all(), "conversations"] as const,
+        conversationMessages: (conversationId: string) =>
+          [...queryKeys.doctor.chat.general.all(), "messages", conversationId] as const,
+      },
+    },
   },
   misc: {
     all: ["misc"] as const,

@@ -312,7 +312,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
             )}
             {enabled && (
                 <div className="mt-4">
-                    <ChatsHistory />
+                    <ChatsHistory patientId={patientId} />
                 </div>
             )}
         </div>

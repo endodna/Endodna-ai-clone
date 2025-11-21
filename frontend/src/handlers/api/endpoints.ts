@@ -36,6 +36,22 @@ export const API_ENDPOINTS = {
           `/doctor/patients/${patientId}/medications/${medicationId}`,
       },
     },
+    CHAT: {
+      PATIENT: {
+        CONVERSATIONS: (patientId: string) => `/doctor/patients/${patientId}/conversations`,
+        CONVERSATION_MESSAGES: (patientId: string, conversationId: string) =>
+          `/doctor/patients/${patientId}/conversations/${conversationId}/messages`,
+        UPDATE_TITLE: (patientId: string, conversationId: string) =>
+          `/doctor/patients/${patientId}/conversations/${conversationId}/title`,
+        ALL_CONVERSATIONS: "/doctor/conversations/patients",
+      },
+      GENERAL: {
+        CONVERSATIONS: "/doctor/conversations",
+        CONVERSATION_MESSAGES: (conversationId: string) =>
+          `/doctor/conversations/${conversationId}/messages`,
+        UPDATE_TITLE: (conversationId: string) => `/doctor/conversations/${conversationId}/title`,
+      },
+    },
   },
 } as const;
 

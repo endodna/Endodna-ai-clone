@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { patientDialogReducer } from "./features/patient";
+import { chatReducer } from "./features/chat";
 
 /**
  * Redux store configuration
@@ -7,6 +8,7 @@ import { patientDialogReducer } from "./features/patient";
 export const store = configureStore({
     reducer: {
         patientDialog: patientDialogReducer,
+        chat: chatReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

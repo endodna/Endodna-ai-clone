@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import endodnaLogo from "@/assets/endodna.svg";
 import endodnaSmallLogo from "@/assets/endodna_small.svg";
-import { ChatsHistory } from "./ChatsHistory";
+import { AllChatsHistory } from "./AllChatsHistory";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -81,7 +81,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup className="flex flex-col gap-3 flex-1 min-h-0">
           <SidebarGroupContent className="flex-1 min-h-0">
-            {!isCollapsed && <ChatsHistory />}
+            {!isCollapsed && <AllChatsHistory />}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

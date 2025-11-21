@@ -1,3 +1,4 @@
+import { queryKeys } from "@/components/constants/QueryKeys";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -7,7 +8,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    useCreateGeneralConversation,
+    useCreatePatientConversation,
+    useGetGeneralConversations,
+    useGetPatientById,
+    useGetPatientConversations,
+    useSendGeneralConversationMessage,
+    useSendPatientConversationMessage,
+    useUpdateGeneralConversationTitle,
+    useUpdatePatientConversationTitle,
+} from "@/hooks/useDoctor";
 import { cn } from "@/lib/utils";
+import {
+    openChatModal,
+    setActiveGeneralConversation,
+    setActivePatientConversation,
+    setSelectedPersona,
+} from "@/store/features/chat";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { formatDate } from "@/utils/date.utils";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     ChevronDown,
     Mic,
@@ -16,10 +37,13 @@ import {
     Upload,
     UserRound,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ChatModal } from "./ChatModal";
 
 interface AiSummaryProps {
     readonly className?: string;
+    readonly patientId?: string;
     readonly onSubmit?: (payload: { prompt: string; model: string; persona: string }) => void;
 }
 
@@ -28,17 +52,7 @@ const MODEL_OPTIONS = [
         id: "gpt-5",
         label: "GPT 5°",
         description: "Best for nuanced clinical reasoning.",
-    },
-    {
-        id: "bios-clinician",
-        label: "BIOS Clinician",
-        description: "Grounded in EndoDNA clinical guidance.",
-    },
-    {
-        id: "bios-fast",
-        label: "BIOS Fast",
-        description: "Quicker responses for short answers.",
-    },
+    }
 ];
 
 const PERSONA_OPTIONS = [
@@ -56,31 +70,236 @@ const PERSONA_OPTIONS = [
     },
 ] as const;
 
-export function AiSummary({ className, onSubmit }: Readonly<AiSummaryProps>) {
+export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummaryProps>) {
+    const dispatch = useAppDispatch();
+    const queryClient = useQueryClient();
+    const { activePatientConversationId, activeGeneralConversationId, conversationType } = useAppSelector(
+        (state) => state.chat
+    );
     const [prompt, setPrompt] = useState("");
     const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS[0]);
     const [persona, setPersona] =
         useState<(typeof PERSONA_OPTIONS)[number]>(PERSONA_OPTIONS[0]);
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
-    const isSubmitDisabled = prompt.trim().length === 0;
+    // Get patient data for title generation
+    const { data: patientData } = useGetPatientById(patientId ?? "", {
+        enabled: Boolean(patientId),
+    });
 
-    const handleSubmit = () => {
-        if (isSubmitDisabled) {
+    const { data: patientConversations } = useGetPatientConversations(patientId ?? "", {
+        enabled: Boolean(patientId),
+    });
+    const { data: generalConversations } = useGetGeneralConversations();
+
+
+    const createPatientConversation = useCreatePatientConversation();
+    const sendPatientConversationMessage = useSendPatientConversationMessage();
+    const createGeneralConversation = useCreateGeneralConversation();
+    const sendGeneralConversationMessage = useSendGeneralConversationMessage();
+    const updatePatientConversationTitle = useUpdatePatientConversationTitle();
+    const updateGeneralConversationTitle = useUpdateGeneralConversationTitle();
+
+    const isSubmitDisabled = prompt.trim().length === 0;
+    const isPatientPersona = persona.id === "patient";
+    const requiresPatientSelection = isPatientPersona && !patientId;
+    const isProcessing =
+        createPatientConversation.isPending ||
+        sendPatientConversationMessage.isPending ||
+        createGeneralConversation.isPending ||
+        sendGeneralConversationMessage.isPending;
+    const isSendDisabled = isSubmitDisabled || requiresPatientSelection || isProcessing;
+
+    // Initialize persona in Redux on mount
+    useEffect(() => {
+        dispatch(setSelectedPersona(persona.id));
+    }, [dispatch]); // Only run once on mount
+
+    // Only set default conversation if no conversation is selected from ChatsHistory
+    useEffect(() => {
+        if (
+            patientId &&
+            patientConversations?.data &&
+            patientConversations.data.length > 0 &&
+            !activePatientConversationId &&
+            conversationType !== "patient"
+        ) {
+            dispatch(setActivePatientConversation(patientConversations.data[0].id));
+        }
+    }, [patientId, patientConversations, activePatientConversationId, conversationType, dispatch]);
+
+    useEffect(() => {
+        if (
+            generalConversations?.data &&
+            generalConversations.data.length > 0 &&
+            !activeGeneralConversationId &&
+            conversationType !== "general"
+        ) {
+            dispatch(setActiveGeneralConversation(generalConversations.data[0].id));
+        }
+    }, [generalConversations, activeGeneralConversationId, conversationType, dispatch]);
+
+    const handleSubmit = async () => {
+        if (isSendDisabled) {
+            if (requiresPatientSelection) {
+                toast.error("Select a patient to start a patient-specific chat.");
+            }
             return;
         }
 
-        onSubmit?.({
-            prompt: prompt.trim(),
-            model: selectedModel.id,
-            persona: persona.id,
-        });
+        const message = prompt.trim();
+        if (!message) {
+            return;
+        }
 
+        // Clear input immediately for better UX
         setPrompt("");
+
+        try {
+            if (isPatientPersona) {
+                if (!patientId) {
+                    toast.error("Patient ID is missing.");
+                    // Restore message if error
+                    setPrompt(message);
+                    return;
+                }
+
+                // Always create a new conversation when sending from input
+                // This ensures a fresh conversation starts
+                const createResponse = await createPatientConversation.mutateAsync({ patientId });
+                if (createResponse.error || !createResponse.data) {
+                    toast.error(createResponse.message || "Unable to create conversation.");
+                    // Restore message if error
+                    setPrompt(message);
+                    return;
+                }
+                const conversationId = createResponse.data.id;
+                dispatch(setActivePatientConversation(conversationId));
+
+                // Set conversation title
+                const title = generatePatientConversationTitle();
+                await updatePatientConversationTitle.mutateAsync({
+                    patientId,
+                    conversationId,
+                    title,
+                });
+
+                const sendResponse = await sendPatientConversationMessage.mutateAsync({
+                    patientId,
+                    conversationId,
+                    message,
+                });
+
+                if (sendResponse.error) {
+                    toast.error(sendResponse.message || "Unable to send message.");
+                    // Restore message if error
+                    setPrompt(message);
+                    return;
+                }
+                toast.success("Message sent via patient chat.");
+                
+                // Invalidate messages query to refresh chat
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.conversationMessages(patientId, conversationId),
+                });
+                // Invalidate all patient conversations (for sidebar)
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.patient.allPatients(),
+                });
+                
+                // Open chat modal automatically
+                dispatch(openChatModal());
+            } else {
+                // Always create a new conversation when sending from input
+                // This ensures a fresh conversation starts
+                const createResponse = await createGeneralConversation.mutateAsync({});
+                if (createResponse.error || !createResponse.data) {
+                    toast.error(createResponse.message || "Unable to start a conversation.");
+                    // Restore message if error
+                    setPrompt(message);
+                    return;
+                }
+                const conversationId = createResponse.data.id;
+                dispatch(setActiveGeneralConversation(conversationId));
+
+                // Set conversation title
+                const title = generateGeneralConversationTitle();
+                await updateGeneralConversationTitle.mutateAsync({
+                    conversationId,
+                    title,
+                });
+
+                const sendResponse = await sendGeneralConversationMessage.mutateAsync({
+                    conversationId,
+                    message,
+                });
+                if (sendResponse.error) {
+                    toast.error(sendResponse.message || "Unable to send message.");
+                    // Restore message if error
+                    setPrompt(message);
+                    return;
+                }
+                toast.success("Message sent via general chat.");
+                
+                // Invalidate messages query to refresh chat
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.general.conversationMessages(conversationId),
+                });
+                // Invalidate general conversations (for sidebar)
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.chat.general.conversations(),
+                });
+                
+                // Open chat modal automatically
+                dispatch(openChatModal());
+            }
+
+            onSubmit?.({
+                prompt: message,
+                model: selectedModel.id,
+                persona: persona.id,
+            });
+        } catch (error: any) {
+            toast.error(error?.message || "Unable to send message.");
+            // Restore message if error
+            setPrompt(message);
+        }
     };
 
     const handlePersonaSelect = (option: (typeof PERSONA_OPTIONS)[number]) => {
         setPersona(option);
+        dispatch(setSelectedPersona(option.id));
+    };
+
+    // Generate conversation title based on type
+    const generatePatientConversationTitle = (): string => {
+        const patient = patientData?.data as any;
+        if (!patient) return "New Conversation";
+        
+        const firstName = patient.firstName || "";
+        const lastName = patient.lastName || "";
+        const fullName = `${firstName} ${lastName}`.trim() || "Patient";
+        const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : "";
+        const now = new Date();
+        const dateTime = formatDate(now, "MM/DD/YYYY").toLowerCase();
+        
+        if (dob) {
+            return `${fullName}-${dob} ${dateTime}`;
+        }
+        return `${fullName} ${dateTime}`;
+    };
+
+    const generateGeneralConversationTitle = (): string => {
+        const now = new Date();
+        const dateTime = formatDate(now, "MM/DD/YYYY").toLowerCase();
+        return `General Chat ${dateTime}`;
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit();
+        }
     };
 
     return (
@@ -94,6 +313,7 @@ export function AiSummary({ className, onSubmit }: Readonly<AiSummaryProps>) {
                 <Textarea
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Ask BIOS"
                     className="min-h-[80px] resize-none border-none bg-transparent p-0 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-0"
                 />
@@ -190,7 +410,6 @@ export function AiSummary({ className, onSubmit }: Readonly<AiSummaryProps>) {
                     </div>
 
                     <div className="ms-auto flex flex-1 flex-wrap items-center justify-end gap-2">
-                        
 
                         <Button
                             type="button"
@@ -205,14 +424,20 @@ export function AiSummary({ className, onSubmit }: Readonly<AiSummaryProps>) {
                         <Button
                             type="button"
                             className="h-10 w-10 gap-2 bg-violet-700 px-5 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={isSubmitDisabled}
+                            disabled={isSendDisabled}
                             onClick={handleSubmit}
                         >
-                            <SendHorizontal className="h-4 w-4 rotate-[-45deg]" />
+                            {isProcessing ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                            ) : (
+                                <SendHorizontal className="h-4 w-4 rotate-[-45deg]" />
+                            )}
                         </Button>
                     </div>
                 </div>
             </div>
+
+            <ChatModal patientId={patientId} isPatientPersona={isPatientPersona} />
         </div>
     );
 }

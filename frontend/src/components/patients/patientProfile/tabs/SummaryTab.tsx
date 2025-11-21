@@ -107,7 +107,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
         <div className="flex flex-col gap-4 pb-16 lg:gap-6 lg:pb-24">
             {renderSummaryCard()}
             <div className="sticky bottom-4 w-full lg:bottom-6">
-                <AiSummary className="w-full" />
+                <AiSummary className="w-full" patientId={patientId} />
             </div>
         </div>
     );
