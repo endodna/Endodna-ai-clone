@@ -1,3 +1,4 @@
+import { AiSummary } from "@/components/patients/patientProfile/aiSummary/AiSummary";
 import { PatientHeader } from "@/components/patients/patientProfile/PatientHeader";
 import { PatientProfileBreadcrumb } from "@/components/patients/patientProfile/PatientProfileBreadcrumb";
 import { TabNavigation, type TabConfig } from "@/components/patients/patientProfile/TabNavigation";
@@ -56,6 +57,7 @@ export default function PatientProfilePage() {
           onTabChange={handleTabChange}
           tabProps={{ patientId }}
         />
+        {/* <AiSummary /> */}
       </div>
     </div>
   );
