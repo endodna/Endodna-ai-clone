@@ -2036,8 +2036,6 @@ class DoctorController {
         }
       }
 
-
-
       const result = await UserService.registerPatientDNAKit({
         barcode,
         patientId,
@@ -2071,6 +2069,7 @@ class DoctorController {
       const patientReport = await prisma.patientReport.create({
         data: {
           patientId,
+          doctorId: userId,
           organizationId: organizationId!,
           reportId: report.id,
           orderId: order.id,

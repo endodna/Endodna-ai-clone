@@ -621,7 +621,6 @@ class RAGHelper {
                     if (patientReport.report.description) {
                         formatted += ` - ${patientReport.report.description}`;
                     }
-                    formatted += ` (Status: ${patientReport.status})`;
                     if (patientReport.createdAt) {
                         formatted += ` - ${patientReport.createdAt}`;
                     }
@@ -684,8 +683,8 @@ class RAGHelper {
         2. Use clear section headers (##) for major categories such as demographics, conditions, medications, allergies, and treatments.
         3. Highlight important data using **bold** or bullet points when appropriate.
         4. Be factual and concise — avoid speculation or filler.
-        5. Extract ALL clinical information from medical records and chart notes, including medications, allergies, diagnoses, treatments, lab results, and clinical observations, even if they are not explicitly listed in the structured patient data section.
-        6. Combine information from structured patient data, medical record content, and chart notes. If the same information appears in multiple sources, use the most recent or most detailed version.
+        5. Extract ALL clinical information from medical records, chart notes, and patient reports, including medications, allergies, diagnoses, treatments, lab results, and clinical observations, even if they are not explicitly listed in the structured patient data section.
+        6. Combine information from structured patient data, medical record content, chart notes, and patient reports. If the same information appears in multiple sources, use the most recent or most detailed version.
         7. For date calculations, ALWAYS use the patient's date of birth when calculating age. Calculate age accurately by subtracting the birthdate from the current date or reference date. When converting dates to years (e.g., age, duration of condition), be precise and accurate.
         8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
         9. Maintain privacy and confidentiality - this includes never including health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information.
@@ -730,7 +729,7 @@ class RAGHelper {
         ### Medical Records
         ${medicalRecords}
         
-        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records and chart notes, even if it's not explicitly listed in the Patient Data section above. This includes:
+        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records, chart notes, and patient reports, even if it's not explicitly listed in the Patient Data section above. This includes:
         - Medications (current and past) mentioned in medical records
         - Allergies and adverse reactions documented in records
         - Medical conditions, diagnoses, and problem lists
@@ -738,6 +737,7 @@ class RAGHelper {
         - Lab results and diagnostic findings
         - Clinical observations and assessments
         - Chart notes with clinical observations, progress notes, and provider comments
+        - Patient reports with their associated report details and status
         
         **CRITICAL PRIVACY REQUIREMENT - MUST BE FOLLOWED:**
         - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
@@ -763,12 +763,12 @@ class RAGHelper {
         ## Allergies  
         ## Treatment Plans  
         ## Recent Labs and Key Findings  
-        ## Clinical Notes (include relevant information from chart notes)
+        ## Clinical Notes (include relevant information from chart notes and patient reports)
         ## Medical History Summary  
         ## Suggested Follow-up Questions
         
         Each section should be clear and concise — use bullet points or short paragraphs as needed.  
-        Combine information from the Patient Data section, Medical Records section, and Chart Notes. If information appears in multiple sources, prioritize the most recent or most detailed source.
+        Combine information from the Patient Data section, Medical Records section, Chart Notes, and Patient Reports. If information appears in multiple sources, prioritize the most recent or most detailed source.
         Keep the full medical history summary under 4 paragraphs and end with the markdown disclaimer block.
         
         **FOLLOW-UP QUESTIONS**: In the "## Suggested Follow-up Questions" section, provide 3-5 relevant clinical questions that a doctor might want to ask based on the patient's medical history, current conditions, medications, or areas that need further investigation. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry and should be based on the clinical information in the summary.`;

@@ -57,9 +57,9 @@ class PatientChatHelper extends BaseChatHelper {
         - If you encounter any administrative, identifying, or financial information in the patient data, completely exclude it from your responses
 
         ${this.getCommonGuidelinesPrompt()}
-        - Focus on providing helpful context and insights based on the patient's medical history, including chart notes, medical records, medications, allergies, and lab results
+        - Focus on providing helpful context and insights based on the patient's medical history, including chart notes, medical records, medications, allergies, lab results, and patient reports
         - Help doctors understand medical summaries, discuss treatment plans, and provide general medical context as needed
-        - Reference chart notes and clinical observations when relevant to the conversation
+        - Reference chart notes, patient reports, and clinical observations when relevant to the conversation
         - **NEVER** include health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information in your responses - doctors can access all of this from patient details
         ${this.getFollowUpQuestionsInstruction()} and patient information`;
     }
@@ -172,7 +172,6 @@ class PatientChatHelper extends BaseChatHelper {
                     if (patientReport.report.description) {
                         formatted += ` - ${patientReport.report.description}`;
                     }
-                    formatted += ` (Status: ${patientReport.status})`;
                     if (patientReport.createdAt) {
                         formatted += ` - ${patientReport.createdAt}`;
                     }
