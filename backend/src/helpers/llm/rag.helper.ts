@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { logger } from "../logger.helper";
 import bedrockHelper from "../aws/bedrock.helper";
-import { TaskType } from "@prisma/client";
+import { TaskType, Status } from "@prisma/client";
 import redis from "../../lib/redis";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import tokenUsageHelper, { MODEL_ID } from "../token-usage.helper";
@@ -613,6 +613,24 @@ class RAGHelper {
             formatted += `<br>`;
         }
 
+        if (patient.patientReports && patient.patientReports.length > 0) {
+            formatted += `PATIENT REPORTS:<br>`;
+            patient.patientReports.forEach((patientReport: any) => {
+                if (patientReport.report) {
+                    formatted += `- ${patientReport.report.code}: ${patientReport.report.title}`;
+                    if (patientReport.report.description) {
+                        formatted += ` - ${patientReport.report.description}`;
+                    }
+                    formatted += ` (Status: ${patientReport.status})`;
+                    if (patientReport.createdAt) {
+                        formatted += ` - ${patientReport.createdAt}`;
+                    }
+                    formatted += `<br>`;
+                }
+            });
+            formatted += `<br>`;
+        }
+
         return formatted;
     }
 
@@ -812,6 +830,9 @@ class RAGHelper {
                         traceId,
                     });
 
+                    // Note: For cached summaries, we don't save to DB again
+                    // The original summary generation would have already saved it
+
                     return {
                         ...parsed,
                         summary: cleanedSummary,
@@ -934,6 +955,28 @@ class RAGHelper {
                             updatedAt: "desc",
                         },
                     },
+                    patientReports: {
+                        where: {
+                            deletedAt: null,
+                            status: Status.ACTIVE,
+                        },
+                        select: {
+                            id: true,
+                            status: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            report: {
+                                select: {
+                                    code: true,
+                                    title: true,
+                                    description: true,
+                                },
+                            },
+                        },
+                        orderBy: {
+                            createdAt: "desc",
+                        },
+                    },
                 },
             });
 
@@ -984,6 +1027,16 @@ class RAGHelper {
             const { summary: summaryText, followUpPrompts } = this.parseSummaryWithFollowUps(result.text);
             const cleanedSummary = this.replaceNewlinesWithBr(summaryText);
 
+            const citations = medicalRecordChunks.map((chunk) => ({
+                chunkId: chunk.id,
+                medicalRecordId: chunk.patientMedicalRecord.uuid,
+                title: chunk.patientMedicalRecord.title,
+                type: chunk.patientMedicalRecord.type,
+                similarity: chunk.similarity,
+                chunkIndex: chunk.chunkIndex,
+                textExcerpt: chunk.chunkText.substring(0, 200),
+            }));
+
             const summaryResult: PatientSummaryResult = {
                 summary: cleanedSummary,
                 followUpPrompts,
@@ -991,6 +1044,59 @@ class RAGHelper {
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
             };
+
+            if (doctorId) {
+                try {
+                    await prisma.patientSummary.create({
+                        data: {
+                            patientId,
+                            doctorId,
+                            organizationId,
+                            summary: cleanedSummary,
+                            followUpPrompts: followUpPrompts.length > 0 ? followUpPrompts : undefined,
+                            context: {
+                                patientData: patientData,
+                                medicalRecordsContext: medicalRecordsText,
+                                systemPrompt: systemPrompt,
+                                userPrompt: userPrompt,
+                                chunksUsed: medicalRecordChunks.length,
+                                similarityThreshold: 0.7,
+                            },
+                            citations: citations.length > 0 ? citations : undefined,
+                            metadata: {
+                                inputTokens: result.inputTokens,
+                                outputTokens: result.outputTokens,
+                                totalTokens: result.inputTokens + result.outputTokens,
+                                latencyMs: result.latencyMs,
+                                modelId: MODEL_ID.CHAT_COMPLETION,
+                                modelType: "text-generation",
+                                temperature: 0.1,
+                                maxTokens: 4096,
+                                traceId: traceId,
+                                cacheKey,
+                                generatedAt: new Date().toISOString(),
+                            },
+                        },
+                    });
+
+                    logger.info("Patient summary saved to database for auditing", {
+                        traceId,
+                        patientId,
+                        organizationId,
+                        doctorId,
+                        method: "RAGHelper.generatePatientSummary",
+                    });
+                } catch (dbError) {
+                    logger.error("Failed to save patient summary to database", {
+                        traceId,
+                        patientId,
+                        organizationId,
+                        doctorId,
+                        error: dbError,
+                        method: "RAGHelper.generatePatientSummary",
+                    });
+                }
+            }
 
             try {
                 await redis.set(

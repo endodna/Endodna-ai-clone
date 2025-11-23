@@ -15,6 +15,8 @@ const fileFilter = (
         "image/jpeg",
         "image/png",
         "image/jpg",
+        "image/svg+xml",
+        "image/webp",
         "application/msword",
         "text/plain",
     ];

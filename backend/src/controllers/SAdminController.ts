@@ -211,7 +211,7 @@ class SAdminController {
   ) {
     try {
       const user = req.user!;
-      const { name, isPrimary, admin } =
+      const { name, admin } =
         req.body as ProvisionOrganizationSchema;
 
       const [checkName, checkIfPrimary, checkAdminEmail, checkSuperAdminEmail] =
@@ -298,7 +298,6 @@ class SAdminController {
         prisma.organization.create({
           data: {
             name,
-            isPrimary,
             createdBy: user?.userId,
           },
         }),
@@ -660,6 +659,7 @@ class SAdminController {
       );
     }
   }
+
 }
 
 export default SAdminController;

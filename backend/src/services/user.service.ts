@@ -419,6 +419,7 @@ export class UserService {
   }): Promise<{
     success: boolean;
     dnaResultKitId?: string;
+    dnaResultKitPrimaryId?: number;
     error?: string;
     message?: string;
   }> {
@@ -550,6 +551,7 @@ export class UserService {
       return {
         success: true,
         dnaResultKitId: newKit.uuid,
+        dnaResultKitPrimaryId: newKit.id,
         message: "DNA kit registered successfully",
       };
     } catch (error) {

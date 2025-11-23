@@ -87,6 +87,11 @@ model Organization {
   systemAuditLogs          SystemAuditLog[]
   patientAlerts            PatientAlert[]
   generalChatConversations GeneralChatConversation[]
+  patientSummaries         PatientSummary[]
+  reports                  Report[]
+  patientReports           PatientReport[]
+  patientOrders            PatientOrder[]
+  patientAddresses         PatientAddress[]
 }
 
 model OrganizationCustomization {
@@ -125,55 +130,62 @@ model OrganizationUserInvites {
 }
 
 model User {
-  id                       String                    @id @unique
-  firstName                String
-  lastName                 String
-  email                    String?                   @unique
-  middleName               String?
-  photo                    String?
-  phoneNumber              String?
-  workPhoneNumber          String?
-  homePhoneNumber          String?
-  dateOfBirth              DateTime?
-  bloodType                String?
-  managingDoctorId         String?
-  gender                   String?
-  address                  Json?
-  emergencyContact         Json?
-  isPasswordSet            Boolean                   @default(false)
-  status                   Status                    @default(PENDING)
-  userType                 UserType?                 @default(PATIENT)
-  logins                   UserLogin[]
-  auditLogs                UserAuditLog[]
-  organizationUsers        OrganizationUser[]
-  organizationUserInvites  OrganizationUserInvites[]
-  sessions                 UserSession[]
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  managingDoctor           User?                     @relation("ManagingDoctor", fields: [managingDoctorId], references: [id])
-  patientsManaged          User[]                    @relation("ManagingDoctor")
-  userDoctors              PatientDoctor[]           @relation("Patient")
-  userPatients             PatientDoctor[]           @relation("Doctor")
-  patientActivities        PatientActivity[]
-  patientAllergies         PatientAllergy[]
-  patientProblemLists      PatientProblemList[]
-  patientGoals             PatientGoal[]
-  patientTreatmentPlans    PatientTreatmentPlan[]
-  patientMedicalRecords    PatientMedicalRecord[]    @relation("Patient")
-  doctorMedicalRecords     PatientMedicalRecord[]    @relation("Doctor")
-  patientLabResults        PatientLabResult[]
-  patientDNAResults        PatientDNAResultKit[]
-  patientActiveMedications PatientActiveMedication[] @relation("Patient")
-  doctorGivenMedications   PatientActiveMedication[] @relation("Doctor")
-  patientChatConversations PatientChatConversation[] @relation("Patient")
-  doctorChatConversations  PatientChatConversation[] @relation("Doctor")
-  patientChartNotes        PatientChartNote[]        @relation("Patient")
-  doctorChartNotes         PatientChartNote[]        @relation("Doctor")
-  systemAuditLogs          SystemAuditLog[]
-  patientTokenUsages       TokenUsage[]              @relation("Patient")
-  doctorTokenUsages        TokenUsage[]              @relation("Doctor")
-  patientAlerts            PatientAlert[]
-  generalChatConversations GeneralChatConversation[]
+  id                         String                     @id @unique
+  firstName                  String
+  lastName                   String
+  email                      String?                    @unique
+  middleName                 String?
+  photo                      String?
+  phoneNumber                String?
+  workPhoneNumber            String?
+  homePhoneNumber            String?
+  dateOfBirth                DateTime?
+  bloodType                  String?
+  managingDoctorId           String?
+  gender                     String?
+  address                    Json?
+  emergencyContact           Json?
+  isPasswordSet              Boolean                    @default(false)
+  status                     Status                     @default(PENDING)
+  userType                   UserType?                  @default(PATIENT)
+  logins                     UserLogin[]
+  auditLogs                  UserAuditLog[]
+  organizationUsers          OrganizationUser[]
+  organizationUserInvites    OrganizationUserInvites[]
+  sessions                   UserSession[]
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  managingDoctor             User?                      @relation("ManagingDoctor", fields: [managingDoctorId], references: [id])
+  patientsManaged            User[]                     @relation("ManagingDoctor")
+  userDoctors                PatientDoctor[]            @relation("Patient")
+  userPatients               PatientDoctor[]            @relation("Doctor")
+  patientActivities          PatientActivity[]
+  patientAllergies           PatientAllergy[]
+  patientProblemLists        PatientProblemList[]
+  patientGoals               PatientGoal[]
+  patientTreatmentPlans      PatientTreatmentPlan[]
+  patientMedicalRecords      PatientMedicalRecord[]     @relation("Patient")
+  doctorMedicalRecords       PatientMedicalRecord[]     @relation("Doctor")
+  patientLabResults          PatientLabResult[]
+  patientDNAResults          PatientDNAResultKit[]
+  patientActiveMedications   PatientActiveMedication[]  @relation("Patient")
+  doctorGivenMedications     PatientActiveMedication[]  @relation("Doctor")
+  patientChatConversations   PatientChatConversation[]  @relation("Patient")
+  doctorChatConversations    PatientChatConversation[]  @relation("Doctor")
+  patientChartNotes          PatientChartNote[]         @relation("Patient")
+  doctorChartNotes           PatientChartNote[]         @relation("Doctor")
+  systemAuditLogs            SystemAuditLog[]
+  patientTokenUsages         TokenUsage[]               @relation("Patient")
+  doctorTokenUsages          TokenUsage[]               @relation("Doctor")
+  patientAlerts              PatientAlert[]
+  generalChatConversations   GeneralChatConversation[]
+  patientSummaries           PatientSummary[]           @relation("Patient")
+  doctorSummaries            PatientSummary[]           @relation("Doctor")
+  patientReports             PatientReport[]            @relation("Patient")
+  doctorReports              PatientReport[]            @relation("Doctor")
+  patientOrders              PatientOrder[]
+  patientAddresses           PatientAddress[]
+  patientDNAResultActivities PatientDNAResultActivity[]
 }
 
 model PatientActivity {
@@ -361,6 +373,8 @@ model PatientDNAResultKit {
   patientId                 String?
   patient                   User?                       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   barcode                   String
+  reportId                  String?
+  report                    Report?                     @relation(fields: [reportId], references: [id], onDelete: Cascade)
   fileMetadata              Json                        @default("{}")
   status                    DNAResultStatus             @default(PENDING)
   isFailedProcessing        Boolean                     @default(false)
@@ -371,6 +385,7 @@ model PatientDNAResultKit {
   updatedAt                 DateTime                    @updatedAt
   patientDNAResultActivity  PatientDNAResultActivity[]
   patientDNAResultBreakdown PatientDNAResultBreakdown[]
+  patientOrders             PatientOrder[]
 }
 
 model PatientDNAResultBreakdown {
@@ -391,6 +406,8 @@ model PatientDNAResultBreakdown {
 model PatientDNAResultActivity {
   id                 Int                 @id @unique @default(autoincrement())
   uuid               String              @unique @default(uuid())
+  doctorId           String?
+  doctor             User?               @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   patientDNAResultId Int
   patientDNAResult   PatientDNAResultKit @relation(fields: [patientDNAResultId], references: [id], onDelete: Cascade)
   activity           String
@@ -542,6 +559,25 @@ enum ChatType {
   GENERAL
 }
 
+model PatientSummary {
+  id              String       @id @default(uuid())
+  patientId       String
+  doctorId        String
+  organizationId  Int
+  summary         String
+  followUpPrompts Json?
+  context         Json?
+  citations       Json?
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  patient         User         @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor          User         @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, organizationId])
+}
+
 enum ChatMessageRole {
   SYSTEM
   USER
@@ -680,4 +716,103 @@ model SystemAuditLog {
   metadata       Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+model PatientOrder {
+  id             String               @id @default(uuid())
+  organizationId Int
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orderId        String
+  orderType      OrderType            @default(ACTIVATE_COLLECTION_KIT)
+  patientId      String
+  patient        User                 @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  status         Status               @default(PENDING)
+  totalPrice     Decimal              @db.Decimal(10, 2)
+  paymentStatus  PaymentStatus        @default(PENDING)
+  dnaKitResultId Int?
+  dnaKitResult   PatientDNAResultKit? @relation(fields: [dnaKitResultId], references: [id], onDelete: Cascade)
+  addressId      String?
+  address        PatientAddress?      @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  deletedAt      DateTime?
+  patientReports PatientReport[]
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Report {
+  id                   String                @id @default(uuid())
+  organizationId       Int
+  icon                 String?
+  code                 String
+  title                String
+  description          String?
+  genders              Gender[]
+  price                Decimal               @db.Decimal(10, 2)
+  metadata             Json?
+  deletedAt            DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientDNAResultKits PatientDNAResultKit[]
+  patientReports       PatientReport[]
+}
+
+model PatientReport {
+  id             String       @id @default(uuid())
+  patientId      String
+  doctorId       String?
+  organizationId Int
+  reportId       String
+  orderId        String
+  price          Decimal      @db.Decimal(10, 2)
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  status         Status       @default(PENDING)
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  report         Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  order          PatientOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  patient        User         @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         User?        @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, organizationId])
+}
+
+model PatientAddress {
+  id             String         @id @default(uuid())
+  patientId      String
+  isPrimary      Boolean        @default(false)
+  organizationId Int
+  address        Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+  patient        User           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientOrders  PatientOrder[]
+
+  @@index([patientId, organizationId])
+}
+
+enum OrderType {
+  ACTIVATE_COLLECTION_KIT
+  SHIP_DIRECTLY_TO_PATIENT
+  PATIENT_SELF_PURCHASE
+}
+
+enum Gender {
+  ALL
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
 }

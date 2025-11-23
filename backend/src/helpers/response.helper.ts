@@ -84,9 +84,12 @@ class ResponseHelper {
 
 export const responseHelper = new ResponseHelper();
 
-function extractErrorMessage(error: any): string {
+function extractErrorMessage(error: any): boolean | string {
   if (error instanceof Error) {
     return error.message;
+  }
+  if (typeof error === "boolean") {
+    return error;
   }
   if (typeof error === "string") {
     return error;

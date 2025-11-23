@@ -24,6 +24,15 @@ import {
   createGeneralConversationSchema,
   sendGeneralMessageSchema,
   generalConversationIdParamsSchema,
+  createPatientAddressSchema,
+  updatePatientAddressSchema,
+  addressIdParamsSchema,
+  dnaKitResultIdParamsSchema,
+  updatePatientGeneticsStatusSchema,
+  getReportsSchema,
+  createReportSchema,
+  updateReportSchema,
+  reportIdParamsSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -43,12 +52,6 @@ doctorRouter.get(
   "/patients",
   validateQuery(getPatientsSchema),
   DoctorController.getPatients,
-);
-doctorRouter.post(
-  "/patients/:patientId/lab-orders/kit",
-  validateParams(patientIdParamsSchema),
-  validate(registerPatientDNAKitSchema),
-  DoctorController.registerPatientDNAKit,
 );
 doctorRouter.get("/patients/:patientId",
   validateParams(patientIdParamsSchema),
@@ -105,6 +108,18 @@ doctorRouter.get(
   "/patients/:patientId/genetics",
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientGenetics,
+);
+doctorRouter.post(
+  "/patients/:patientId/lab-orders",
+  validateParams(patientIdParamsSchema),
+  validate(registerPatientDNAKitSchema),
+  DoctorController.registerPatientDNAKit,
+);
+doctorRouter.post(
+  "/patients/:patientId/genetics/:dnaKitResultId",
+  validateParams(dnaKitResultIdParamsSchema),
+  validate(updatePatientGeneticsStatusSchema),
+  DoctorController.updatePatientGeneticsStatus,
 );
 
 // AI Chat Routes
@@ -215,5 +230,52 @@ doctorRouter.delete(
   "/patients/:patientId/alerts/:alertId/:type",
   validateParams(deleteAlertOrAllergyParamsSchema),
   DoctorController.deletePatientAlertAndAllergy,
+);
+
+// Patient Address Routes
+doctorRouter.get(
+  "/patients/:patientId/addresses",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientAddresses,
+);
+doctorRouter.post(
+  "/patients/:patientId/addresses",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientAddressSchema),
+  DoctorController.createPatientAddress,
+);
+doctorRouter.put(
+  "/patients/:patientId/addresses/:addressId",
+  validateParams(addressIdParamsSchema),
+  validate(updatePatientAddressSchema),
+  DoctorController.updatePatientAddress,
+);
+doctorRouter.delete(
+  "/patients/:patientId/addresses/:addressId",
+  validateParams(addressIdParamsSchema),
+  DoctorController.deletePatientAddress,
+);
+
+// Reports Routes
+doctorRouter.get(
+  "/reports",
+  validateQuery(getReportsSchema),
+  DoctorController.getReports,
+);
+doctorRouter.post(
+  "/reports",
+  validate(createReportSchema),
+  DoctorController.createReport,
+);
+doctorRouter.put(
+  "/reports/:reportId",
+  validateParams(reportIdParamsSchema),
+  validate(updateReportSchema),
+  DoctorController.updateReport,
+);
+doctorRouter.delete(
+  "/reports/:reportId",
+  validateParams(reportIdParamsSchema),
+  DoctorController.deleteReport,
 );
 export default doctorRouter;

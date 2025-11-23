@@ -411,6 +411,8 @@ class S3Helper {
             "image/jpeg": "jpg",
             "image/jpg": "jpg",
             "image/png": "png",
+            "image/svg+xml": "svg",
+            "image/webp": "webp",
             "application/msword": "doc",
             "text/plain": "txt",
         };

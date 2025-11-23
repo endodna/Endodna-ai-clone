@@ -3,7 +3,8 @@ import AdminController from "../../controllers/AdminController";
 import { Authentication } from "../../middlewares/Authentication";
 import { AdminAuthorization } from "../../middlewares/Authorization";
 import { validate } from "../../middlewares/Validator";
-import { createAdminSchema, createDoctorSchema } from "../../schemas";
+import { createAdminSchema, createDoctorSchema, updateOrganizationCustomizationSchema, updateOrganizationNameSchema } from "../../schemas";
+import { uploadSingle } from "../../middlewares/FileUpload";
 
 const adminRouter = Router().use("/", Authentication, AdminAuthorization);
 
@@ -17,6 +18,21 @@ adminRouter.post(
   "/admin",
   validate(createAdminSchema),
   AdminController.createAdmin,
+);
+
+// Organization routes
+adminRouter.put(
+  "/organization",
+  validate(updateOrganizationNameSchema),
+  AdminController.updateOrganization,
+);
+
+// Organization customization routes
+adminRouter.put(
+  "/organization/customization",
+  uploadSingle,
+  validate(updateOrganizationCustomizationSchema),
+  AdminController.updateOrganizationCustomization,
 );
 
 export default adminRouter;

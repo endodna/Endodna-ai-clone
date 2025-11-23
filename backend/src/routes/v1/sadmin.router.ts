@@ -34,6 +34,7 @@ sAdminRouter.post(
 );
 sAdminRouter.get("/organization/list", SAdminController.getOrganizations);
 
+
 // OPS routes
 sAdminRouter.post(
   "/ops/cron/trigger",

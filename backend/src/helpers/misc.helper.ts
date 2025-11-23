@@ -5,6 +5,11 @@ export const generateTraceId = (): string => {
   return randomUUID();
 };
 
+export const generateOrderId = (): string => {
+  const timestamp = Date.now();
+  return `BIOSAI-${timestamp}`;
+};
+
 export const buildRedisSession = ({
   userType,
   userId,

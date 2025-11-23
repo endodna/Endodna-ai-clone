@@ -7,11 +7,17 @@ import {
   ChatMessageRole,
   ChatType,
   DNAResultStatus,
+  Gender,
   MedicalRecordType,
+  OrderType,
+  PaymentStatus,
   Priority,
   RequestType,
   Status,
 } from "@prisma/client";
+import { prisma } from "../lib/prisma";
+import s3Helper from "../helpers/aws/s3.helper";
+import OrganizationCustomizationHelper from "../helpers/organization-customization.helper";
 
 class MiscController {
   public static async getMenu(req: AuthenticatedRequest, res: Response) {
@@ -48,9 +54,11 @@ class MiscController {
         dnaResultStatus: Object.values(DNAResultStatus),
         medicalRecordType: Object.values(MedicalRecordType),
         priority: Object.values(Priority),
-        requestType: Object.values(RequestType),
         chatType: Object.values(ChatType),
         chatMessageRole: Object.values(ChatMessageRole),
+        orderType: Object.values(OrderType),
+        paymentStatus: Object.values(PaymentStatus),
+        gender: Object.values(Gender),
       };
 
       sendResponse(res, {
@@ -70,6 +78,107 @@ class MiscController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to fetch constants",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getOrganizationInfo(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { organizationId, userType } = req.user!;
+
+      if (!organizationId) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Organization ID not found",
+        });
+      }
+
+      const [organization, customization] = await Promise.all([
+        prisma.organization.findUnique({
+          where: {
+            id: organizationId,
+          },
+          select: {
+            id: true,
+            uuid: true,
+            name: true,
+          },
+        }),
+        prisma.organizationCustomization.findUnique({
+          where: {
+            organizationId: organizationId,
+          },
+          select: {
+            id: true,
+            organizationId: true,
+            customization: true,
+          },
+        }),
+      ]);
+
+      if (!organization) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Organization not found",
+        });
+      }
+
+      const structuredCustomization = customization?.customization
+        ? OrganizationCustomizationHelper.structureCustomization(customization.customization)
+        : null;
+
+      const isAdmin = userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
+
+      if (structuredCustomization?.logo) {
+        try {
+          const presignedUrl = await s3Helper.getPresignedDownloadUrl({
+            bucket: structuredCustomization.logo.bucket,
+            key: structuredCustomization.logo.key,
+            expiresIn: 60 * 60 * 24 * 7, // 7 days
+            traceId: req.traceId,
+          });
+          structuredCustomization.logo.url = presignedUrl;
+        } catch (error) {
+          logger.warn("Failed to generate presigned URL for logo", {
+            traceId: req.traceId,
+            method: "getOrganizationInfo",
+            error,
+          });
+        }
+      }
+
+      let customizationData;
+      if (isAdmin) {
+        customizationData = OrganizationCustomizationHelper.sanitizeForResponse(structuredCustomization);
+      } else {
+        customizationData = OrganizationCustomizationHelper.getPublicCustomization(structuredCustomization);
+      }
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          id: organization.uuid,
+          name: organization.name,
+          customization: customizationData,
+        },
+        message: "Organization info retrieved successfully",
+      });
+    } catch (err) {
+      logger.error("Get organization info failed", {
+        traceId: req.traceId,
+        method: "getOrganizationInfo",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get organization info",
         },
         req,
       );

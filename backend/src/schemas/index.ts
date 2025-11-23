@@ -1,5 +1,6 @@
-import { ChatType, DNAResultStatus, MedicalRecordType, Status } from "@prisma/client";
+import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status } from "@prisma/client";
 import { z } from "zod";
+import { TempusActions } from "../types";
 
 // Auth schemas
 export const loginSchema = z
@@ -25,7 +26,6 @@ export type CreateSuperAdminSchema = z.infer<typeof createSuperAdminSchema>;
 export const provisionOrganizationSchema = z
   .object({
     name: z.string().min(1, "Name is required").trim(),
-    isPrimary: z.boolean().optional().default(false),
     admin: z
       .object({
         email: z.string().email("Invalid email format").toLowerCase().trim(),
@@ -190,6 +190,17 @@ export const patientIdParamsSchema = z.object({
 }).strict();
 export type PatientIdParamsSchema = z.infer<typeof patientIdParamsSchema>;
 
+export const dnaKitResultIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  dnaKitResultId: z.string().uuid("Invalid DNA kit result ID"),
+}).strict();
+export type DnaKitResultIdParamsSchema = z.infer<typeof dnaKitResultIdParamsSchema>;
+
+export const updatePatientGeneticsStatusSchema = z.object({
+  action: z.nativeEnum(TempusActions),
+}).strict();
+export type UpdatePatientGeneticsStatusSchema = z.infer<typeof updatePatientGeneticsStatusSchema>;
+
 export const medicationIdParamsSchema = z.object({
   patientId: z.string().uuid("Invalid patient ID"),
   medicationId: z.string().uuid("Invalid medication ID")
@@ -233,8 +244,50 @@ export const generalConversationIdParamsSchema = z.object({
 }).strict();
 export type GeneralConversationIdParamsSchema = z.infer<typeof generalConversationIdParamsSchema>;
 
+export const addressIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  addressId: z.string().uuid("Invalid address ID"),
+}).strict();
+export type AddressIdParamsSchema = z.infer<typeof addressIdParamsSchema>;
+
+export const createPatientAddressSchema = z.object({
+  address: z.object({
+    street: z.string().optional(),
+    street2: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    country: z.string().optional(),
+  }),
+  isPrimary: z.boolean().optional().default(false),
+}).strict();
+export type CreatePatientAddressSchema = z.infer<typeof createPatientAddressSchema>;
+
+export const updatePatientAddressSchema = z.object({
+  address: z.object({
+    street: z.string().optional(),
+    street2: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    country: z.string().optional(),
+  }),
+  isPrimary: z.boolean().optional(),
+}).strict().refine(
+  (data) => {
+    return data.address !== undefined || data.isPrimary !== undefined;
+  },
+  {
+    message: "At least one field must be provided for update",
+  }
+);
+export type UpdatePatientAddressSchema = z.infer<typeof updatePatientAddressSchema>;
+
 export const registerPatientDNAKitSchema = z.object({
   barcode: z.string().min(1, "Barcode is required"),
+  orderType: z.nativeEnum(OrderType),
+  addressId: z.string().uuid("Invalid address ID").optional(),
+  reportId: z.string().uuid("Invalid report ID"),
 }).strict();
 export type RegisterPatientDNAKitSchema = z.infer<typeof registerPatientDNAKitSchema>;
 
@@ -329,3 +382,81 @@ export const deleteAlertOrAllergyParamsSchema = z.object({
   type: z.enum(["allergy", "alert"], { errorMap: () => ({ message: "Type must be 'allergy' or 'alert'" }) })
 }).strict();
 export type DeleteAlertOrAllergyParamsSchema = z.infer<typeof deleteAlertOrAllergyParamsSchema>;
+
+export const updateOrganizationNameSchema = z.object({
+  name: z.string().min(1, "Organization name is required").trim(),
+}).strict();
+export type UpdateOrganizationNameSchema = z.infer<typeof updateOrganizationNameSchema>;
+
+export const updateOrganizationCustomizationSchema = z.object({
+  primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Primary color must be a valid hex color code").optional(),
+  secondaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Secondary color must be a valid hex color code").optional(),
+  theme: z.enum(["light", "dark", "auto"]).optional(),
+  branding: z.object({
+    companyName: z.string().optional(),
+    tagline: z.string().optional(),
+    website: z.string().url("Website must be a valid URL").optional(),
+  }).optional(),
+  email: z.object({
+    fromName: z.string().optional(),
+    fromEmail: z.string().email("From email must be a valid email address").optional(),
+    replyTo: z.string().email("Reply-to email must be a valid email address").optional(),
+  }).optional(),
+  features: z.record(z.union([z.boolean(), z.string(), z.number()])).optional(),
+}).strict().refine(
+  (data) => {
+    return (
+      data.primaryColor !== undefined ||
+      data.secondaryColor !== undefined ||
+      data.theme !== undefined ||
+      data.branding !== undefined ||
+      data.email !== undefined ||
+      data.features !== undefined
+    );
+  },
+  {
+    message: "At least one customization field must be provided",
+  }
+);
+export type UpdateOrganizationCustomizationSchema = z.infer<typeof updateOrganizationCustomizationSchema>;
+
+export const getReportsSchema = z.object({
+  gender: z.nativeEnum(Gender).optional(),
+}).strict();
+export type GetReportsSchema = z.infer<typeof getReportsSchema>;
+
+export const reportIdParamsSchema = z.object({
+  reportId: z.string().uuid("Invalid report ID"),
+}).strict();
+export type ReportIdParamsSchema = z.infer<typeof reportIdParamsSchema>;
+
+export const createReportSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  genders: z.array(z.nativeEnum(Gender)).min(1, "At least one gender must be specified"),
+  price: z.number().positive("Price must be positive").or(z.string().transform((val) => parseFloat(val))),
+}).strict();
+export type CreateReportSchema = z.infer<typeof createReportSchema>;
+
+export const updateReportSchema = z.object({
+  code: z.string().min(1, "Code is required").optional(),
+  title: z.string().min(1, "Title is required").optional(),
+  description: z.string().optional(),
+  genders: z.array(z.nativeEnum(Gender)).min(1, "At least one gender must be specified"),
+  price: z.number().positive("Price must be positive").or(z.string().transform((val) => parseFloat(val))).optional(),
+}).strict().refine(
+  (data) => {
+    return (
+      data.code !== undefined ||
+      data.title !== undefined ||
+      data.description !== undefined ||
+      data.genders !== undefined ||
+      data.price !== undefined
+    );
+  },
+  {
+    message: "At least one field must be provided for update",
+  }
+);
+export type UpdateReportSchema = z.infer<typeof updateReportSchema>;

@@ -1,3 +1,4 @@
+
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
 import { AuthenticatedRequest, StatusCode } from "../types";
@@ -24,6 +25,16 @@ import {
   CreateGeneralConversationSchema,
   SendGeneralMessageSchema,
   GeneralConversationIdParamsSchema,
+  CreatePatientAddressSchema,
+  UpdatePatientAddressSchema,
+  AddressIdParamsSchema,
+  PatientIdParamsSchema,
+  DnaKitResultIdParamsSchema,
+  UpdatePatientGeneticsStatusSchema,
+  GetReportsSchema,
+  CreateReportSchema,
+  UpdateReportSchema,
+  ReportIdParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -34,15 +45,23 @@ import {
   User,
   Prisma,
   MedicalRecordType,
+  OrderType,
+  PatientAddress,
+  PaymentStatus,
+  Gender,
 } from "@prisma/client";
 import PaginationHelper from "../helpers/pagination.helper";
 import { prisma } from "../lib/prisma";
 import s3Helper from "../helpers/aws/s3.helper";
 import ragHelper from "../helpers/llm/rag.helper";
 import { buildOrganizationUserFilter } from "../helpers/organization-user.helper";
+import { generateOrderId } from "../helpers/misc.helper";
 import patientChatHelper from "../helpers/llm/patient-chat.helper";
 import generalChatHelper from "../helpers/llm/general-chat.helper";
 import { ChatType } from "@prisma/client";
+import tempusService from "../services/tempus.service";
+import emailHelper from "../helpers/email.helper";
+import { TempusActions } from "../types";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -189,6 +208,7 @@ class DoctorController {
               some: {
                 status: status as DNAResultStatus,
                 organizationId: organizationId!,
+                deletedAt: null,
               },
             },
           });
@@ -213,6 +233,9 @@ class DoctorController {
             lastName: true,
             status: true,
             patientDNAResults: {
+              where: {
+                deletedAt: null,
+              },
               select: {
                 uuid: true,
                 status: true,
@@ -220,12 +243,18 @@ class DoctorController {
               },
             },
             patientGoals: {
+              where: {
+                deletedAt: null,
+              },
               select: {
                 uuid: true,
                 description: true,
               },
             },
             patientActivities: {
+              where: {
+                deletedAt: null,
+              },
               select: {
                 uuid: true,
                 activity: true,
@@ -308,6 +337,9 @@ class DoctorController {
           gender: true,
           bloodType: true,
           patientDNAResults: {
+            where: {
+              deletedAt: null,
+            },
             select: {
               uuid: true,
               status: true,
@@ -315,6 +347,9 @@ class DoctorController {
             },
           },
           patientGoals: {
+            where: {
+              deletedAt: null,
+            },
             select: {
               uuid: true,
               description: true,
@@ -322,6 +357,9 @@ class DoctorController {
             },
           },
           patientAllergies: {
+            where: {
+              deletedAt: null,
+            },
             select: {
               uuid: true,
               allergen: true,
@@ -330,6 +368,9 @@ class DoctorController {
             },
           },
           patientAlerts: {
+            where: {
+              deletedAt: null,
+            },
             select: {
               uuid: true,
               description: true,
@@ -1139,28 +1180,23 @@ class DoctorController {
       const { patientId } = req.params as unknown as { patientId: string };
       const { organizationId } = req.user!;
 
-      if (!organizationId) {
-        return sendResponse(res, {
-          status: StatusCode.BAD_REQUEST,
-          error: true,
-          message: "Organization ID is required",
-        });
-      }
-
       const patient = await prisma.user.findFirst({
         select: {
           id: true,
           patientDNAResults: {
             where: {
+              deletedAt: null,
               isProcessed: true,
             },
             select: {
               uuid: true,
               status: true,
+              barcode: true,
               isProcessed: true,
               isFailedProcessing: true,
               failedProcessingReason: true,
               createdAt: true,
+              updatedAt: true,
               patientDNAResultBreakdown: {
                 select: {
                   snpName: true,
@@ -1196,12 +1232,10 @@ class DoctorController {
       }
       sendResponse(res, {
         status: StatusCode.OK,
-        data: {
-          dnaResults: patient.patientDNAResults.map((result) => ({
-            ...result,
-            id: result.uuid,
-          })),
-        },
+        data: patient.patientDNAResults.map((result) => ({
+          ...result,
+          id: result.uuid,
+        })),
         message: "Patient genetics fetched successfully",
       });
     }
@@ -1211,6 +1245,215 @@ class DoctorController {
         method: "getPatientDNAAnalysis.Doctor",
         error: err,
       });
+    }
+  }
+
+  public static async updatePatientGeneticsStatus(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, dnaKitResultId } = req.params as unknown as DnaKitResultIdParamsSchema;
+      const { action } = req.body as UpdatePatientGeneticsStatusSchema;
+      const { userId, organizationId } = req.user!;
+
+      const patient = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!patient) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const dnaKit = await prisma.patientDNAResultKit.findFirst({
+        where: {
+          uuid: dnaKitResultId,
+          patientId,
+          organizationId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          uuid: true,
+          barcode: true,
+          status: true,
+        },
+      });
+
+      if (!dnaKit) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "DNA kit not found",
+        });
+      }
+
+      if (dnaKit.status === DNAResultStatus.DATA_DELIVERED ||
+        dnaKit.status === DNAResultStatus.GENOTYPING_ACCEPTED) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Cannot update status for DNA kit that has completed processing",
+        });
+      }
+
+      if (!dnaKit.barcode) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "DNA kit barcode is missing",
+        });
+      }
+
+      const tempusAction = action as TempusActions;
+      const currentStatus = dnaKit.status;
+
+      if (tempusAction === TempusActions.PROCESS) {
+        if (currentStatus === DNAResultStatus.PROCESS) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Kit is already in PROCESS status",
+          });
+        }
+        if (currentStatus === DNAResultStatus.CANCEL) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Cannot process a cancelled kit",
+          });
+        }
+
+        if (currentStatus !== DNAResultStatus.HOLD) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Can only resume processing from HOLD status",
+          });
+        }
+      } else if (tempusAction === TempusActions.HOLD) {
+        if (currentStatus === DNAResultStatus.HOLD) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Kit is already on HOLD",
+          });
+        }
+      } else if (tempusAction === TempusActions.CANCEL) {
+        if (currentStatus === DNAResultStatus.CANCEL) {
+          return sendResponse(res, {
+            status: StatusCode.BAD_REQUEST,
+            error: true,
+            message: "Kit is already cancelled",
+          });
+        }
+      }
+
+      const tempusResult = await tempusService.setKitStatus({
+        action: tempusAction,
+        sampleId: dnaKit.barcode,
+        adminId: userId,
+        organizationId: organizationId!,
+        traceId: req.traceId,
+      });
+
+      if (!tempusResult.success) {
+        const errorMessage = tempusResult.errorData?.message || tempusResult.error || "Failed to update kit status in Lab";
+        return sendResponse(res, {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: true,
+          message: errorMessage,
+        });
+      }
+
+      let mappedStatus: DNAResultStatus;
+      let activityMessage: string;
+
+      switch (tempusAction) {
+        case TempusActions.HOLD:
+          mappedStatus = DNAResultStatus.HOLD;
+          activityMessage = "Kit status set to HOLD";
+          break;
+        case TempusActions.PROCESS:
+          mappedStatus = DNAResultStatus.PROCESS;
+          activityMessage = "Kit status set to PROCESS";
+          break;
+        case TempusActions.CANCEL:
+          mappedStatus = DNAResultStatus.CANCEL;
+          activityMessage = "Kit status set to CANCEL";
+          break;
+        default:
+          mappedStatus = DNAResultStatus.PENDING;
+          activityMessage = `Kit status updated: ${action}`;
+      }
+
+      await Promise.all([
+        prisma.patientDNAResultKit.update({
+          where: {
+            id: dnaKit.id,
+          },
+          data: {
+            status: mappedStatus,
+            isFailedProcessing: mappedStatus === DNAResultStatus.CANCEL,
+            failedProcessingReason: mappedStatus === DNAResultStatus.CANCEL
+              ? "Kit processing cancelled"
+              : null,
+          },
+        }),
+        prisma.patientDNAResultActivity.create({
+          data: {
+            patientDNAResultId: dnaKit.id,
+            activity: activityMessage,
+            status: mappedStatus,
+            metadata: {
+              action: tempusAction,
+              barcode: dnaKit.barcode,
+              previousStatus: dnaKit.status,
+              newStatus: mappedStatus,
+              updatedBy: userId,
+            },
+          },
+        })
+      ]);
+
+      logger.info("Patient DNA kit status updated successfully", {
+        traceId: req.traceId,
+        patientId,
+        dnaKitResultId: dnaKit.uuid,
+        barcode: dnaKit.barcode,
+        action: tempusAction,
+        previousStatus: dnaKit.status,
+        newStatus: mappedStatus,
+        method: "updatePatientGeneticsStatus.Doctor",
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: tempusResult.message || `DNA kit status updated to ${action}`,
+      });
+    } catch (err) {
+      logger.error("Update patient genetics status failed", {
+        traceId: req.traceId,
+        method: "updatePatientGeneticsStatus.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient genetics status",
+        },
+        req,
+      );
     }
   }
 
@@ -1728,7 +1971,7 @@ class DoctorController {
     try {
       const { patientId } = req.params;
       const { organizationId, userId } = req.user!;
-      const { barcode } = req.body as RegisterPatientDNAKitSchema;
+      const { barcode, orderType, addressId, reportId } = req.body as RegisterPatientDNAKitSchema;
 
       const patient = await prisma.user.findFirst({
         where: {
@@ -1740,6 +1983,12 @@ class DoctorController {
             },
           },
         },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        },
       });
 
       if (!patient) {
@@ -1750,6 +1999,45 @@ class DoctorController {
         });
       }
 
+      let address: PatientAddress | null = null;
+
+      const report = await prisma.report.findFirst({
+        where: {
+          id: reportId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!report) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Report not found",
+        });
+      }
+
+      if (orderType === OrderType.PATIENT_SELF_PURCHASE || orderType === OrderType.SHIP_DIRECTLY_TO_PATIENT) {
+        address = await prisma.patientAddress.findFirst({
+          where: {
+            id: addressId,
+            patientId,
+            organizationId: organizationId!,
+            deletedAt: null,
+          },
+        });
+
+        if (!address) {
+          return sendResponse(res, {
+            status: StatusCode.NOT_FOUND,
+            error: true,
+            message: "Address not found",
+          });
+        }
+      }
+
+
+
       const result = await UserService.registerPatientDNAKit({
         barcode,
         patientId,
@@ -1757,6 +2045,7 @@ class DoctorController {
         traceId: req.traceId,
         adminId: userId,
       });
+
 
       if (!result.success) {
         return sendResponse(res, {
@@ -1766,21 +2055,89 @@ class DoctorController {
         });
       }
 
+      const order = await prisma.patientOrder.create({
+        data: {
+          patientId,
+          organizationId: organizationId!,
+          dnaKitResultId: result.dnaResultKitPrimaryId,
+          orderId: generateOrderId(),
+          orderType,
+          addressId: address?.id,
+          totalPrice: report.price,
+          status: orderType === OrderType.PATIENT_SELF_PURCHASE ? Status.PENDING : Status.ACTIVE,
+          paymentStatus: orderType === OrderType.PATIENT_SELF_PURCHASE ? PaymentStatus.PENDING : PaymentStatus.PAID,
+        },
+      })
+      const patientReport = await prisma.patientReport.create({
+        data: {
+          patientId,
+          organizationId: organizationId!,
+          reportId: report.id,
+          orderId: order.id,
+          price: report.price,
+          isPrimary: true,
+          status: orderType === OrderType.PATIENT_SELF_PURCHASE ? Status.PENDING : Status.ACTIVE,
+        },
+      })
+
       await UserService.createUserAuditLog({
         userId: userId,
         description: "Patient DNA kit registration",
         metadata: {
           patientId,
           barcode,
+          order,
+          patientReport,
           dnaResultKitId: result.dnaResultKitId,
         },
         priority: Priority.MEDIUM,
       });
 
+      if (orderType === OrderType.PATIENT_SELF_PURCHASE) {
+        try {
+          await emailHelper.sendNotificationEmail(
+            patient.email!,
+            "DNA Kit Registration - Check Your Portal",
+            `Hello ${patient.firstName || "Patient"},
+
+Your DNA kit has been successfully registered. Please check your patient portal to view the details and complete any necessary steps.
+
+Kit Barcode: ${barcode}
+Order ID: ${order.orderId}
+
+If you have any questions, please contact our support team.
+
+Best regards,
+The BiosAI Team`,
+            undefined,
+            undefined,
+            req.traceId,
+          );
+
+          logger.info("Email notification sent for patient self purchase", {
+            traceId: req.traceId,
+            patientId,
+            email: patient.email,
+            orderId: order.orderId,
+            method: "registerPatientDNAKit.Doctor",
+          });
+        } catch (emailError) {
+          logger.error("Failed to send email notification for patient self purchase", {
+            traceId: req.traceId,
+            patientId,
+            email: patient.email,
+            error: emailError,
+            method: "registerPatientDNAKit.Doctor",
+          });
+        }
+      }
+
       sendResponse(res, {
         status: StatusCode.OK,
         data: {
           dnaResultKitId: result.dnaResultKitId,
+          orderId: order.orderId,
+          patientReportId: patientReport.id,
         },
         message: result.message || "DNA kit registered successfully",
       });
@@ -3011,6 +3368,636 @@ class DoctorController {
       }, req);
     }
   }
-}
 
+  public static async getPatientAddresses(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const addresses = await prisma.patientAddress.findMany({
+        where: {
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          address: true,
+          isPrimary: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: [
+          { isPrimary: "desc" },
+          { createdAt: "desc" },
+        ],
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: addresses,
+        message: "Patient addresses retrieved successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient addresses failed", {
+        traceId: req.traceId,
+        method: "getPatientAddresses.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch patient addresses",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createPatientAddress(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+      const { address, isPrimary } = req.body as CreatePatientAddressSchema;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      if (isPrimary) {
+        await prisma.patientAddress.updateMany({
+          where: {
+            patientId,
+            organizationId: organizationId!,
+            isPrimary: true,
+            deletedAt: null,
+          },
+          data: {
+            isPrimary: false,
+          },
+        });
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientAddress.create({
+          data: {
+            patientId,
+            organizationId: organizationId!,
+            address: address as any,
+            isPrimary: isPrimary || false,
+          },
+          select: {
+            id: true,
+            address: true,
+            isPrimary: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient address created`,
+          metadata: {
+            patientId,
+            action: "create",
+            isPrimary: isPrimary || false,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.CREATED,
+        data: result,
+        message: "Patient address created successfully",
+      });
+    } catch (err) {
+      logger.error("Create patient address failed", {
+        traceId: req.traceId,
+        method: "createPatientAddress.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create patient address",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientAddress(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, addressId } = req.params as unknown as AddressIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+      const { address, isPrimary } = req.body as UpdatePatientAddressSchema;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const existingAddress = await prisma.patientAddress.findFirst({
+        where: {
+          id: addressId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!existingAddress) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Patient address not found",
+        });
+      }
+
+      if (isPrimary === true) {
+        await prisma.patientAddress.updateMany({
+          where: {
+            patientId,
+            organizationId: organizationId!,
+            isPrimary: true,
+            id: { not: addressId },
+            deletedAt: null,
+          },
+          data: {
+            isPrimary: false,
+          },
+        });
+      }
+
+      const updateData: Prisma.PatientAddressUpdateInput = {};
+      if (address !== undefined) {
+        updateData.address = address as any;
+      }
+      if (isPrimary !== undefined) {
+        updateData.isPrimary = isPrimary;
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientAddress.update({
+          where: {
+            id: addressId,
+          },
+          data: updateData,
+          select: {
+            id: true,
+            address: true,
+            isPrimary: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient address updated`,
+          metadata: {
+            patientId,
+            addressId,
+            action: "update",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: result,
+        message: "Patient address updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update patient address failed", {
+        traceId: req.traceId,
+        method: "updatePatientAddress.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient address",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deletePatientAddress(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, addressId } = req.params as unknown as AddressIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const existingAddress = await prisma.patientAddress.findFirst({
+        where: {
+          id: addressId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!existingAddress) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Patient address not found",
+        });
+      }
+
+      await Promise.all([
+        prisma.patientAddress.update({
+          where: {
+            id: addressId,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient address deleted`,
+          metadata: {
+            patientId,
+            addressId,
+            action: "delete",
+          },
+          priority: Priority.HIGH,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient address deleted successfully",
+      });
+    } catch (err) {
+      logger.error("Delete patient address failed", {
+        traceId: req.traceId,
+        method: "deletePatientAddress.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patient address",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getReports(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { gender } = req.query as unknown as GetReportsSchema;
+      const { organizationId } = req.user!;
+
+      const where: Prisma.ReportWhereInput = {
+        organizationId,
+        deletedAt: null,
+      };
+
+      if (gender && gender !== Gender.ALL) {
+        where.genders = {
+          has: gender,
+        };
+      }
+
+      const reports = await prisma.report.findMany({
+        where,
+        select: {
+          id: true,
+          code: true,
+          title: true,
+          description: true,
+          genders: true,
+          price: true,
+          metadata: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: reports.map((report) => ({
+          ...report,
+          price: report.price.toString(),
+        })),
+        message: "Reports retrieved successfully",
+      });
+    } catch (err) {
+      logger.error("Get reports failed", {
+        traceId: req.traceId,
+        method: "getReports.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch reports",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createReport(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { code, title, description, genders, price } = req.body as CreateReportSchema;
+      const { userId, organizationId } = req.user!;
+
+      const [result] = await Promise.all([
+        prisma.report.create({
+          data: {
+            organizationId: organizationId!,
+            code,
+            title,
+            description: description || null,
+            genders,
+            price: new Prisma.Decimal(price),
+          },
+          select: {
+            id: true,
+            code: true,
+            title: true,
+            description: true,
+            genders: true,
+            price: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Report created: ${title}`,
+          metadata: {
+            action: "create",
+            code,
+            title,
+            genders,
+            price: price.toString(),
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.CREATED,
+        data: {
+          ...result,
+          price: result.price.toString(),
+        },
+        message: "Report created successfully",
+      });
+    } catch (err) {
+      logger.error("Create report failed", {
+        traceId: req.traceId,
+        method: "createReport.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create report",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updateReport(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { reportId } = req.params as unknown as ReportIdParamsSchema;
+      const { code, title, description, genders, price } = req.body as UpdateReportSchema;
+      const { userId, organizationId } = req.user!;
+
+      const existingReport = await prisma.report.findFirst({
+        where: {
+          id: reportId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!existingReport) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Report not found",
+        });
+      }
+
+      const updateData: Prisma.ReportUpdateInput = {};
+      if (code !== undefined) updateData.code = code;
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description || null;
+      if (genders !== undefined) updateData.genders = genders;
+      if (price !== undefined) updateData.price = new Prisma.Decimal(price);
+
+      const [result] = await Promise.all([
+        prisma.report.update({
+          where: {
+            id: reportId,
+          },
+          data: updateData,
+          select: {
+            id: true,
+            code: true,
+            title: true,
+            description: true,
+            genders: true,
+            price: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Report updated: ${title || existingReport.title}`,
+          metadata: {
+            reportId,
+            action: "update",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          price: result.price.toString(),
+        },
+        message: "Report updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update report failed", {
+        traceId: req.traceId,
+        method: "updateReport.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update report",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deleteReport(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { reportId } = req.params as unknown as ReportIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const existingReport = await prisma.report.findFirst({
+        where: {
+          id: reportId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          title: true,
+        },
+      });
+
+      if (!existingReport) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Report not found",
+        });
+      }
+
+      await Promise.all([
+        prisma.report.update({
+          where: {
+            id: reportId,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Report deleted: ${existingReport.title}`,
+          metadata: {
+            reportId,
+            action: "delete",
+            title: existingReport.title,
+          },
+          priority: Priority.HIGH,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Report deleted successfully",
+      });
+    } catch (err) {
+      logger.error("Delete report failed", {
+        traceId: req.traceId,
+        method: "deleteReport.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete report",
+        },
+        req,
+      );
+    }
+  }
+}
 export default DoctorController;

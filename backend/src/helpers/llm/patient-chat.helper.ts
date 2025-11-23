@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { TaskType, ChatType, ChatMessageRole } from "@prisma/client";
+import { TaskType, ChatType, ChatMessageRole, Status } from "@prisma/client";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import ragHelper from "./rag.helper";
 import { BaseChatHelper, BaseMessage } from "./base-chat.helper";
@@ -164,6 +164,24 @@ class PatientChatHelper extends BaseChatHelper {
             formatted += `\n`;
         }
 
+        if (patient.patientReports && patient.patientReports.length > 0) {
+            formatted += `PATIENT REPORTS:\n`;
+            patient.patientReports.forEach((patientReport: any) => {
+                if (patientReport.report) {
+                    formatted += `- ${patientReport.report.code}: ${patientReport.report.title}`;
+                    if (patientReport.report.description) {
+                        formatted += ` - ${patientReport.report.description}`;
+                    }
+                    formatted += ` (Status: ${patientReport.status})`;
+                    if (patientReport.createdAt) {
+                        formatted += ` - ${patientReport.createdAt}`;
+                    }
+                    formatted += `\n`;
+                }
+            });
+            formatted += `\n`;
+        }
+
         return formatted;
     }
 
@@ -257,6 +275,25 @@ class PatientChatHelper extends BaseChatHelper {
                         },
                         orderBy: {
                             updatedAt: "desc",
+                        },
+                    },
+                    patientReports: {
+                        where: {
+                            organizationId,
+                            deletedAt: null,
+                            status: Status.ACTIVE,
+                        },
+                        include: {
+                            report: {
+                                select: {
+                                    code: true,
+                                    title: true,
+                                    description: true,
+                                },
+                            },
+                        },
+                        orderBy: {
+                            createdAt: "desc",
                         },
                     },
                 },

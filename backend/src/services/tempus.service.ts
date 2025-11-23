@@ -786,7 +786,7 @@ class TempusService {
         adminId?: string;
         organizationId: number;
         traceId?: string;
-    }): Promise<{ success: boolean; message?: string; error?: string }> {
+    }): Promise<{ success: boolean; message?: string; error?: string; errorData?: any }> {
         const { action, sampleId, adminId, organizationId, traceId } = params;
 
         const apiUrl = process.env.TEMPUS_API_URL;
@@ -862,9 +862,9 @@ class TempusService {
 
                 if (adminId) {
                     auditLogPromises.push(
-                        prisma.adminAuditLog.create({
+                        prisma.userAuditLog.create({
                             data: {
-                                adminId,
+                                userId: adminId,
                                 description: `Failed to set kit status in Tempus: ${action} for sample ${sampleId}`,
                                 metadata: {
                                     action,
@@ -890,6 +890,7 @@ class TempusService {
                 return {
                     success: false,
                     error: `Tempus API error: ${response.status} ${errorText}`,
+                    errorData: JSON.parse(errorText),
                 };
             }
 
