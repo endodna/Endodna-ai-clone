@@ -30,11 +30,27 @@ export const API_ENDPOINTS = {
       GET_BY_ID: (id: string) => `/doctor/patients/${id}`,
       MEDICAL_RECORDS: (id: string) => `/doctor/patients/${id}/medical-records`,
       SUMMARY: (id: string) => `/doctor/patients/${id}/summary`,
+      GENETICS: (id: string) => `/doctor/patients/${id}/genetics`,
+      LAB_ORDERS: (id: string) => `/doctor/patients/${id}/lab-orders`,
+      ADDRESSES: {
+        LIST: (id: string) => `/doctor/patients/${id}/addresses`,
+        CREATE: (id: string) => `/doctor/patients/${id}/addresses`,
+        UPDATE: (patientId: string, addressId: string) =>
+          `/doctor/patients/${patientId}/addresses/${addressId}`,
+        DELETE: (patientId: string, addressId: string) =>
+          `/doctor/patients/${patientId}/addresses/${addressId}`,
+      },
       MEDICATIONS: {
         LIST: (id: string) => `/doctor/patients/${id}/medications`,
         DETAIL: (patientId: string, medicationId: string) =>
           `/doctor/patients/${patientId}/medications/${medicationId}`,
       },
+    },
+    REPORTS: {
+      LIST: "/doctor/reports",
+      CREATE: "/doctor/reports",
+      UPDATE: (id: string) => `/doctor/reports/${id}`,
+      DELETE: (id: string) => `/doctor/reports/${id}`,
     },
     CHAT: {
       PATIENT: {

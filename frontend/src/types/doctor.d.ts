@@ -19,9 +19,115 @@ interface Constants {
     dnaResultStatus: string[];
     medicalRecordType: string[];
     priority: string[];
-    requestType: string[];
     chatType: string[];
     chatMessageRole: string[];
+    orderType: string[];
+    paymentStatus: string[];
+    gender: string[];
+}
+
+type DnaOrderType = "ACTIVATE_COLLECTION_KIT" | "SHIP_DIRECTLY_TO_PATIENT" | "PATIENT_SELF_PURCHASE";
+
+interface Report {
+    id: string;
+    code: string;
+    title: string;
+    description?: string | null;
+    genders: string[];
+    price: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface OrderDNAKitResponseData {
+    dnaResultKitId: string;
+    orderId: string;
+    patientReportId: string;
+}
+
+interface PatientAddressDetails {
+    street?: string;
+    street2?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+}
+
+interface PatientAddress {
+    id: string;
+    address: PatientAddressDetails | null;
+    isPrimary: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface PatientDNAResultActivity {
+    activity: string;
+    status: string;
+    createdAt: string | Date;
+}
+
+interface PatientDNAResultBreakdown {
+    snpName: string;
+    chromosome: string;
+    position: string;
+    genotype: string;
+    referenceAllele: string;
+    alternateAllele: string;
+}
+
+interface PatientDNAResult {
+    id: string;
+    uuid: string;
+    status: string;
+    barcode?: string | null;
+    isProcessed?: boolean;
+    isFailedProcessing?: boolean;
+    failedProcessingReason?: string | null;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    patientDNAResultBreakdown?: PatientDNAResultBreakdown[];
+    patientDNAResultActivity?: PatientDNAResultActivity[];
+}
+
+
+interface CreatePatientAddressVariables {
+    patientId: string;
+    data: {
+        address: PatientAddressDetails;
+        isPrimary?: boolean;
+    };
+}
+
+interface UpdatePatientAddressVariables {
+    patientId: string;
+    addressId: string;
+    data: {
+        address?: PatientAddressDetails;
+        isPrimary?: boolean;
+    };
+}
+
+interface UploadMedicalRecordsVariables {
+    patientId: string;
+    files: File[];
+    metadata?: {
+        title?: string;
+        type?: string;
+    };
+    onUploadProgress?: (event: AxiosProgressEvent) => void;
+}
+
+interface OrderDNAKitVariables {
+    patientId: string;
+    data: {
+        barcode: string;
+        reportId: string;
+        orderType: DnaOrderType;
+        addressId?: string;
+    };
 }
 
 /**
