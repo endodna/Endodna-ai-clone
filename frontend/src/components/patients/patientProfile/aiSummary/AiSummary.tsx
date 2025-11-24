@@ -280,13 +280,11 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
         const lastName = patient.lastName || "";
         const fullName = `${firstName} ${lastName}`.trim() || "Patient";
         const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : "";
-        const now = new Date();
-        const dateTime = formatDate(now, "MM/DD/YYYY").toLowerCase();
         
         if (dob) {
-            return `${fullName}-${dob} ${dateTime}`;
+            return `${fullName} ${dob}`;
         }
-        return `${fullName} ${dateTime}`;
+        return fullName;
     };
 
     const generateGeneralConversationTitle = (): string => {

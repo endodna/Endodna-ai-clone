@@ -13,10 +13,39 @@ import { cn } from "@/lib/utils";
 import endodnaLogo from "@/assets/endodna.svg";
 import endodnaSmallLogo from "@/assets/endodna_small.svg";
 import { AllChatsHistory } from "./AllChatsHistory";
+import { useCreateGeneralConversation } from "@/hooks/useDoctor";
+import { useAppDispatch } from "@/store/hooks";
+import { selectGlobalConversation } from "@/store/features/chat";
+import { toast } from "sonner";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const dispatch = useAppDispatch();
+  const createGeneralConversation = useCreateGeneralConversation();
+
+  const handleNewChatClick = async () => {
+    try {
+      const response = await createGeneralConversation.mutateAsync({});
+      
+      if (response.error || !response.data) {
+        toast.error(response.message || "Unable to create conversation.");
+        return;
+      }
+
+      const conversationId = response.data.id;
+      
+      // Open GlobalChatModal with the new general conversation
+      dispatch(
+        selectGlobalConversation({
+          conversationId,
+          type: "general",
+        })
+      );
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to create conversation.");
+    }
+  };
 
   return (
     <Sidebar
@@ -57,6 +86,7 @@ export function AppSidebar() {
             )}
             variant="ghost"
             size={isCollapsed ? "icon" : "default"}
+            onClick={handleNewChatClick}
           >
             <Plus
               className={cn("h-4 w-4", isCollapsed ? "mr-0 text-primary" : "")}

@@ -1628,23 +1628,15 @@ class DoctorController {
 
       const chatType = ChatType.GENERAL;
       const patientName = `${patient.firstName} ${patient.lastName}`.trim();
-      const chatTypeDisplay = chatType.split("_")
-        .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-        .join(" ");
-      const date = new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
 
-      let defaultTitle = `${patientName} - ${chatTypeDisplay} - ${date}`;
+      let defaultTitle = patientName;
       if (patient.dateOfBirth) {
         const dob = new Date(patient.dateOfBirth).toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
         });
-        defaultTitle = `${patientName} (DOB: ${dob}) - ${chatTypeDisplay} - ${date}`;
+        defaultTitle = `${patientName} ${dob}`;
       }
 
       const [conversation] = await Promise.all([
