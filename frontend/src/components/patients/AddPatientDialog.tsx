@@ -21,14 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreatePatient } from "@/hooks/useDoctor";
+import { useCreatePatient, useGetConstants } from "@/hooks/useDoctor";
 import { cn } from "@/lib/utils";
-import { AddPatientFormData, addPatientSchema } from "@/schemas/patient.schema";
+import { addPatientSchema } from "@/schemas/patient.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { GENDER_OPTIONS } from "../constants/patient";
+import { useMemo } from "react";
+import { z } from "zod";
 import { PatientSuccessDialog } from "./PatientSuccessDialog";
 import { PatientUploadRecordsDialog } from "./PatientUploadRecordsDialog";
 import { UploadRecordsSuccessDialog } from "./UploadRecordsSuccessDialog";
@@ -55,6 +57,39 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
   const dispatch = useAppDispatch();
   const { error } = useAppSelector((state) => state.patientDialog);
 
+  // Fetch constants for gender options
+  const { data: constantsData } = useGetConstants();
+  const constants = constantsData?.data;
+
+  // Transform API gender response to UI format
+  const genderOptions = useMemo(() => {
+    if (!constants?.gender || !Array.isArray(constants.gender)) {
+      // Fallback to static constants if API fails
+      return [...GENDER_OPTIONS];
+    }
+
+    return constants.gender
+      .filter((g) => g !== "ALL") // Remove "ALL" - not applicable for patient forms
+      .map((g) => {
+        // Convert enum value to lowercase for value
+        const value = g.toLowerCase();
+        
+        // Format label: "PREFER_NOT_TO_SAY" -> "Prefer Not To Say"
+        const label = g
+          .split("_")
+          .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+          .join(" ");
+
+        return { value, label };
+      });
+  }, [constants]);
+
+  // Create schema with dynamic gender options
+  const schema = useMemo(() => addPatientSchema(genderOptions), [genderOptions]);
+  
+  // Infer form data type from schema
+  type AddPatientFormData = z.infer<typeof schema>;
+
   const {
     register,
     handleSubmit,
@@ -65,7 +100,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
     control,
     setError: setFormError,
   } = useForm<AddPatientFormData>({
-    resolver: zodResolver(addPatientSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -267,7 +302,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GENDER_OPTIONS.map((option) => (
+                  {genderOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

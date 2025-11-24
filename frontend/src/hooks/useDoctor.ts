@@ -2,18 +2,6 @@ import { queryKeys } from "@/components/constants/QueryKeys";
 import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
 import { AddPatientFormData } from "@/schemas/patient.schema";
 import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
-import { AxiosProgressEvent } from "axios";
-
-
-interface UploadMedicalRecordsVariables {
-    patientId: string;
-    files: File[];
-    metadata?: {
-        title?: string;
-        type?: string;
-    };
-    onUploadProgress?: (event: AxiosProgressEvent) => void;
-}
 
 /** 
  * Hook for fetching doctor's patients list
@@ -368,6 +356,106 @@ export const useUpdateGeneralConversationTitle = (
             if (!response.error) {
                 queryClient.invalidateQueries({
                     queryKey: queryKeys.doctor.chat.general.conversations(),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+// DNA/Genetics hooks
+export const useGetPatientGenetics = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<PatientDNAResult[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientDNAResult[]>, Error>({
+        queryKey: queryKeys.doctor.dna.results(patientId),
+        queryFn: () => doctorsApi.getPatientGenetics(patientId),
+        enabled: Boolean(patientId),
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useGetReports = (
+    params?: { gender?: string },
+    options?: Omit<UseQueryOptions<ApiResponse<Report[]>, Error>, "queryKey" | "queryFn">
+) => {
+    const gender = (params?.gender ?? "ALL").toUpperCase();
+    const queryParams = { ...params, gender };
+    return useQuery<ApiResponse<Report[]>, Error>({
+        queryKey: queryKeys.doctor.dna.reports(gender),
+        queryFn: () => doctorsApi.getReports(queryParams),
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+export const useOrderDNAKit = (
+    options?: Omit<UseMutationOptions<ApiResponse<OrderDNAKitResponseData>, Error, OrderDNAKitVariables>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<OrderDNAKitResponseData>, Error, OrderDNAKitVariables>({
+        mutationFn: ({ patientId, data }) => doctorsApi.orderDNAKit(patientId, data),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.dna.results(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+// Patient Address hooks
+export const useGetPatientAddresses = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse<PatientAddress[]>, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse<PatientAddress[]>, Error>({
+        queryKey: queryKeys.doctor.dna.addresses(patientId),
+        queryFn: () => doctorsApi.getPatientAddresses(patientId),
+        enabled: Boolean(patientId),
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
+
+export const useCreatePatientAddress = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientAddress>, Error, CreatePatientAddressVariables>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientAddress>, Error, CreatePatientAddressVariables>({
+        mutationFn: ({ patientId, data }) => doctorsApi.createPatientAddress(patientId, data),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.dna.addresses(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+export const useUpdatePatientAddress = (
+    options?: Omit<UseMutationOptions<ApiResponse<PatientAddress>, Error, UpdatePatientAddressVariables>, "mutationFn">
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse<PatientAddress>, Error, UpdatePatientAddressVariables>({
+        mutationFn: ({ patientId, addressId, data }) => doctorsApi.updatePatientAddress(patientId, addressId, data),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.dna.addresses(variables.patientId),
                 });
             }
         },

@@ -33,6 +33,13 @@ export const queryKeys = {
           [...queryKeys.doctor.chat.general.all(), "messages", conversationId] as const,
       },
     },
+    dna: {
+      all: () => [...queryKeys.doctor.all, "dna"] as const,
+      results: (patientId: string) => [...queryKeys.doctor.dna.all(), "results", patientId] as const,
+      reports: (gender: string | null | undefined) =>
+        [...queryKeys.doctor.dna.all(), "reports", gender ?? "ALL"] as const,
+      addresses: (patientId: string) => [...queryKeys.doctor.dna.all(), "addresses", patientId] as const,
+    },
   },
   misc: {
     all: ["misc"] as const,

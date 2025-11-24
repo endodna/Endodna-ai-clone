@@ -7,9 +7,11 @@ import { NotesTab } from "@/components/patients/patientProfile/tabs/NotesTab";
 import { SummaryTab } from "@/components/patients/patientProfile/tabs/SummaryTab";
 import { TreatmentPlanTab } from "@/components/patients/patientProfile/tabs/TreatmentPlanTab";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useGetPatientById } from "@/hooks/useDoctor";
 
 interface TabProps {
   patientId?: string;
+  patient?: PatientDetail | null;
 }
 
 const TABS: TabConfig<TabProps>[] = [
@@ -24,6 +26,10 @@ export default function PatientProfilePage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { data: patientResponse } = useGetPatientById(patientId ?? "", {
+    enabled: Boolean(patientId),
+  });
+  const patient = patientResponse?.data ?? null;
 
   const defaultTabId = TABS[0]?.id ?? "summary";
   const tabFromUrl = searchParams.get("tab");
@@ -54,7 +60,7 @@ export default function PatientProfilePage() {
           value={activeTab}
           defaultValue={defaultTabId}
           onTabChange={handleTabChange}
-          tabProps={{ patientId }}
+          tabProps={{ patientId, patient }}
         />
         {/* <AiSummary /> */}
       </div>

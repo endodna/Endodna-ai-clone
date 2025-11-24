@@ -1,12 +1,22 @@
 import apiClient from "../../lib/apiClient";
 import { API_ENDPOINTS, getEndpoint } from "./endpoints";
-import { AxiosRequestConfig, AxiosProgressEvent } from "axios";
+import { AxiosRequestConfig, AxiosProgressEvent, isAxiosError } from "axios";
 
 export interface ApiResponse<T = any> {
   data: T | null;
   error: boolean;
   message: string;
 }
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (isAxiosError<ApiResponse>(error)) {
+    return error.response?.data?.message ?? fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+};
 
 // Authentication API
 export const authApi = {
@@ -735,6 +745,151 @@ export const doctorsApi = {
           error.response?.data?.message ||
           error.message ||
           "Failed to update conversation title",
+      };
+    }
+  },
+
+  // Genetics/DNA endpoints
+  getPatientGenetics: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientDNAResult[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GENETICS, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch patient genetics"),
+      };
+    }
+  },
+
+  orderDNAKit: async (
+    patientId: string,
+    data: {
+      barcode: string;
+      reportId: string;
+      orderType: DnaOrderType;
+      addressId?: string;
+    }
+  ): Promise<ApiResponse<OrderDNAKitResponseData>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.LAB_ORDERS, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<OrderDNAKitResponseData>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to order DNA kit"),
+      };
+    }
+  },
+
+  // Reports endpoints
+  getReports: async (
+    params?: { gender?: string }
+  ): Promise<ApiResponse<Report[]>> => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.DOCTOR.REPORTS.LIST, {
+        params,
+      });
+      return response.data;
+    } catch (error: unknown) {
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch reports"),
+      };
+    }
+  },
+
+  // Patient Address endpoints
+  getPatientAddresses: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientAddress[]>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ADDRESSES.LIST, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch patient addresses"),
+      };
+    }
+  },
+
+  createPatientAddress: async (
+    patientId: string,
+    data: {
+      address: PatientAddressDetails;
+      isPrimary?: boolean;
+    }
+  ): Promise<ApiResponse<PatientAddress>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ADDRESSES.CREATE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<PatientAddress>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to create patient address"),
+      };
+    }
+  },
+
+  updatePatientAddress: async (
+    patientId: string,
+    addressId: string,
+    data: {
+      address?: PatientAddressDetails;
+      isPrimary?: boolean;
+    }
+  ): Promise<ApiResponse<PatientAddress>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ADDRESSES.UPDATE,
+          patientId,
+          addressId
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<PatientAddress>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to update patient address"),
       };
     }
   },
