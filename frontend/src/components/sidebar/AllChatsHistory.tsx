@@ -11,7 +11,7 @@ import {
   useGetGeneralConversations,
 } from "@/hooks/useDoctor";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectConversation } from "@/store/features/chat";
+import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
 
 export function AllChatsHistory() {
@@ -38,11 +38,12 @@ export function AllChatsHistory() {
 
   const isLoading = isLoadingGeneralChats || isLoadingAllPatientChats;
 
-  const handleConversationClick = (conversationId: string, type: "patient" | "general") => {
+  const handleConversationClick = (conversationId: string, type: "patient" | "general", patientId?: string) => {
     dispatch(
-      selectConversation({
+      selectGlobalConversation({
         conversationId,
         type,
+        patientId: type === "patient" ? patientId : undefined,
       })
     );
   };
@@ -65,7 +66,7 @@ export function AllChatsHistory() {
       <button
         key={item.id}
         type="button"
-        onClick={() => handleConversationClick(item.id, chatType)}
+        onClick={() => handleConversationClick(item.id, chatType, item.patient?.id)}
         className={cn(
           "flex items-center justify-between w-full py-2 text-left transition",
           isSelected && "bg-violet-50"

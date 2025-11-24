@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -8,7 +7,6 @@ import {
   ChevronUp,
   MessageSquare,
   Pencil,
-  Plus,
   Check,
   X,
 } from "lucide-react";
@@ -19,7 +17,7 @@ import {
   useUpdatePatientConversationTitle,
 } from "@/hooks/useDoctor";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectConversation } from "@/store/features/chat";
+import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
 
 interface ChatsHistoryProps {
@@ -70,15 +68,16 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
 
   const filteredChats = conversations;
 
-  const handleConversationClick = (conversationId: string, type: "patient" | "general", event?: React.MouseEvent) => {
+  const handleConversationClick = (conversationId: string, type: "patient" | "general", event?: React.MouseEvent, conversationPatientId?: string) => {
     // Don't select conversation if clicking on edit icon or input
     if (event && (event.target as HTMLElement).closest('.edit-controls')) {
       return;
     }
     dispatch(
-      selectConversation({
+      selectGlobalConversation({
         conversationId,
         type,
+        patientId: type === "patient" ? (conversationPatientId || patientId) : undefined,
       })
     );
   };
@@ -134,20 +133,6 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
     );
   }
 
-  if (!conversations.length) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 p-6 text-center">
-        <p className="text-sm text-neutral-600">
-          Start a new conversation to explore insights, ask questions, or kick
-          off a fresh interaction.
-        </p>
-        <Button variant="ghost" size="sm" className="gap-2 text-violet-600">
-          <Plus className="h-4 w-4" />
-          Create new chat
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -199,9 +184,14 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
             </div>
           </div> */}
 
-
-          <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
-            {filteredChats.map((item) => {
+          {!conversations.length ? (
+            <div className="mt-4 px-4 py-8 text-center">
+              <p className="text-sm text-neutral-500">No chats found</p>
+              <p className="text-sm text-neutral-500">Create new chat using chatbox.</p>
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
+              {filteredChats.map((item) => {
               // Always use "patient" type since we only show patient conversations
               const chatType = "patient" as const;
               const isSelected = selectedConversationId === item.id;
@@ -228,7 +218,7 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
                 >
                   <button
                     type="button"
-                    onClick={(e) => handleConversationClick(item.id, chatType, e)}
+                    onClick={(e) => handleConversationClick(item.id, chatType, e, (item as any).patient?.id)}
                     className="flex items-center flex-1 min-w-0 gap-2 text-left"
                   >
                     <div className="flex flex-col flex-1 min-w-0">
@@ -294,8 +284,9 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
                   </div>
                 </div>
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </>
       )}
     </div>
