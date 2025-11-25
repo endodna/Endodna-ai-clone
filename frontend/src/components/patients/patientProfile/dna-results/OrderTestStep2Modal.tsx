@@ -15,13 +15,14 @@ import { Spinner } from "@/components/ui/spinner";
 import { useGetPatientAddresses, useGetReports } from "@/hooks/useDoctor";
 
 import { formatAddress } from "@/lib/utils";
+import { shouldShowShippingAddress } from "@/utils/orderType.utils";
 import { Step1Data } from '../tabs/DnaResultsTab';
 
 type OrderTestStep2ModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     patientId: string;
-    orderType: DnaOrderType;
+    orderType: string;
     step1Data: Step1Data;
     onConfirm: () => void;
     onCancel: () => void;
@@ -78,7 +79,7 @@ export const OrderTestStep2Modal = ({
                         </div>
                     </div>
 
-                    {orderType === "SHIP_DIRECTLY_TO_PATIENT" && (
+                    {shouldShowShippingAddress(orderType) && (
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">Shipping Address</Label>
                             <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">

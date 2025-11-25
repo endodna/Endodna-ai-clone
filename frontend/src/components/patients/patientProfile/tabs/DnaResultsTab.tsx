@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGetPatientGenetics, useOrderDNAKit } from "@/hooks/useDoctor";
 import { formatDate } from "@/utils/date.utils";
+import { shouldSkipStep2 } from "@/utils/orderType.utils";
 
 import { DnaResultsTable } from "@/components/patients/patientProfile/dna-results/DnaResultsTable";
 import { OrderTestOptionsModal } from "@/components/patients/patientProfile/dna-results/OrderTestOptionsModal";
@@ -27,7 +28,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
     const [showOptionsModal, setShowOptionsModal] = useState(false);
     const [showStep1Modal, setShowStep1Modal] = useState(false);
     const [showStep2Modal, setShowStep2Modal] = useState(false);
-    const [selectedOrderType, setSelectedOrderType] = useState<DnaOrderType | null>(null);
+    const [selectedOrderType, setSelectedOrderType] = useState<string | null>(null);
     const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
     const [step1Error, setStep1Error] = useState<string | null>(null);
 
@@ -53,7 +54,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
         setStep1Error(null);
     };
 
-    const handleSelectOption = (option: DnaOrderType) => {
+    const handleSelectOption = (option: string) => {
         setStep1Error(null);
         setStep1Data(null);
         setSelectedOrderType(option);
@@ -61,7 +62,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
         setShowStep1Modal(true);
     };
 
-    const submitOrder = async (data: Step1Data, orderType: DnaOrderType) => {
+    const submitOrder = async (data: Step1Data, orderType: string) => {
         if (!patientId) return null;
         return orderMutation.mutateAsync({
             patientId,
@@ -82,7 +83,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
                 setStep1Error(response?.message ?? "Failed to submit order. Please try again.");
                 return;
             }
-            if (selectedOrderType === "PATIENT_SELF_PURCHASE") {
+            if (shouldSkipStep2(selectedOrderType)) {
                 resetFlow();
                 return;
             }
@@ -163,7 +164,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
                             errorMessage={step1Error}
                         />
 
-                        {selectedOrderType !== "PATIENT_SELF_PURCHASE" && step1Data && (
+                        {!shouldSkipStep2(selectedOrderType) && step1Data && (
                             <OrderTestStep2Modal
                                 open={showStep2Modal}
                                 onOpenChange={(open) => {

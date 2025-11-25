@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreatePatient, useGetConstants } from "@/hooks/useDoctor";
+import { useCreatePatient } from "@/hooks/useDoctor";
+import { useConstants } from "@/contexts/ConstantsContext";
 import { cn } from "@/lib/utils";
 import { addPatientSchema } from "@/schemas/patient.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,9 +58,8 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
   const dispatch = useAppDispatch();
   const { error } = useAppSelector((state) => state.patientDialog);
 
-  // Fetch constants for gender options
-  const { data: constantsData } = useGetConstants();
-  const constants = constantsData?.data;
+  // Get constants from context
+  const { constants } = useConstants();
 
   // Transform API gender response to UI format
   const genderOptions = useMemo(() => {

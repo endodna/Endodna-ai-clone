@@ -26,7 +26,7 @@ interface Constants {
     gender: string[];
 }
 
-type DnaOrderType = "ACTIVATE_COLLECTION_KIT" | "SHIP_DIRECTLY_TO_PATIENT" | "PATIENT_SELF_PURCHASE";
+
 
 interface Report {
     id: string;

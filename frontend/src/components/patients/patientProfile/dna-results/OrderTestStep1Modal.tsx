@@ -16,22 +16,20 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn, formatAddress } from "@/lib/utils";
 import { useGetPatientAddresses, useGetReports } from "@/hooks/useDoctor";
+import { formatOrderTypeDisplay, requiresAddress } from "@/utils/orderType.utils";
 import { Step1Data } from '../tabs/DnaResultsTab';
 
 type OrderTestStep1ModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     patientId: string;
-    orderType: DnaOrderType;
+    orderType: string;
     onSubmit: (data: Step1Data) => Promise<void>;
     patient?: PatientDetail | null;
     isSubmitting: boolean;
     errorMessage?: string | null;
 };
 
-
-const requiresAddress = (orderType: DnaOrderType) =>
-    orderType === "SHIP_DIRECTLY_TO_PATIENT" || orderType === "PATIENT_SELF_PURCHASE";
 
 export const OrderTestStep1Modal = ({
     open,
@@ -189,9 +187,7 @@ export const OrderTestStep1Modal = ({
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Order DNA Test - Step 1</DialogTitle>
                     <DialogDescription className="text-base text-neutral-600 pt-2">
-                        {orderType === "ACTIVATE_COLLECTION_KIT" && "Activate Collection Kit"}
-                        {orderType === "SHIP_DIRECTLY_TO_PATIENT" && "Ship Direct to Patient"}
-                        {orderType === "PATIENT_SELF_PURCHASE" && "Patient Self-Purchase"}
+                        {formatOrderTypeDisplay(orderType)}
                     </DialogDescription>
                 </DialogHeader>
 

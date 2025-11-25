@@ -772,7 +772,7 @@ export const doctorsApi = {
     data: {
       barcode: string;
       reportId: string;
-      orderType: DnaOrderType;
+      orderType: string;
       addressId?: string;
     }
   ): Promise<ApiResponse<OrderDNAKitResponseData>> => {

@@ -4,6 +4,7 @@ import { ReduxProvider } from "./providers/ReduxProvider";
 import { SupabaseProvider } from "./contexts/SupabaseContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MenuProvider } from "./contexts/MenuContext";
+import { ConstantsProvider } from "./contexts/ConstantsContext";
 import { router } from "./router";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -18,12 +19,14 @@ function App() {
       <QueryClientProvider>
         <SupabaseProvider>
           <AuthProvider>
-            <MenuProvider>
-              <TooltipProvider delayDuration={0}>
-                <Toaster />
-                <AppContent />
-              </TooltipProvider>
-            </MenuProvider>
+            <ConstantsProvider>
+              <MenuProvider>
+                <TooltipProvider delayDuration={0}>
+                  <Toaster />
+                  <AppContent />
+                </TooltipProvider>
+              </MenuProvider>
+            </ConstantsProvider>
           </AuthProvider>
         </SupabaseProvider>
       </QueryClientProvider>
