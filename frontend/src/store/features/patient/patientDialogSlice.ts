@@ -5,6 +5,7 @@ interface PatientDialogState {
   isSuccessDialogOpen: boolean;
   isUploadDialogOpen: boolean;
   isUploadSuccessDialogOpen: boolean;
+  isInvitePatientDialogOpen: boolean;
   error: string | null;
   currentPatientId: string | null;
 }
@@ -14,6 +15,7 @@ const initialState: PatientDialogState = {
   isSuccessDialogOpen: false,
   isUploadDialogOpen: false,
   isUploadSuccessDialogOpen: false,
+  isInvitePatientDialogOpen: false,
   error: null,
   currentPatientId: null,
 };
@@ -57,11 +59,20 @@ const patientDialogSlice = createSlice({
     setCurrentPatientId: (state, action: PayloadAction<string | null>) => {
       state.currentPatientId = action.payload;
     },
+    openInvitePatientDialog: (
+      state,
+    ) => {
+      state.isInvitePatientDialogOpen = true;
+    },
+    closeInvitePatientDialog: (state) => {
+      state.isInvitePatientDialogOpen = false;
+    },
     resetPatientDialogs: (state) => {
       state.isAddPatientDialogOpen = false;
       state.isSuccessDialogOpen = false;
       state.isUploadDialogOpen = false;
       state.isUploadSuccessDialogOpen = false;
+      state.isInvitePatientDialogOpen = false;
       state.error = null;
       state.currentPatientId = null;
     },
@@ -80,6 +91,8 @@ export const {
   setError,
   clearError,
   setCurrentPatientId,
+  openInvitePatientDialog,
+  closeInvitePatientDialog,
   resetPatientDialogs,
 } = patientDialogSlice.actions;
 

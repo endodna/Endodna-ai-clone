@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { DataTable, PaginationInfo } from "@/components/ui/data-table";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
-import { patientColumns } from "./columns";
+import { getPatientColumns } from "./columns";
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 import { Loading } from "../Loading";
 
 interface PatientTableProps {
@@ -34,6 +35,7 @@ interface PatientTableProps {
    * Callback when page changes
    */
   onPageChange?: (page: number) => void;
+  onInvitePatient?: (patient: PatientRow) => void;
 }
 
 /**
@@ -47,8 +49,13 @@ export function PatientTable({
   isRefetching = false,
   pagination,
   onPageChange,
+  onInvitePatient,
 }: Readonly<PatientTableProps>) {
   const navigate = useNavigate();
+  const columns = useMemo(
+    () => getPatientColumns(onInvitePatient),
+    [onInvitePatient],
+  );
 
   const handleRowClick = (patient: PatientRow) => {
     navigate(`/dashboard/patients/${patient.id}`);
@@ -103,7 +110,7 @@ export function PatientTable({
         </div>
       )}
       <DataTable
-        columns={patientColumns}
+        columns={columns}
         data={data}
         enableSorting={true}
         enableFiltering={true}
