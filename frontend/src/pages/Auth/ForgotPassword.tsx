@@ -74,10 +74,10 @@ export default function LoginForm() {
       <AuthContainer
         header={
           <div className="flex flex-col gap-4">
-            <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+            <div className="pt-4 text-neutral-700-old ">
               Instructions Sent!
             </div>
-            <div className="text-xs text-neutral-700">
+            <div className="text-neutral-700-old">
               <p>
                 You’ll receive an email shortly to help you create a new
                 password.
@@ -90,7 +90,7 @@ export default function LoginForm() {
         <div>
           <Button
             onClick={() => navigate("/")}
-            className="ml-auto w-full bg-violet-600 hover:bg-violet-600"
+            variant="accent"
           >
             Back to Login
           </Button>
@@ -110,10 +110,10 @@ export default function LoginForm() {
             </Link>
           </div>
           <div>
-            <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+            <div className=" pt-4 text-neutral-700-old ">
               Forgot Password
             </div>
-            <div className="text-xs text-neutral-700">
+            <div className="text-xs text-neutral-700-old">
               Please enter your email to reset your password
             </div>
           </div>

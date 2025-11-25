@@ -172,9 +172,9 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
       <DialogContent className="p-4 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader>
           <DialogTitle>
-            <h4 className="text-xl leading-[120%] font-semibold">Add new patient</h4>
+            <h4 className="typo-h4 leading-[120%] ">Add new patient</h4>
           </DialogTitle>
-          <DialogDescription className="text-base text-neutral-600 pt-4 md:pt-[26px]">
+          <DialogDescription className="typo-body-1 text-neutral-600-old pt-4 md:pt-[26px]">
             Build your patient list by adding individuals under your care. Once added, you’ll be able to assign health goals, and monitor their health progress.
           </DialogDescription>
         </DialogHeader>
@@ -183,14 +183,14 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-4">
             {/* First Name */}
             <div className="space-y-1">
-              <label htmlFor="firstName" className="text-sm font-medium leading-normal">First name *</label>
+              <label htmlFor="firstName" className="typo-body-2  ">First name *</label>
               <Input
                 {...register("firstName")}
                 placeholder="First name"
                 className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.firstName ? "border-red-500" : "")}
               />
               {errors.firstName && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">
+                <p className="typo-body-2   text-red-500 md:mt-1">
                   {errors.firstName.message}
                 </p>
               )}
@@ -198,7 +198,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Last Name */}
             <div className="space-y-1">
-              <label htmlFor="lastName" className="text-sm font-medium leading-normal">
+              <label htmlFor="lastName" className="typo-body-2  ">
                 Last name *
               </label>
               <Input
@@ -207,7 +207,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.lastName ? "border-red-500" : "")}
               />
               {errors.lastName && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">
+                <p className="typo-body-2   text-red-500 md:mt-1">
                   {errors.lastName.message}
                 </p>
               )}
@@ -215,7 +215,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Date of Birth */}
             <div className="space-y-1">
-              <label htmlFor="dateOfBirth" className="text-sm font-medium leading-normal">
+              <label htmlFor="dateOfBirth" className="typo-body-2  ">
                 Date of birth *
               </label>
               <Controller
@@ -239,7 +239,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                           type="button"
                           variant="outline"
                           className={cn(
-                            "px-2 md:px-4 py-[6px] md:py-[9.5px] w-full justify-start text-left font-normal",
+                            "px-2 md:px-4 py-[6px] md:py-[9.5px] w-full justify-start text-left ",
                             errors.dateOfBirth ? "border-red-500" : ""
                           )}
                         >
@@ -281,7 +281,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 }}
               />
               {errors.dateOfBirth && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">
+                <p className="typo-body-2   text-red-500 md:mt-1">
                   {errors.dateOfBirth.message}
                 </p>
               )}
@@ -289,7 +289,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Gender */}
             <div className="space-y-1">
-              <label htmlFor="gender" className="text-sm font-medium leading-normal">
+              <label htmlFor="gender" className="typo-body-2  ">
                 Gender *
               </label>
               <Select
@@ -310,13 +310,13 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 </SelectContent>
               </Select>
               {errors.gender && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">{errors.gender.message}</p>
+                <p className="typo-body-2   text-red-500 md:mt-1">{errors.gender.message}</p>
               )}
             </div>
 
             {/* Email */}
             <div className="space-y-1">
-              <label htmlFor="email" className="text-sm font-medium leading-normal">
+              <label htmlFor="email" className="typo-body-2  ">
                 Email *
               </label>
               <Input
@@ -326,13 +326,13 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.email ? "border-red-500" : "")}
               />
               {errors.email && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">{errors.email.message}</p>
+                <p className="typo-body-2   text-red-500 md:mt-1">{errors.email.message}</p>
               )}
             </div>
 
             {/* Mobile Phone */}
             <div className="space-y-1">
-              <label htmlFor="phoneNumber" className="text-sm font-medium leading-normal">
+              <label htmlFor="phoneNumber" className="typo-body-2  ">
                 Mobile phone *
               </label>
               <Input
@@ -342,7 +342,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.phoneNumber ? "border-red-500" : "")}
               />
               {errors.phoneNumber && (
-                <p className="text-sm font-medium leading-normal text-red-500 md:mt-1">
+                <p className="typo-body-2   text-red-500 md:mt-1">
                   {errors.phoneNumber.message}
                 </p>
               )}
@@ -350,7 +350,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Home Phone */}
             <div className="space-y-1">
-              <label htmlFor="homePhone" className="text-sm font-medium leading-normal">
+              <label htmlFor="homePhone" className="typo-body-2  ">
                 Home phone
               </label>
               <Input
@@ -363,7 +363,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
             {/* Work Phone */}
             <div className="space-y-1">
-              <label htmlFor="workPhone" className="text-sm font-medium leading-normal">
+              <label htmlFor="workPhone" className="typo-body-2  ">
                 Work phone
               </label>
               <Input
@@ -376,7 +376,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
           </div>
 
           {error && (
-            <div className="text-sm font-medium leading-normal text-red-500 md:mt-1">
+            <div className="typo-body-2   text-red-500 md:mt-1">
               {error}
             </div>
           )}
@@ -390,7 +390,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
               {createPatientMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              <span className="text-sm font-medium leading-normal">Add Patient</span>
+              <span className="typo-body-2  ">Add Patient</span>
             </Button>
           </DialogFooter>
         </form>

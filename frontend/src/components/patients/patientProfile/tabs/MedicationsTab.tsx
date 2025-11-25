@@ -124,7 +124,7 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
         if (isError) {
             return (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                    <p className="text-sm text-red-700">
+                    <p className="typo-body-2 text-red-700">
                         {error?.message || "Failed to load medications. Please try again later."}
                     </p>
                 </div>
@@ -134,14 +134,14 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
         if (!medications.length) {
             return (
                 <div className="rounded-lg bg-neutral-100 w-full min-h-[120px] md:min-h-[230px] flex flex-col items-center justify-center gap-1 md:gap-3">
-                    <p className="text-sm font-normal text-neutral-600 leading-normal">Add medications to track patient&apos;s plan.</p>
+                    <p className="typo-body-2  text-neutral-600-old ">Add medications to track patient&apos;s plan.</p>
                     <Button
                         variant="ghost"
-                        className="text-sm font-medium"
+                        className="typo-body-2 "
                         onClick={handleAddMedication}
                     >
                         <Plus className="mr-2 h-4 w-4" />
-                        <span className="text-neutral-700">Add Medications</span>
+                        <span className="text-neutral-700-old">Add Medications</span>
                     </Button>
                 </div>
             );
@@ -158,26 +158,26 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="text-sm border-none">
-                                <TableHead className="text-neutral-950 font-medium text-left">Name</TableHead>
-                                <TableHead className="text-neutral-950 font-medium text-center ">Dosage</TableHead>
-                                <TableHead className="text-neutral-950 font-medium text-center">Frequency</TableHead>
-                                <TableHead className="text-neutral-950 font-medium text-center">Reason</TableHead>
-                                <TableHead className="text-right text-neutral-950 font-medium">Actions</TableHead>
+                            <TableRow className="typo-body-2 border-none">
+                                <TableHead className="text-neutral-950  text-left">Name</TableHead>
+                                <TableHead className="text-neutral-950  text-center ">Dosage</TableHead>
+                                <TableHead className="text-neutral-950  text-center">Frequency</TableHead>
+                                <TableHead className="text-neutral-950  text-center">Reason</TableHead>
+                                <TableHead className="text-right text-neutral-950 ">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {medications.map((medication) => (
-                                <TableRow key={medication.id} className="text-sm border-none">
-                                    <TableCell className="text-neutral-950 font-normal text-left">{medication.drugName}</TableCell>
-                                    <TableCell className="text-neutral-950 font-normal text-center">{medication.dosage}</TableCell>
-                                    <TableCell className="text-neutral-950 font-normal text-center">{medication.frequency}</TableCell>
-                                    <TableCell className="text-neutral-950 font-normal text-center">{medication.reason}</TableCell>
+                                <TableRow key={medication.id} className="typo-body-2 border-none">
+                                    <TableCell className="text-neutral-950  text-left">{medication.drugName}</TableCell>
+                                    <TableCell className="text-neutral-950  text-center">{medication.dosage}</TableCell>
+                                    <TableCell className="text-neutral-950  text-center">{medication.frequency}</TableCell>
+                                    <TableCell className="text-neutral-950  text-center">{medication.reason}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-1 md:gap-2">
                                             <Button
                                                 variant="ghost"
-                                                className="p-2 h-4 w-4 text-[#525252] hover:text-neutral-950"
+                                                className="p-2 h-4 w-4"
                                                 onClick={() => handleDeleteMedication(medication)}
                                                 disabled={deleteMedicationMutation.isPending}
                                             >
@@ -185,7 +185,7 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
                                             </Button>
                                             <Button
                                                 variant="ghost"
-                                                className="p-2 h-4 w-4 text-[#525252] hover:text-neutral-950"
+                                                className="p-2 h-4 w-4"
                                                 onClick={() => handleEditMedication(medication)}
                                             >
                                                 <Pencil className="h-4 w-4 stroke-[1.5px]" />
@@ -205,9 +205,9 @@ export function MedicationsTab({ patientId }: Readonly<MedicationsTabProps>) {
         <>
             <div className="rounded-lg p-4 md:p-6 bg-white space-y-4 md:space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-neutral-900">Current Medications</h3>
+                    <h3 className="typo-h5  text-neutral-900-old">Current Medications</h3>
                     {lastUpdated && (
-                        <span className="text-sm font-normal text-neutral-500">
+                        <span className="typo-body-2  text-neutral-500-old">
                             Updated in: {formatDate(lastUpdated)}
                         </span>
                     )}

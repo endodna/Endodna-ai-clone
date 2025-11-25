@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import endodnaLogo from "@/assets/endodna.svg";
-import endodnaSmallLogo from "@/assets/endodna_small.svg";
+import bellaVitaLogo from "@/assets/bellaVita.svg";
+import bellaVitaSmallLogo from "@/assets/bellaVita_small.svg";
 import { AllChatsHistory } from "./AllChatsHistory";
 import { useCreateGeneralConversation } from "@/hooks/useDoctor";
 import { useAppDispatch } from "@/store/hooks";
@@ -55,28 +55,31 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 flex gap-6">
         <div
           className={cn(
-            "relative",
-            isCollapsed
-              ? "flex flex-col items-center"
-              : "flex items-center gap-2 relative",
+            "relative flex flex-col gap-1",
+            isCollapsed ? "items-center" : "items-start",
           )}
         >
           <img
-            src={endodnaLogo}
-            alt="EndoDNA"
+            src={bellaVitaLogo}
+            alt="BellaVita"
             className={cn(
-              "h-8 w-auto transition-opacity",
+              "h-8 w-auto flex-shrink-0 transition-opacity",
               isCollapsed && "hidden",
             )}
           />
           <img
-            src={endodnaSmallLogo}
-            alt="EndoDNA"
+            src={bellaVitaSmallLogo}
+            alt="BellaVita"
             className={cn(
-              "h-10 w-auto transition-opacity",
+              "h-10 w-10 flex-shrink-0 object-contain transition-opacity",
               !isCollapsed && "hidden",
             )}
           />
+          {!isCollapsed && (
+            <p className="typo-body-2">
+              Powered by BIOS ai
+            </p>
+          )}
         </div>
         <div className={cn("flex flex-col", isCollapsed ? "gap-4" : "gap-10")}>
           <Button
@@ -91,17 +94,17 @@ export function AppSidebar() {
             <Plus
               className={cn("h-4 w-4", isCollapsed ? "mr-0 text-primary" : "")}
             />
-            {!isCollapsed && <p className="text-sm">New Chat</p>}
+            {!isCollapsed && <p className="typo-body-2">New Chat</p>}
           </Button>
           <div className="flex items-center gap-2">
             <FileStack
               className={cn(
                 "h-4 w-4",
-                isCollapsed ? "mr-0 text-primary" : "text-neutral-500",
+                isCollapsed ? "mr-0 text-primary" : "text-neutral-500-old",
               )}
             />
             {!isCollapsed && (
-              <span className="text-sm font-medium text-neutral-500">
+              <span className="typo-body-2">
                 Chats history
               </span>
             )}

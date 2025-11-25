@@ -88,10 +88,10 @@ export default function LoginForm() {
     <AuthContainer
       header={
         <div>
-          <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+          <div className=" pt-4 text-neutral-700-old ">
             Welcome Back
           </div>
-          {/* <div className="text-xs text-neutral-700">
+          {/* <div className="text-xs text-neutral-700-old">
             <span>
               Don't have an account?
               <a href="#" className="ml-1 text-violet-500">
@@ -113,7 +113,7 @@ export default function LoginForm() {
           isLoading={isLoading}
           onClearAllCustomErrors={handleClearAllCustomErrors}
         />
-        <div className="text-xs text-neutral-700 mt-4">
+        <div className="text-xs text-neutral-700-old mt-4">
           <span>Forgot your login details?</span>{" "}
           <Link to={"/auth/forgot-password"} className="text-violet-600">
             Reset password

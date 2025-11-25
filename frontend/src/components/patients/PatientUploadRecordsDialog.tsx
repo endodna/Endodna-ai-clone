@@ -93,14 +93,14 @@ export function PatientUploadRecordsDialog() {
     <Dialog open={isUploadDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="p-4 md:p-8 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader className="space-y-1 md:space-y-2 mb-4 md:mb-6">
-          <DialogTitle className="text-xl md:text-2xl font-semibold text-neutral-900">Upload medical records</DialogTitle>
-          <DialogDescription className="text-sm md:text-base text-neutral-500">
+          <DialogTitle className=" md:  text-neutral-900-old">Upload medical records</DialogTitle>
+          <DialogDescription className=" md: text-neutral-500-old">
             Additionally, you can include medical history records if you have them.
           </DialogDescription>
         </DialogHeader>
 
         {currentPatientId === null ? (
-          <p className="mb-4 text-sm text-red-500">Patient information is missing. Please close this dialog and try again.</p>
+          <p className="mb-4  text-red-500">Patient information is missing. Please close this dialog and try again.</p>
         ) : null}
 
         <FileUpload
@@ -117,7 +117,7 @@ export function PatientUploadRecordsDialog() {
 
         {submissionError ? (
           <Card className="mt-4 border-red-200 bg-red-50">
-            <CardContent className="flex items-start gap-2 p-3 text-sm font-medium text-red-600">
+            <CardContent className="flex items-start gap-2 p-3   text-red-600">
               {submissionError}
             </CardContent>
           </Card>
@@ -126,7 +126,7 @@ export function PatientUploadRecordsDialog() {
         <DialogFooter className="mt-8">
           <Button
             type="button"
-            className="w-full bg-violet-700 text-white hover:bg-violet-500 md:w-auto"
+            className="w-full md:w-auto"
             disabled={disableFinish}
             onClick={handleFinish}
           >
@@ -136,7 +136,7 @@ export function PatientUploadRecordsDialog() {
                 Uploading...
               </>
             ) : (
-              <span className="text-sm font-medium leading-normal">Finish</span>
+              <span className="  ">Finish</span>
             )}
           </Button>
         </DialogFooter>

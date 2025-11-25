@@ -5,7 +5,7 @@ import {
   EllipsisVertical,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { formatDate } from "@/utils/date.utils";
+import { formatDate, calculateAge } from "@/utils/date.utils";
 import { getDNAStatusDisplay } from "@/utils/patient.utils";
 import { truncateText } from "@/utils/utils";
 import { AlertIcon } from "./AlertIcon";
@@ -49,10 +49,10 @@ export const getPatientColumns = (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+          className="h-auto p-0 typo-body-2  hover:bg-transparent"
         >
           Patient
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
         </Button>
       );
     },
@@ -66,18 +66,19 @@ export const getPatientColumns = (
       const patient = row.original;
       const fullName = `${patient.firstName || ""} ${patient.lastName || ""}`.trim();
 
-      const dob = formatDate(patient.dateOfBirth);
+      const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : null;
+      const age = calculateAge(patient.dateOfBirth);
 
       return (
         <div className="flex items-start gap-3">
 
           <div className="flex flex-col">
-            <span className="text-neutral-950 text-sm font-normal leading-normal capitalize">
+            <span className="text-neutral-950 typo-body-2   capitalize">
               {fullName ?? ''}
             </span>
-            <div className="space-x-2 text-xs text-muted-foreground font-semibold leading-normal">
-              <span className="text-xs text-neutral-500">{patient.id && `ID: ${patient.id}`}</span>
-              <span className="text-xs text-neutral-500">{dob && `DOB: ${dob}`}</span>
+            <div className="space-x-2 typo-body-3   ">
+              {dob && <span className="typo-body-3 ">DOB: {dob}</span>}
+              {age !== null && <span className="typo-body-3 ">{age} {age === 1 ? 'year' : 'years'}</span>}
             </div>
           </div>
         </div>
@@ -95,10 +96,10 @@ export const getPatientColumns = (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+          className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
         >
           DNA Test Status
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
         </Button>
       );
     },
@@ -134,14 +135,14 @@ export const getPatientColumns = (
         })[0];
 
       if (!latestDNAResult) {
-        return <span className="text-neutral-400">-</span>;
+        return <span className="text-neutral-400-old">-</span>;
       }
 
       const { text } = getDNAStatusDisplay(latestDNAResult.status);
 
       return (
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="px-2 py-[3px] text-xs font-medium leading-normal bg-neutral-100 capitalize">{text}</Badge>
+          <Badge variant="secondary" className="px-2 py-[3px] typo-body-3 capitalize">{text}</Badge>
         </div>
       );
     },
@@ -157,10 +158,10 @@ export const getPatientColumns = (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+          className="h-auto p-0 typo-body-2  hover:bg-transparent"
         >
           Last activity
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
         </Button>
       );
     },
@@ -178,7 +179,7 @@ export const getPatientColumns = (
         })[0];
 
       if (!latestActivity) {
-        return <span className="text-neutral-400">-</span>;
+        return <span className="text-neutral-400-old">-</span>;
       }
 
       // Get the date from dateCompleted or createdAt
@@ -187,10 +188,10 @@ export const getPatientColumns = (
 
       return (
         <div className="flex flex-col items-start">
-          <span className="text-neutral-950 font-normal text-sm leading-normal">
+          <span className="text-neutral-950  typo-body-2 ">
             Lab Results
           </span>
-          <span className="text-muted-foreground text-xs font-normal leading-normal">
+          <span className="text-muted-foreground typo-body-3  ">
             {formattedDate}
           </span>
         </div>
@@ -208,7 +209,7 @@ export const getPatientColumns = (
       const goal = row.original.patientGoals?.[0]?.description || "-";
       const truncated = truncateText(goal, 50);
       return (
-        <div className="line-clamp-1 text-neutral-700">
+        <div className="line-clamp-1 text-neutral-700-old">
           {truncated}
         </div>
       );
@@ -225,10 +226,10 @@ export const getPatientColumns = (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-neutral-950 text-sm leading-normal hover:bg-transparent"
+          className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
         >
           Physician
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
         </Button>
       );
     },
@@ -246,8 +247,8 @@ export const getPatientColumns = (
         ? `Dr. ${doctor.firstName} ${doctor.lastName}`.trim()
         : "";
       return (
-        <span className="text-neutral-700">
-          {physicianName ?? <span className="text-neutral-400">No physician assigned</span>}
+        <span className="text-neutral-700-old">
+          {physicianName ?? <span className="text-neutral-400-old">No physician assigned</span>}
         </span>
       );
     },
@@ -261,7 +262,7 @@ export const getPatientColumns = (
     cell: () => (
       <div className="text-right last:rounded-r-xl" onClick={(e) => e.stopPropagation()}>
         <button className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-200">
-          <EllipsisVertical className="h-5 w-5 text-neutral-500" />
+          <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
         </button>
       </div>
     ),

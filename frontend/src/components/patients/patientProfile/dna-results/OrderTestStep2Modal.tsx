@@ -65,55 +65,55 @@ export const OrderTestStep2Modal = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Confirm Order</DialogTitle>
-                    <DialogDescription className="text-base text-neutral-600 pt-2">
+                    <DialogTitle className="typo-h4">Confirm Order</DialogTitle>
+                    <DialogDescription className="typo-body-1 text-neutral-600-old pt-2">
                         Review the order before confirming.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 pt-4">
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Patient Details</Label>
+                        <Label className="typo-body-2">Patient Details</Label>
                         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                            <p className="text-sm text-neutral-700">{patientName}</p>
+                            <p className="typo-body-2 text-neutral-700-old">{patientName}</p>
                         </div>
                     </div>
 
                     {shouldShowShippingAddress(orderType) && (
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium">Shipping Address</Label>
+                            <Label className="typo-body-2">Shipping Address</Label>
                             <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                                <p className="text-sm text-neutral-700">{addressDisplay}</p>
+                                <p className="typo-body-2 text-neutral-700-old">{addressDisplay}</p>
                             </div>
                         </div>
                     )}
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Barcode</Label>
+                        <Label className="typo-body-2">Barcode</Label>
                         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                            <p className="text-sm text-neutral-700">{step1Data.barcode}</p>
+                            <p className="typo-body-2 text-neutral-700-old">{step1Data.barcode}</p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Selected Report</Label>
+                        <Label className="typo-body-2 ">Selected Report</Label>
                         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                            <p className="text-sm font-medium text-neutral-900">{selectedReport?.title ?? "N/A"}</p>
+                            <p className="typo-body-2  text-neutral-900-old">{selectedReport?.title ?? "N/A"}</p>
                             {selectedReport?.description && (
-                                <p className="text-xs text-neutral-600 mt-1">{selectedReport.description}</p>
+                                <p className="typo-body-3 text-neutral-600-old mt-1">{selectedReport.description}</p>
                             )}
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Amount to pay</Label>
+                        <Label className="typo-body-2 ">Amount to pay</Label>
                         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-lg font-semibold text-neutral-900">
+                                <span className="typo-h5  text-neutral-900-old">
                                     ${selectedReport?.price ?? "0.00"}
                                 </span>
                             </div>
-                            <div className="pt-3 border-t border-neutral-200 space-y-1 text-sm text-neutral-600">
+                            <div className="pt-3 border-t border-neutral-200 space-y-1 typo-body-2 text-neutral-600-old">
                                 <div className="flex justify-between">
                                     <span>Net Amount:</span>
                                     <span>${selectedReport?.price ?? "0.00"}</span>
@@ -132,17 +132,17 @@ export const OrderTestStep2Modal = ({
                         Cancel
                     </Button>
                     <Button
-                        className="bg-violet-700 hover:bg-violet-800"
+                        variant="accent"
                         disabled={isSubmitting}
                         onClick={onConfirm}
                     >
                         {isSubmitting ? (
                             <>
                                 <Spinner className="size-4" />
-                                <span className="text-sm font-medium">Confirming order...</span>
+                                <span className="typo-body-2 ">Confirming order...</span>
                             </>
                         ) : (
-                            <span className="text-sm font-medium">Confirm</span>
+                            <span className="typo-body-2 ">Confirm</span>
                         )}
                     </Button>
                 </DialogFooter>

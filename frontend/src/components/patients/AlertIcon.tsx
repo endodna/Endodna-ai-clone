@@ -85,7 +85,7 @@ export function AlertIcon({ status }: AlertIconProps) {
   return (
     <Tooltip>
     <TooltipTrigger asChild>
-      <div className="flex items-center justify-center p-2">
+      <div className="p-2">
         {icon}
       </div>
     </TooltipTrigger>

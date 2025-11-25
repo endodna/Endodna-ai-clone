@@ -23,26 +23,26 @@ export function PatientProfileBreadcrumb({ onBack }: Readonly<PatientProfileBrea
         variant="ghost"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="text-neutral-700 text-sm font-medium leading-normal">
+        <span className="text-neutral-700-old typo-body-2  ">
           Back
         </span>
       </Button>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild className="text-sm font-normal leading-normal">
+            <BreadcrumbLink asChild className="typo-body-2  ">
               <Link to="/dashboard">Home</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink asChild className="text-sm font-normal leading-normal">
+            <BreadcrumbLink asChild className="typo-body-2  ">
               <Link to="/dashboard/patients">Patients</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage className="text-sm font-medium leading-normal">
+            <BreadcrumbPage className="typo-body-2  ">
               Patient details
             </BreadcrumbPage>
           </BreadcrumbItem>

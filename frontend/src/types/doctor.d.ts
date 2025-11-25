@@ -236,6 +236,9 @@ interface PatientDetail {
     dateOfBirth?: string | Date | null;
     gender?: string | null;
     bloodType?: string | null;
+    email?: string | null;
+    phoneNumber?: string | null;
+    photo?: string | null;
     patientDNAResults: Array<{
         uuid: string;
         status: string;

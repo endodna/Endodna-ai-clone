@@ -133,12 +133,13 @@ export default function ResetPasswordForm() {
       <AuthContainer
         header={
           <div className="flex flex-col gap-4">
-            <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+            <div className="typo-h1 pt-4 text-neutral-700-old ">
               Password reset successful
             </div>
             <Button
               onClick={() => navigate("/")}
-              className="ml-auto w-full bg-violet-600 hover:bg-violet-600"
+              className="ml-auto w-full"
+              variant="accent"
             >
               Back to Login
             </Button>
@@ -156,10 +157,10 @@ export default function ResetPasswordForm() {
     <AuthContainer
       header={
         <div>
-          <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+          <div className="typo-h1 pt-4 text-neutral-700-old ">
             Enter new password
           </div>
-          <div className="text-xs text-neutral-700">
+          <div className="typo-body-3 text-neutral-700-old">
             <span>Please enter your new password</span>
           </div>
         </div>

@@ -177,11 +177,11 @@ export function GlobalChatModal() {
         }}>
             <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
                 <DialogHeader className="px-6 pt-6 pb-4 border-b border-neutral-200">
-                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <DialogTitle className="flex items-center gap-2 typo-h5 ">
                         <MessageSquare className="h-5 w-5 text-violet-600" />
                         Chat Conversation
                     </DialogTitle>
-                    <DialogDescription className="text-sm text-neutral-500 mt-1">
+                    <DialogDescription className="typo-body-2 text-neutral-500-old mt-1">
                         {conversationType === "patient" ? "Patient-specific conversation" : "General research conversation"}
                     </DialogDescription>
                 </DialogHeader>
@@ -189,7 +189,7 @@ export function GlobalChatModal() {
                     {isLoadingMessages ? (
                         <div className="flex flex-col items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-2 border-violet-600 border-t-transparent"></div>
-                            <p className="mt-4 text-sm text-neutral-500">Loading messages...</p>
+                            <p className="mt-4 typo-body-2 text-neutral-500-old">Loading messages...</p>
                         </div>
                     ) : currentMessages && currentMessages.length > 0 ? (
                         <>
@@ -219,14 +219,14 @@ export function GlobalChatModal() {
                                                     "rounded-2xl px-4 py-3",
                                                     isUser
                                                         ? "bg-violet-600 text-white"
-                                                        : "bg-white text-neutral-900 border border-neutral-200 shadow-sm"
+                                                        : "bg-white text-neutral-900-old border border-neutral-200 shadow-sm"
                                                 )}
                                             >
                                                 <div className={cn(
-                                                    "text-sm leading-relaxed prose prose-sm max-w-none",
+                                                    "typo-body-2 leading-relaxed prose prose-sm max-w-none",
                                                     isUser
                                                         ? "prose-invert text-white [&_*]:text-white"
-                                                        : "text-neutral-900"
+                                                        : "text-neutral-900-old"
                                                 )}>
                                                     <ReactMarkdown
                                                         rehypePlugins={[rehypeRaw]}
@@ -238,7 +238,7 @@ export function GlobalChatModal() {
                                             </div>
                                             {message.createdAt && (
                                                 <p className={cn(
-                                                    "text-xs text-neutral-400 px-1",
+                                                    "typo-body-3 text-neutral-400-old px-1",
                                                     isUser ? "text-right" : "text-left"
                                                 )}>
                                                     {new Date(message.createdAt).toLocaleString('en-US', {
@@ -267,14 +267,14 @@ export function GlobalChatModal() {
                                         <Bot className="h-4 w-4 text-violet-600" />
                                     </div>
                                     <div className="flex flex-col gap-1.5 max-w-[75%] items-start">
-                                        <div className="rounded-2xl px-4 py-3 bg-white text-neutral-900 border border-neutral-200 shadow-sm">
+                                        <div className="rounded-2xl px-4 py-3 bg-white text-neutral-900-old border border-neutral-200 shadow-sm">
                                             <div className="flex items-center gap-2">
                                                 <div className="flex gap-1">
                                                     <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                                     <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                                     <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                                                 </div>
-                                                <span className="text-xs text-neutral-500">Searching...</span>
+                                                <span className="typo-body-3 text-neutral-500-old">Searching...</span>
                                             </div>
                                         </div>
                                     </div>
@@ -286,8 +286,8 @@ export function GlobalChatModal() {
                             <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mb-4">
                                 <MessageSquare className="h-8 w-8 text-violet-600" />
                             </div>
-                            <p className="text-base font-medium text-neutral-900 mb-1">No messages yet</p>
-                            <p className="text-sm text-neutral-500">Start a conversation by sending a message.</p>
+                            <p className="typo-body-1  text-neutral-900-old mb-1">No messages yet</p>
+                            <p className="typo-body-2 text-neutral-500-old">Start a conversation by sending a message.</p>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
@@ -302,12 +302,12 @@ export function GlobalChatModal() {
                                 onChange={(event) => setChatModalPrompt(event.target.value)}
                                 onKeyDown={handleChatModalKeyDown}
                                 placeholder="Type your message..."
-                                className="min-h-[40px] max-h-[150px] resize-none border-none bg-transparent p-4 text-sm text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-0"
+                                className="min-h-[40px] max-h-[150px] resize-none border-none bg-transparent p-4 typo-body-2 text-neutral-900-old placeholder:text-neutral-400-old focus-visible:ring-0"
                             />
                         </div>
                         <Button
                             type="button"
-                            className="h-[40px] w-[40px] gap-2 bg-violet-700 px-0 text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60 shrink-0"
+                            className="h-[40px] w-[40px] gap-2 px-0 text-white disabled:cursor-not-allowed disabled:opacity-60 shrink-0"
                             disabled={!chatModalPrompt.trim() || !currentConversationId || isSendingMessage || (conversationType === "patient" && !selectedPatientId)}
                             onClick={handleChatModalSubmit}
                         >

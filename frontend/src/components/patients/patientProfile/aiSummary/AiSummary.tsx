@@ -313,7 +313,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     onChange={(event) => setPrompt(event.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask BIOS"
-                    className="min-h-[80px] resize-none border-none bg-transparent p-0 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-0"
+                    className="min-h-[80px] resize-none border-none bg-transparent p-0 typo-body-1 text-neutral-900-old placeholder:text-neutral-400-old focus-visible:ring-0"
                 />
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -335,7 +335,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 rounded-full bg-white text-black hover:bg-neutral-100"
+                                className="h-10 w-10 rounded-full"
                                 aria-label="Upload reference files"
                                 onClick={() => uploadInputRef.current?.click()}
                             >
@@ -353,10 +353,10 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                                 type="button"
                                                 onClick={() => handlePersonaSelect(option)}
                                                 className={cn(
-                                                    "flex h-7 w-7 items-center justify-center rounded-full border text-xs transition",
+                                                    "flex h-7 w-7 items-center justify-center rounded-full border typo-body-3 transition",
                                                     isActive
                                                         ? "border-violet-500 bg-white text-violet-600 shadow-[0_4px_12px_rgba(109,62,245,0.25)]"
-                                                        : "border-transparent bg-transparent text-neutral-500 hover:border-neutral-200",
+                                                        : "border-transparent bg-transparent text-neutral-500-old hover:border-neutral-200",
                                                 )}
                                                 aria-label={option.label}
                                             >
@@ -366,10 +366,10 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                         <TooltipContent
                                             side="top"
                                             align="center"
-                                            className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900 shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                            className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 typo-body-3 text-neutral-900-old shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
                                         >
-                                            <p className="text-sm font-semibold text-neutral-900">{option.label}</p>
-                                            <p className="mt-1 text-[11px] font-normal text-neutral-500">
+                                            <p className="typo-body-2  text-neutral-900-old">{option.label}</p>
+                                            <p className="mt-1 text-[11px]  text-neutral-500-old">
                                                 {option.description}
                                             </p>
                                         </TooltipContent>
@@ -382,7 +382,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className="gap-2 rounded-full border border-neutral-200 bg-white px-4 py-[6px] text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                                    className="gap-2 rounded-full border border-neutral-200 bg-white px-4 py-[6px] typo-body-2  text-neutral-700-old hover:bg-neutral-100"
                                 >
                                     <ChevronDown className="h-4 w-4 text-black" />
                                     {selectedModel.label}
@@ -395,10 +395,10 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                         className="flex flex-col items-start gap-1 py-2"
                                         onClick={() => setSelectedModel(option)}
                                     >
-                                        <span className="text-sm font-medium text-neutral-900">
+                                        <span className="typo-body-2  text-neutral-900-old">
                                             {option.label}
                                         </span>
-                                        <span className="text-xs text-neutral-500">
+                                        <span className="typo-body-3 text-neutral-500-old">
                                             {option.description}
                                         </span>
                                     </DropdownMenuItem>
@@ -413,7 +413,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-10 w-10 rounded-full bg-white text-black hover:bg-neutral-100"
+                            className="h-10 w-10 rounded-full"
                             aria-label="Record voice note"
                         >
                             <Mic className="h-5 w-5" />
@@ -421,7 +421,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
 
                         <Button
                             type="button"
-                            className="h-10 w-10 gap-2 bg-violet-700 px-5 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="h-10 w-10 gap-2 bg-violet-700 px-5 typo-body-2  text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={isSendDisabled}
                             onClick={handleSubmit}
                         >

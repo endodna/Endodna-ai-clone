@@ -71,8 +71,8 @@ export function PatientTable({
   if (error) {
     return (
       <div className="flex flex-col justify-center items-center border-2 border-neutral-300 rounded-lg w-full h-full gap-2 text-center">
-        <p className="text-neutral-700 text-2xl font-semibold leading-tight">Patient list failed to load</p>
-        <p className="text-neutral-700 text-base font-semibold leading-normal">We encountered an issue while retrieving patient records. Please refresh the page</p>
+        <p className="text-neutral-700-old typo-h3  leading-tight">Patient list failed to load</p>
+        <p className="text-neutral-700-old typo-body-1  ">We encountered an issue while retrieving patient records. Please refresh the page</p>
         {onRetry && (
           <Button
             onClick={onRetry}
@@ -91,11 +91,11 @@ export function PatientTable({
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col justify-center border-2 border-neutral-300 rounded-lg w-full h-full gap-2 text-center">
-        <p className="text-neutral-700 text-2xl font-semibold leading-tight">No patients added yet</p>
-        <p className="text-neutral-700 text-base font-semibold leading-normal">Start adding a new patient to begin tracking records and activity.</p>
+        <p className="text-neutral-700-old typo-h3  leading-tight">No patients added yet</p>
+        <p className="text-neutral-700-old typo-body-1  ">Start adding a new patient to begin tracking records and activity.</p>
         <Button variant="ghost">
           <UserPlus className="h-4 w-4 mr-2" />
-          <span className="text-sm font-medium leading-normal text-neutral-700">Add new patient</span>
+          <span className="typo-body-2   text-neutral-700-old">Add new patient</span>
         </Button>
       </div>
     );
@@ -104,7 +104,7 @@ export function PatientTable({
   return (
     <div className="relative">
       {isRefetching && (
-        <div className="absolute top-2 right-2 z-10 flex items-center space-x-2 rounded-lg border border-neutral-200 bg-white/90 px-3 py-1.5 text-xs text-neutral-500 shadow-sm">
+        <div className="absolute top-2 right-2 z-10 flex items-center space-x-2 rounded-lg border border-neutral-200 bg-white/90 px-3 py-1.5 typo-body-3 text-neutral-500-old shadow-sm">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-700" />
           <span>Refreshing</span>
         </div>

@@ -146,12 +146,12 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
           <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
             <MessageSquare className="h-4 w-4" />
           </span>
-          <p className="text-lg font-semibold text-neutral-900">Chats</p>
+          <p className="typo-h5 text-neutral-900-old">Chats</p>
         </div>
         <button
           type="button"
           aria-label={isCollapsed ? "Expand chats" : "Collapse chats"}
-          className="rounded-full  p-2 text-neutral-600 transition hover:bg-neutral-100"
+          className="rounded-full  p-2 text-neutral-600-old transition hover:bg-neutral-100"
           onClick={() => setIsCollapsed((prev) => !prev)}
         >
           {isCollapsed ? (
@@ -168,26 +168,26 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 rounded-2xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              className="gap-2 rounded-2xl border border-neutral-200 bg-white typo-body-2  text-neutral-700-old hover:bg-neutral-50"
             >
               <Plus className="h-4 w-4" />
               New
             </Button>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400-old" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search"
-                className="h-9 rounded-2xl border border-neutral-200 bg-neutral-50 pl-9 text-sm text-neutral-800 placeholder:text-neutral-400 focus-visible:ring-0"
+                className="h-9 rounded-2xl border border-neutral-200 bg-neutral-50 pl-9 typo-body-2 text-neutral-800-old placeholder:text-neutral-400-old focus-visible:ring-0"
               />
             </div>
           </div> */}
 
           {!conversations.length ? (
             <div className="mt-4 px-4 py-8 text-center">
-              <p className="text-sm text-neutral-500">No chats found</p>
-              <p className="text-sm text-neutral-500">Create new chat using chatbox.</p>
+              <p className="typo-body-2 text-neutral-500-old">No chats found</p>
+              <p className="typo-body-2 text-neutral-500-old">Create new chat using chatbox.</p>
             </div>
           ) : (
             <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
@@ -236,15 +236,15 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
                               handleCancelEdit(e as any);
                             }
                           }}
-                          className="h-7 text-sm font-medium border-neutral-300 focus-visible:ring-1 focus-visible:ring-violet-500"
+                          className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1 focus-visible:ring-violet-500"
                           autoFocus
                         />
                       ) : (
-                        <p className="text-sm font-medium text-neutral-900 truncate">
+                        <p className="typo-body-2 text-neutral-900-old truncate">
                           {item.title}
                         </p>
                       )}
-                      <p className="text-xs text-neutral-500">{date}</p>
+                      <p className="typo-body-3 text-neutral-500-old">{date}</p>
                     </div>
                   </button>
                   <div className="flex items-center gap-1 edit-controls flex-shrink-0">
@@ -262,7 +262,7 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
                         <button
                           type="button"
                           onClick={handleCancelEdit}
-                          className="p-1.5 rounded-full text-neutral-500 hover:bg-neutral-200 transition"
+                          className="p-1.5 rounded-full text-neutral-500-old hover:bg-neutral-200 transition"
                           aria-label="Cancel edit"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -273,12 +273,12 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
                         <button
                           type="button"
                           onClick={(e) => handleEditClick(e, item.id, item.title)}
-                          className="p-1.5 rounded-full text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition"
+                          className="p-1.5 rounded-full text-neutral-400-old hover:text-neutral-600-old hover:bg-neutral-100 transition"
                           aria-label="Edit title"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <ChevronRight className="h-4 w-4 text-neutral-400" />
+                        <ChevronRight className="h-4 w-4 text-neutral-400-old" />
                       </>
                     )}
                   </div>

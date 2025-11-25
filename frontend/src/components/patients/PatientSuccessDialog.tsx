@@ -40,11 +40,11 @@ export function PatientSuccessDialog() {
       <DialogContent className="p-4 md:p-8 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader className="space-y-1 md:space-y-4">
           <DialogTitle>
-            <h4 className="text-xl leading-[120%] font-semibold">
+            <h4 className=" leading-[120%] ">
               Patient added successfully!
             </h4>
           </DialogTitle>
-          <DialogDescription className="text-sm font-normal leading-normal text-neutral-500">
+          <DialogDescription className="   text-neutral-500-old">
             If you have them, you can also upload this patient's medical records
             in the next step.
           </DialogDescription>
@@ -55,7 +55,7 @@ export function PatientSuccessDialog() {
             type="button"
             variant="outline"
             onClick={handleClose}
-            className="px-4 py-[7.5px] text-sm font-medium leading-normal rounded-lg"
+            className="px-4 py-[7.5px]    rounded-lg"
           >
             Close
           </Button>
@@ -65,7 +65,7 @@ export function PatientSuccessDialog() {
             disabled={!currentPatientId}
             className="px-4 py-[7.5px] bg-violet-700 hover:bg-violet-400 text-neutral-50 rounded-lg disabled:opacity-50 disabled:pointer-events-none"
           >
-            <span className="text-sm font-medium leading-normal">
+            <span className="  ">
               Upload Records
             </span>
           </Button>

@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/card";
 import loginBackground from "@/assets/login_background.jpg";
 // import carePlus from "@/assets/care_plus.svg";
-import endoDNA from "@/assets/endodna.svg";
+import bellaVita from "@/assets/bellaVita.svg";
 
 export default function AuthContainer({
   header,
@@ -30,8 +30,8 @@ export default function AuthContainer({
                 <div className="flex items-center justify-center">
                   {/* <img src={carePlus} alt="Care Plus" className="w-20 h-auto" /> */}
                   <img
-                    src={endoDNA}
-                    alt="Powered by EndoDNA"
+                    src={bellaVita}
+                    alt="Powered by BellaVita"
                     className="w-30 h-auto"
                   />
                 </div>
