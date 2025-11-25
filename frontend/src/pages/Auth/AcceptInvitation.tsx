@@ -6,10 +6,36 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 
+const getInvitationData = () => {
+  try {
+    const keys = Object.keys(localStorage);
+    const key = keys.find(
+      (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+    );
+    if (!key) return { doctorName: "", orgName: "" };
+
+    const data = JSON.parse(localStorage.getItem(key) || "{}");
+    const metadata = data?.user?.user_metadata;
+    if (!metadata) return { doctorName: "", orgName: "" };
+
+    const firstName = metadata.firstName || "";
+    const lastName = metadata.lastName || "";
+    const orgName = metadata?.organization?.name || "";
+
+    return {
+      doctorName: `${firstName} ${lastName}`.trim(),
+      orgName,
+    };
+  } catch {
+    return { doctorName: "", orgName: "" };
+  }
+};
+
 export default function AcceptInvitation() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const { doctorName, orgName } = getInvitationData();
 
   useEffect(() => {
     const {
@@ -35,10 +61,11 @@ export default function AcceptInvitation() {
           <div className="text-4xl pt-4 text-neutral-700 font-semibold">
             Welcome!
           </div>
-          <div className="text-xs text-neutral-700">
+          <div className="text-base text-neutral-600">
             <p>
-              To complete your account setup, please click the button below to
-              create your password.
+              {doctorName} has invited you to join{" "}
+              <span className="font-semibold">{orgName}</span>. Here you&apos;ll
+              be able to access your medical and labs records easily.
             </p>
           </div>
         </div>

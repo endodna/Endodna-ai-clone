@@ -1,4 +1,5 @@
 import { AddPatientDialog } from "@/components/patients/AddPatientDialog";
+import { InvitePatientDialog } from "@/components/patients/InvitePatientDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,7 +15,7 @@ import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PatientTable } from "../../components/patients/PatientTable";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { closeAddPatientDialog, openAddPatientDialog } from "@/store/features/patient";
+import { closeAddPatientDialog, openAddPatientDialog, openInvitePatientDialog } from "@/store/features/patient";
 
 const DEFAULT_PHYSICIAN_VALUE = "all";
 const DEFAULT_STATUS_VALUE = "all";
@@ -231,6 +232,9 @@ export default function PatientListPage() {
                         page: nextPage,
                     }))
                 }
+                onInvitePatient={() => {
+                    dispatch(openInvitePatientDialog());
+                }}
             />
 
             <AddPatientDialog
@@ -241,6 +245,7 @@ export default function PatientListPage() {
                     }
                 }}
             />
+            <InvitePatientDialog />
         </div>
     );
 }
