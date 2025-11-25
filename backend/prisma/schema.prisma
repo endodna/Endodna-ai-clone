@@ -92,6 +92,7 @@ model Organization {
   patientReports           PatientReport[]
   patientOrders            PatientOrder[]
   patientAddresses         PatientAddress[]
+  patientInfos             PatientInfo[]
 }
 
 model OrganizationCustomization {
@@ -186,6 +187,24 @@ model User {
   patientOrders              PatientOrder[]
   patientAddresses           PatientAddress[]
   patientDNAResultActivities PatientDNAResultActivity[]
+  patientInfo                PatientInfo?
+}
+
+model PatientInfo {
+  id             String       @id @unique @default(uuid())
+  weight         Int?
+  height         Int?
+  age            Int?
+  bloodType      String?
+  bmi            Int?
+  prefilledData  Json?
+  isOutdated     Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId      String       @unique
+  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
 model PatientActivity {

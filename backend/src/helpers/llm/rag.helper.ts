@@ -5,6 +5,7 @@ import { TaskType, Status } from "@prisma/client";
 import redis from "../../lib/redis";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import tokenUsageHelper, { MODEL_ID } from "../token-usage.helper";
+import { prefilledDataFields } from "./prefilledDataField";
 
 export interface PatientSummaryParams {
     patientId: string;
@@ -523,6 +524,20 @@ class RAGHelper {
         if (patient.gender) {
             formatted += `Gender: ${patient.gender}<br>`;
         }
+        if (patient.patientInfo) {
+            if (patient.patientInfo.weight) {
+                formatted += `Weight: ${patient.patientInfo.weight} kg<br>`;
+            }
+            if (patient.patientInfo.height) {
+                formatted += `Height: ${patient.patientInfo.height} cm<br>`;
+            }
+            if (patient.patientInfo.bmi) {
+                formatted += `BMI: ${patient.patientInfo.bmi}<br>`;
+            }
+            if (patient.patientInfo.bloodType) {
+                formatted += `Blood Type: ${patient.patientInfo.bloodType}<br>`;
+            }
+        }
         formatted += `<br>`;
 
         if (patient.patientAllergies && patient.patientAllergies.length > 0) {
@@ -665,6 +680,43 @@ class RAGHelper {
         return { summary, followUpPrompts };
     }
 
+    private parseSummaryWithPrefilledData(text: string, includePrefilledData: boolean = false): {
+        summary: string;
+        followUpPrompts: string[];
+        prefilledData: Record<string, any> | null;
+    } {
+        let summary = text;
+        let prefilledData: Record<string, any> | null = null;
+
+        if (includePrefilledData) {
+            const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+            const jsonMatch = text.match(jsonBlockRegex);
+
+            if (jsonMatch && jsonMatch[1]) {
+                try {
+                    const parsed = JSON.parse(jsonMatch[1].trim());
+                    if (parsed.prefilledData && typeof parsed.prefilledData === 'object') {
+                        prefilledData = parsed.prefilledData;
+                        summary = text.replace(jsonBlockRegex, '').trim();
+                    }
+                } catch (parseError) {
+                    logger.warn("Failed to parse prefilledData JSON block", {
+                        error: parseError,
+                        method: "RAGHelper.parseSummaryWithPrefilledData",
+                    });
+                }
+            }
+        }
+
+        const { summary: parsedSummary, followUpPrompts } = this.parseSummaryWithFollowUps(summary);
+
+        return {
+            summary: parsedSummary,
+            followUpPrompts,
+            prefilledData,
+        };
+    }
+
     private buildSummarySystemPrompt(): string {
         return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers.
       
@@ -700,7 +752,7 @@ class RAGHelper {
         ---`;
     }
 
-    private buildSummaryUserPrompt(patientData: string, medicalRecords: string): string {
+    private buildSummaryUserPrompt(patientData: string, medicalRecords: string, includePrefilledData: boolean = false): string {
         const currentDate = new Date();
         const currentDateISO = currentDate.toISOString();
         const currentDateFormatted = currentDate.toLocaleDateString('en-US', {
@@ -715,6 +767,26 @@ class RAGHelper {
             timeZone: 'UTC',
             hour12: false
         });
+
+        const prefilledFieldsSection = includePrefilledData ? `
+        **REQUIRED CLINICAL DATA FIELDS - MUST BE INCLUDED:**
+        ${this.buildPrefilledDataFieldsInstructions()}
+        ` : '';
+
+        const jsonTemplate = includePrefilledData ? prefilledDataFields.map(f => `"${f.id}": null`).join(",\n            ") : '';
+        const structuredDataSection = includePrefilledData ? `
+        
+        **STRUCTURED DATA EXTRACTION**: At the very end of your response, after the disclaimer block, include a JSON code block with the extracted clinical data fields. Use this exact format:
+        
+        \`\`\`json
+        {
+          "prefilledData": {
+            ${jsonTemplate}
+          }
+        }
+        \`\`\`
+        
+        For each field found in the medical records, replace \`null\` with the actual value. If a field is not found, keep it as \`null\`. For numeric fields, use numbers. For text fields, use strings. For fields with type "multiple", use an array of values.` : '';
 
         return `Generate a structured **Markdown** summary using the information below.
       
@@ -738,7 +810,7 @@ class RAGHelper {
         - Clinical observations and assessments
         - Chart notes with clinical observations, progress notes, and provider comments
         - Patient reports with their associated report details and status
-        
+        ${prefilledFieldsSection}
         **CRITICAL PRIVACY REQUIREMENT - MUST BE FOLLOWED:**
         - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
         - **NEVER** include next of kin information, emergency contact details, or family member contact information in the summary
@@ -771,7 +843,36 @@ class RAGHelper {
         Combine information from the Patient Data section, Medical Records section, Chart Notes, and Patient Reports. If information appears in multiple sources, prioritize the most recent or most detailed source.
         Keep the full medical history summary under 4 paragraphs and end with the markdown disclaimer block.
         
-        **FOLLOW-UP QUESTIONS**: In the "## Suggested Follow-up Questions" section, provide 3-5 relevant clinical questions that a doctor might want to ask based on the patient's medical history, current conditions, medications, or areas that need further investigation. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry and should be based on the clinical information in the summary.`;
+        **FOLLOW-UP QUESTIONS**: In the "## Suggested Follow-up Questions" section, provide 3-5 relevant clinical questions that a doctor might want to ask based on the patient's medical history, current conditions, medications, or areas that need further investigation. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry and should be based on the clinical information in the summary.${structuredDataSection}`;
+    }
+
+    private buildPrefilledDataFieldsInstructions(): string {
+        if (prefilledDataFields.length === 0) {
+            return "No specific clinical data fields are required at this time.";
+        }
+
+        const instructions = [
+            "The following clinical data fields MUST be extracted from the medical records and explicitly included in the summary if they are found:",
+            ""
+        ];
+
+        for (const field of prefilledDataFields) {
+            const unitText = field.unit ? ` (in ${field.unit})` : "";
+            const exampleText = field.example ? ` Example: ${field.example}${field.unit ? ` ${field.unit}` : ""}` : "";
+            const dataTypeText = field.dataType === "number" ? "numeric value" : "text value";
+
+            instructions.push(`- **${field.label}**: Extract the ${dataTypeText}${unitText} if mentioned in any medical record, chart note, or patient report.${exampleText}`);
+
+            if (field.type === "multiple") {
+                instructions.push(`  - If multiple values are found, include all of them in an array.`);
+            }
+
+            instructions.push("");
+        }
+
+        instructions.push("If any of these fields are found in the medical records, they MUST be explicitly stated in the summary with the field name and value clearly visible, AND included in the JSON block at the end. If a field is not found in any record, do not include it in the summary, but include it as null in the JSON block.");
+
+        return instructions.join("\n        ");
     }
 
     async generatePatientSummary(
@@ -849,6 +950,41 @@ class RAGHelper {
                 }
             }
 
+            let patientInfo = await prisma.patientInfo.findUnique({
+                where: {
+                    patientId: patientId,
+                },
+                select: {
+                    id: true,
+                    isOutdated: true,
+                    prefilledData: true,
+                },
+            });
+
+            if (!patientInfo) {
+                patientInfo = await prisma.patientInfo.create({
+                    data: {
+                        patientId: patientId,
+                        organizationId: organizationId,
+                        isOutdated: true,
+                    },
+                    select: {
+                        id: true,
+                        isOutdated: true,
+                        prefilledData: true,
+                    },
+                });
+
+                logger.info("PatientInfo created for patient", {
+                    traceId,
+                    patientId,
+                    organizationId,
+                    method: "RAGHelper.generatePatientSummary",
+                });
+            }
+
+            const isOutdated = patientInfo.isOutdated ?? false;
+
             const patient = await prisma.user.findFirst({
                 where: buildOrganizationUserFilter(organizationId, {
                     id: patientId,
@@ -863,6 +999,15 @@ class RAGHelper {
                     phoneNumber: true,
                     dateOfBirth: true,
                     gender: true,
+                    patientInfo: {
+                        select: {
+                            weight: true,
+                            height: true,
+                            bloodType: true,
+                            bmi: true,
+                            prefilledData: true,
+                        },
+                    },
                     patientAllergies: {
                         where: {
                             deletedAt: null,
@@ -1002,7 +1147,7 @@ class RAGHelper {
             const patientData = this.formatPatientData(patient);
             const medicalRecordsText = this.formatMedicalRecordChunks(medicalRecordChunks);
             const systemPrompt = this.buildSummarySystemPrompt();
-            const userPrompt = this.buildSummaryUserPrompt(patientData, medicalRecordsText);
+            const userPrompt = this.buildSummaryUserPrompt(patientData, medicalRecordsText, isOutdated);
 
             logger.debug("Patient data formatted for summary", {
                 traceId,
@@ -1024,8 +1169,78 @@ class RAGHelper {
                 traceId,
             });
 
-            const { summary: summaryText, followUpPrompts } = this.parseSummaryWithFollowUps(result.text);
+            const { summary: summaryText, followUpPrompts, prefilledData } = this.parseSummaryWithPrefilledData(result.text, isOutdated);
             const cleanedSummary = this.replaceNewlinesWithBr(summaryText);
+
+            try {
+                if (patientInfo?.isOutdated && prefilledData && Object.keys(prefilledData).length > 0) {
+                    const filteredPrefilledData = Object.fromEntries(
+                        Object.entries(prefilledData).filter(([_, value]) => value !== null && value !== undefined)
+                    );
+
+                    if (Object.keys(filteredPrefilledData).length > 0) {
+                        const timestamp = Date.now();
+                        const existingPrefilledData = (patientInfo.prefilledData as Record<string, any>) || {};
+                        const versionedPrefilledData = {
+                            ...existingPrefilledData,
+                            [timestamp]: filteredPrefilledData,
+                        };
+
+                        await prisma.patientInfo.update({
+                            where: {
+                                patientId: patientId,
+                            },
+                            data: {
+                                prefilledData: versionedPrefilledData,
+                                isOutdated: false,
+                            },
+                        });
+
+                        logger.info("PrefilledData extracted and updated from summary with versioning", {
+                            traceId,
+                            patientId,
+                            organizationId,
+                            timestamp,
+                            prefilledDataFields: Object.keys(filteredPrefilledData),
+                            extractedValues: filteredPrefilledData,
+                            method: "RAGHelper.generatePatientSummary",
+                        });
+                    } else {
+                        await prisma.patientInfo.update({
+                            where: {
+                                patientId: patientId,
+                            },
+                            data: {
+                                isOutdated: false,
+                            },
+                        });
+
+                        logger.info("No prefilledData extracted, marked PatientInfo as not outdated", {
+                            traceId,
+                            patientId,
+                            organizationId,
+                            method: "RAGHelper.generatePatientSummary",
+                        });
+                    }
+                } else if (patientInfo?.isOutdated && (!prefilledData || Object.keys(prefilledData).length === 0)) {
+                    await prisma.patientInfo.update({
+                        where: {
+                            patientId: patientId,
+                        },
+                        data: {
+                            isOutdated: false,
+                        },
+                    });
+                }
+            } catch (prefilledDataError) {
+                logger.error("Failed to extract/update prefilledData", {
+                    traceId,
+                    patientId,
+                    organizationId,
+                    error: prefilledDataError,
+                    method: "RAGHelper.generatePatientSummary",
+                });
+            }
 
             const citations = medicalRecordChunks.map((chunk) => ({
                 chunkId: chunk.id,

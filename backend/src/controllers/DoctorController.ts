@@ -35,6 +35,7 @@ import {
   CreateReportSchema,
   UpdateReportSchema,
   ReportIdParamsSchema,
+  UpdatePatientInfoSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -62,6 +63,7 @@ import { ChatType } from "@prisma/client";
 import tempusService from "../services/tempus.service";
 import emailHelper from "../helpers/email.helper";
 import { TempusActions } from "../types";
+import { markPatientInfoOutdated } from "../helpers/patient-info.helper";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -232,6 +234,23 @@ class DoctorController {
             firstName: true,
             lastName: true,
             status: true,
+            dateOfBirth: true,
+            gender: true,
+            email: true,
+            phoneNumber: true,
+            workPhoneNumber: true,
+            homePhoneNumber: true,
+            patientInfo: {
+              select: {
+                id: true,
+                weight: true,
+                height: true,
+                bloodType: true,
+                bmi: true,
+                age: true,
+                prefilledData: true,
+              },
+            },
             patientDNAResults: {
               where: {
                 deletedAt: null,
@@ -336,6 +355,16 @@ class DoctorController {
           dateOfBirth: true,
           gender: true,
           bloodType: true,
+          patientInfo: {
+            select: {
+              id: true,
+              weight: true,
+              height: true,
+              bloodType: true,
+              bmi: true,
+              prefilledData: true,
+            },
+          },
           patientDNAResults: {
             where: {
               deletedAt: null,
@@ -436,6 +465,124 @@ class DoctorController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to get patient",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientInfo(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+      const { dateOfBirth, gender, bloodType, weight, height, bmi } = req.body as UpdatePatientInfoSchema;
+
+      const user = await prisma.user.findFirst({
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+        select: {
+          id: true,
+        },
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+      const userUpdateData: Prisma.UserUpdateInput = {};
+      if (dateOfBirth !== undefined) userUpdateData.dateOfBirth = new Date(dateOfBirth);
+      if (gender !== undefined) userUpdateData.gender = gender;
+      if (bloodType !== undefined) userUpdateData.bloodType = bloodType;
+
+      const patientInfoUpdateData: Prisma.PatientInfoUpdateInput = {};
+      if (weight !== undefined) patientInfoUpdateData.weight = weight;
+      if (height !== undefined) patientInfoUpdateData.height = height;
+      if (bmi !== undefined) patientInfoUpdateData.bmi = bmi;
+      if (bloodType !== undefined) patientInfoUpdateData.bloodType = bloodType;
+
+      const updatePromises: Promise<any>[] = [];
+
+      if (Object.keys(userUpdateData).length > 0) {
+        updatePromises.push(
+          prisma.user.update({
+            where: {
+              id: patientId,
+            },
+            data: userUpdateData,
+          })
+        );
+      }
+
+      if (Object.keys(patientInfoUpdateData).length > 0) {
+        updatePromises.push(
+          prisma.patientInfo.upsert({
+            where: {
+              patientId: patientId,
+            },
+            create: {
+              patientId: patientId,
+              organizationId: organizationId!,
+              weight: weight ?? null,
+              height: height ?? null,
+              bmi: bmi ?? null,
+              bloodType: bloodType ?? null,
+            },
+            update: patientInfoUpdateData,
+          })
+        );
+      }
+
+      await Promise.all([
+        ...updatePromises,
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: "Patient info updated",
+          metadata: {
+            patientId,
+            updates: {
+              ...(dateOfBirth && { dateOfBirth }),
+              ...(gender && { gender }),
+              ...(bloodType && { bloodType }),
+              ...(weight && { weight }),
+              ...(height && { height }),
+              ...(bmi && { bmi }),
+            },
+            action: "update_patient_info",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          updated: true,
+        },
+        message: "Patient info updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update patient info failed", {
+        traceId: req.traceId,
+        method: "updatePatientInfo.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient info",
         },
         req,
       );
@@ -926,6 +1073,11 @@ class DoctorController {
       );
 
       await Promise.all([
+        markPatientInfoOutdated({
+          patientId,
+          organizationId: organizationId!,
+          traceId: req.traceId,
+        }),
         ragHelper.invalidatePatientSummaryCache(
           organizationId!,
           patientId,
