@@ -9,7 +9,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useGetConstants, useGetDoctorPatients, useGetDoctors } from "@/hooks/useDoctor";
+import { useGetDoctorPatients, useGetDoctors } from "@/hooks/useDoctor";
+import { useConstants } from "@/contexts/ConstantsContext";
 import debounce from "@/utils/utils";
 import { Search, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -35,12 +36,11 @@ export default function PatientListPage() {
     const [search, setSearch] = useState("");
     const { searchInput, selectedPhysician, selectedStatus, page, limit } = filters;
 
-    // Fetch doctors and constants for filters
+    // Fetch doctors and get constants from context
     const { data: doctorsResponse } = useGetDoctors();
-    const { data: constantsResponse } = useGetConstants();
+    const { constants } = useConstants();
 
     const doctors = doctorsResponse?.data ?? [];
-    const constants = constantsResponse?.data;
 
     const {
         data: apiResponse,

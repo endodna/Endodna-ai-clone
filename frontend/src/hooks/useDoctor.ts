@@ -1,5 +1,6 @@
 import { queryKeys } from "@/components/constants/QueryKeys";
 import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
+import { supabase } from "@/lib/supabase";
 import { AddPatientFormData } from "@/schemas/patient.schema";
 import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 
@@ -44,11 +45,21 @@ export const useGetConstants = (
 ) => {
     return useQuery<ApiResponse<Constants>, Error>({
         queryKey: queryKeys.misc.constants.list(),
-        queryFn: () => miscApi.getConstants(),
+        queryFn: async () => {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session?.access_token) throw new Error("No valid session available");
+            return miscApi.getConstants();
+        },
         placeholderData: (previousData) => previousData,
         refetchOnWindowFocus: false,
-        retry: 1,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes since constants don't change often
+        refetchOnMount: true,
+        retry: (count, error: any) => {
+            if (error?.response?.status === 401) return false;
+            if (error?.message === "No valid session available") return false;
+            return count < 2;
+        },
+        staleTime: 30 * 60 * 1000, // 30 minutes - matches ConstantsContext
+        gcTime: Infinity, // Keep in cache forever - matches ConstantsContext
         ...options,
     });
 };
