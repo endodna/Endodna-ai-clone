@@ -134,7 +134,7 @@ export function InvitePatientDialog() {
       // Escape special regex characters, but keep the token format
       const escaped = variable.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(${escaped})`, 'g');
-      html = html.replace(regex, '<span class="text-violet-600 font-semibold">$1</span>');
+      html = html.replace(regex, '<span class="text-violet-600 ">$1</span>');
     });
     
     if (div.innerHTML !== html) {
@@ -214,10 +214,10 @@ export function InvitePatientDialog() {
     <Dialog open={isInvitePatientDialogOpen} onOpenChange={handleClose}>
       <DialogContent className="p-4 md:p-6 max-w-[560px] w-full">
         <DialogHeader className="space-y-2">
-          <DialogTitle className="text-xl font-semibold text-neutral-900">
+          <DialogTitle className="typo-h4  text-neutral-900-old">
             Invite your patient
           </DialogTitle>
-          <DialogDescription className="text-sm text-neutral-600">
+          <DialogDescription className="typo-body-2 text-neutral-600-old">
             Invite with a preformatted email or customize it to your needs.
           </DialogDescription>
         </DialogHeader>
@@ -229,9 +229,9 @@ export function InvitePatientDialog() {
             onInput={handleInput}
             onBlur={applyHighlighting}
             data-placeholder="Write your invitation..."
-            className={`w-full min-h-[220px] p-4 rounded-2xl border resize-none text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 whitespace-pre-wrap break-words ${
+            className={`w-full min-h-[220px] p-4 rounded-2xl border resize-none typo-body-2 focus:outline-none focus:ring-2 focus:ring-violet-500 whitespace-pre-wrap break-words ${
               inlineError ? "border-red-500" : "border-neutral-300"
-            } text-neutral-900`}
+            } text-neutral-900-old`}
             suppressContentEditableWarning
           />
           <style>{`
@@ -242,8 +242,8 @@ export function InvitePatientDialog() {
             }
           `}</style>
           <div
-            className={`text-xs text-right ${
-              inlineError ? "text-red-500" : "text-neutral-500"
+            className={`typo-body-3 text-right ${
+              inlineError ? "text-red-500" : "text-neutral-500-old"
             }`}
           >
             {inlineError ?? `${characterCount}/${maxCharacters}`}
@@ -251,7 +251,7 @@ export function InvitePatientDialog() {
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm font-medium text-neutral-900">
+          <p className="typo-body-2  text-neutral-900-old">
             Email variables
           </p>
           <div className="flex flex-wrap gap-2">
@@ -260,7 +260,7 @@ export function InvitePatientDialog() {
                 key={variable.value}
                 type="button"
                 variant="outline"
-                className="text-xs font-medium text-neutral-700 border-dashed border-neutral-300"
+                className="typo-body-3 border-dashed border-neutral-300"
                 onClick={() => insertVariable(variable.value)}
               >
                 + {variable.label}
@@ -274,13 +274,13 @@ export function InvitePatientDialog() {
             type="button"
             variant="outline"
             onClick={handleClose}
-            className="text-sm font-medium rounded-lg"
+            className="typo-body-2  rounded-lg"
           >
             Cancel
           </Button>
           <Button
             type="button"
-            className="bg-violet-700 hover:bg-violet-600 text-white rounded-lg"
+            className="rounded-lg"
             onClick={handleSendInvite}
             disabled={isSubmitting}
           >
@@ -299,11 +299,11 @@ export function InvitePatientDialog() {
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
         <DialogContent className="max-w-[520px] w-full rounded-3xl shadow-xl p-0 overflow-hidden">
           <div className="flex items-start justify-between px-6 pt-6">
-            <DialogTitle className="text-lg font-semibold text-neutral-900">
+            <DialogTitle className="typo-h5  text-neutral-900-old">
               Invite your patient
             </DialogTitle>
           </div>
-          <DialogDescription className="px-6 text-sm text-neutral-500">
+          <DialogDescription className="px-6 typo-body-2 text-neutral-500-old">
             Patient invited successfully!
           </DialogDescription>
           <div className="px-6 pb-6 pt-4 flex justify-end">

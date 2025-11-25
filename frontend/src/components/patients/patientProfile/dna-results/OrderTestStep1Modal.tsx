@@ -79,7 +79,7 @@ export const OrderTestStep1Modal = ({
         if (!addressRequired) return null;
         if (addressesLoading) {
             return (
-                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <div className="flex items-center gap-2 typo-body-2 text-neutral-600-old">
                     <Spinner className="size-4" />
                     Loading addresses...
                 </div>
@@ -88,7 +88,7 @@ export const OrderTestStep1Modal = ({
         if (addresses.length === 0) {
             return (
                 <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center">
-                    <p className="text-sm text-neutral-600">
+                    <p className="typo-body-2 text-neutral-600-old">
                         No addresses found. Please add an address before shipping directly.
                     </p>
                 </div>
@@ -114,16 +114,16 @@ export const OrderTestStep1Modal = ({
     const renderReportCards = () => {
         if (reportsLoading) {
             return (
-                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <div className="flex items-center gap-2 typo-body-2 text-neutral-600-old">
                     <Spinner className="size-4" />
-                    <span className="text-sm font-medium">Loading reports...</span>
+                    <span className="typo-body-2 ">Loading reports...</span>
                 </div>
             );
         }
         if (reports.length === 0) {
             return (
                 <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-2 md:p-4 text-center">
-                    <p className="text-sm text-neutral-600">No reports available for this patient.</p>
+                    <p className="typo-body-2 text-neutral-600-old">No reports available for this patient.</p>
                 </div>
             );
         }
@@ -144,18 +144,18 @@ export const OrderTestStep1Modal = ({
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                    <h4 className="font-medium text-sm">{report.title}</h4>
+                                    <h4 className=" typo-body-2">{report.title}</h4>
                                     {report.genders.length > 0 && (
-                                        <p className="text-xs text-neutral-800 mt-1">
+                                        <p className="typo-body-3 text-neutral-800-old mt-1">
                                             {report.genders.map((gender) => gender).join(", ")}
                                         </p>
                                     )}
                                     {report.description && (
-                                        <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                                        <p className="typo-body-3 text-neutral-500-old mt-1 line-clamp-2">
                                             {report.description}
                                         </p>
                                     )}
-                                    <p className="text-sm font-semibold text-violet-700 mt-2">
+                                    <p className="typo-body-2  text-violet-700 mt-2">
                                         ${report.price}
                                     </p>
                                 </div>
@@ -185,29 +185,29 @@ export const OrderTestStep1Modal = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Order DNA Test - Step 1</DialogTitle>
-                    <DialogDescription className="text-base text-neutral-600 pt-2">
+                    <DialogTitle className="typo-h4 ">Order DNA Test - Step 1</DialogTitle>
+                    <DialogDescription className="typo-body-1 text-neutral-600-old pt-2">
                         {formatOrderTypeDisplay(orderType)}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 pt-4">
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Patient Details</Label>
+                        <Label className="typo-body-2 ">Patient Details</Label>
                         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                            <p className="text-sm text-neutral-700">{patientSummary}</p>
+                            <p className="typo-body-2 text-neutral-700-old">{patientSummary}</p>
                         </div>
                     </div>
 
                     {addressRequired && (
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium">Address *</Label>
+                            <Label className="typo-body-2 ">Address *</Label>
                             {renderAddressSelector()}
                         </div>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="barcode" className="text-sm font-medium">
+                        <Label htmlFor="barcode" className="typo-body-2 ">
                             Enter Barcode No. *
                         </Label>
                         <Input
@@ -219,7 +219,7 @@ export const OrderTestStep1Modal = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Select Report *</Label>
+                        <Label className="typo-body-2 ">Select Report *</Label>
                         {renderReportCards()}
                     </div>
                 </div>
@@ -229,16 +229,16 @@ export const OrderTestStep1Modal = ({
                         Cancel
                     </Button>
                     <div className="flex flex-1 items-center justify-end gap-3">
-                        {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+                        {errorMessage && <p className="typo-body-2 text-red-600">{errorMessage}</p>}
                         <Button
-                            className="bg-violet-700 hover:bg-violet-800"
+                            variant="accent"
                             disabled={!canProceed || isSubmitting}
                             onClick={handleSave}
                         >
                             {isSubmitting ? (
                                 <>
                                     <Spinner className="size-4" />
-                                    <span className="text-sm font-medium">Submitting...</span>
+                                    <span className="typo-body-2 ">Submitting...</span>
                                 </>
                             ) : (
                                 "Save"

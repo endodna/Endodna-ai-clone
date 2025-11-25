@@ -139,7 +139,7 @@ export function AddMedicationModal({
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-[375px] md:max-w-[640px] w-full p-4 md:p-6">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold text-neutral-900">
+                    <DialogTitle className="typo-h4  text-neutral-900-old">
                         {isEditing ? "Edit Medication" : "Add Medication"}
                     </DialogTitle>
                 </DialogHeader>
@@ -147,7 +147,7 @@ export function AddMedicationModal({
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-2 md:space-y-4">
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                            <label htmlFor="drugName" className="text-sm font-medium text-neutral-950">Name *</label>
+                            <label htmlFor="drugName" className="typo-body-2  text-neutral-950">Name *</label>
                             <Input
                                 id="drugName"
                                 placeholder="e.g: Ibuprofen"
@@ -156,13 +156,13 @@ export function AddMedicationModal({
                             />
                         </div>
                         {errors.drugName && (
-                            <p className="text-sm text-red-500 ml-auto">{errors.drugName.message}</p>
+                            <p className="typo-body-2 text-red-500 ml-auto">{errors.drugName.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                            <label htmlFor="dosage" className="text-sm font-medium text-neutral-950">Dosage *</label>
+                            <label htmlFor="dosage" className="typo-body-2  text-neutral-950">Dosage *</label>
                             <Input
                                 id="dosage"
                                 placeholder="e.g: 200-400 mg"
@@ -170,12 +170,12 @@ export function AddMedicationModal({
                                 className={cn(errors.dosage && "border-red-500", "max-w-[484px] w-full")}
                             />
                         </div>
-                        {errors.dosage && <p className="text-sm text-red-500 mt-1 md:mt-0">{errors.dosage.message}</p>}
+                        {errors.dosage && <p className="typo-body-2 text-red-500 mt-1 md:mt-0">{errors.dosage.message}</p>}
                     </div>
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                            <label htmlFor="frequency" className="text-sm font-medium text-neutral-950">Frequency *</label>
+                            <label htmlFor="frequency" className="typo-body-2  text-neutral-950">Frequency *</label>
                             <Input
                                 id="frequency"
                                 placeholder="e.g: Every 4 to 6 hours"
@@ -183,12 +183,12 @@ export function AddMedicationModal({
                                 className={cn(errors.frequency && "border-red-500", "max-w-[484px] w-full")}
                             />
                         </div>
-                        {errors.frequency && <p className="text-sm text-red-500 mt-1 md:mt-0 ml-auto">{errors.frequency.message}</p>}
+                        {errors.frequency && <p className="typo-body-2 text-red-500 mt-1 md:mt-0 ml-auto">{errors.frequency.message}</p>}
                     </div>
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                            <label htmlFor="reason" className="text-sm font-medium text-neutral-950">Reason *</label>
+                            <label htmlFor="reason" className="typo-body-2  text-neutral-950">Reason *</label>
                             <Input
                                 id="reason"
                                 placeholder="e.g: Pain management"
@@ -196,12 +196,12 @@ export function AddMedicationModal({
                                 className={cn(errors.reason && "border-red-500", "max-w-[484px] w-full")}
                             />
                         </div>
-                        {errors.reason && <p className="text-sm text-red-500 mt-1 md:mt-0 ml-auto">{errors.reason.message}</p>}
+                        {errors.reason && <p className="typo-body-2 text-red-500 mt-1 md:mt-0 ml-auto">{errors.reason.message}</p>}
                     </div>
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                        <label htmlFor="notes" className="text-sm font-medium text-neutral-950">Notes</label>
+                        <label htmlFor="notes" className="typo-body-2  text-neutral-950">Notes</label>
                         <Textarea
                             id="notes"
                             placeholder="Add optional notes"
@@ -210,7 +210,7 @@ export function AddMedicationModal({
                             className="resize-none max-w-[484px] w-full"
                         />
                         </div>
-                        {errors.notes && <p className="text-sm text-red-500 mt-1 md:mt-0">{errors.notes.message}</p>}
+                        {errors.notes && <p className="typo-body-2 text-red-500 mt-1 md:mt-0">{errors.notes.message}</p>}
                     </div>
 
                     <DialogFooter className="flex flex-end gap-1 md:gap-2">

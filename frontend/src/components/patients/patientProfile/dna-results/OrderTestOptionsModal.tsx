@@ -31,14 +31,14 @@ export const OrderTestOptionsModal = ({ open, onOpenChange, onSelectOption }: Or
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Order Test</DialogTitle>
-                    <DialogDescription className="text-base text-neutral-600 pt-2">
+                    <DialogTitle className="typo-h4 ">Order Test</DialogTitle>
+                    <DialogDescription className="typo-body-1 text-neutral-600-old pt-2">
                         Choose how you want to proceed with the DNA test.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 md:space-y-3 pt-4">
                     {orderTypes.length === 0 ? (
-                        <p className="text-sm text-neutral-600 text-center py-4">No order types available</p>
+                        <p className="typo-body-2 text-neutral-600-old text-center py-4">No order types available</p>
                     ) : (
                         orderTypes.map((orderType) => (
                             <Button
@@ -48,7 +48,7 @@ export const OrderTestOptionsModal = ({ open, onOpenChange, onSelectOption }: Or
                                 className="w-full justify-start h-auto py-4 px-4 text-left"
                                 onClick={() => onSelectOption(orderType)}
                             >
-                                <span className="font-medium">{formatOrderTypeDisplay(orderType)}</span>
+                                <span className="">{formatOrderTypeDisplay(orderType)}</span>
                             </Button>
                         ))
                     )}

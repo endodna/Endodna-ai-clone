@@ -23,9 +23,9 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
         if (isLoading) {
             return (
                 <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-4">
-                    <div className="flex items-center gap-3 text-neutral-700">
+                    <div className="flex items-center gap-3 text-neutral-700-old">
                         <Spinner className="size-5" />
-                        <span className="text-sm font-medium">Generating patient summary...</span>
+                        <span className="typo-body-2">Generating patient summary...</span>
                     </div>
                     <Skeleton className="h-6 w-32" />
                     <Skeleton className="h-4 w-full" />
@@ -37,7 +37,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
         if (isError || data?.error) {
             return (
                 <div className="rounded-3xl border border-neutral-100 bg-white p-6">
-                    <p className="mt-2 text-sm text-red-600">
+                    <p className="mt-2 typo-body-2 text-red-600">
                         {data?.message || "Failed to load patient summary"}
                     </p>
                 </div>
@@ -47,9 +47,9 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
         if (!data?.data) {
             return (
                 <div className="space-y-4 rounded-3xl border border-neutral-100 bg-white p-6">
-                    <h3 className="text-2xl font-semibold leading-none text-neutral-900">Summary</h3>
+                    <h3 className="typo-h3 text-neutral-900-old">Summary</h3>
                     <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 text-center">
-                        <p className="text-sm font-medium text-neutral-700">
+                        <p className="typo-body-2 text-neutral-700-old">
                             AI summary will be available once recent lab results are uploaded.
                         </p>
                     </div>
@@ -61,17 +61,24 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
         return (
             <div className="space-y-6 rounded-3xl border border-neutral-100 bg-white p-6 shadow-[0px_1px_2px_-1px_rgba(0,0,0,0.1),0px_1px_3px_0px_rgba(0,0,0,0.1)]">
-                <h3 className="text-2xl font-semibold leading-none text-neutral-900">Summary</h3>
+                <h3 className="">Summary</h3>
 
-                <div>
-                    <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                {/* <ReactMarkdown
+                        rehypePlugins={[rehypeRaw]}
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                    >
                         {summaryData.summary}
+                    </ReactMarkdown> */}
+                <div className="[&_p]:mt-4">
+                    <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                        {summaryData.summary.replace(/<br\s*\/?>/g, "\n\n").trim()}
                     </ReactMarkdown>
                 </div>
 
                 {summaryData.followUpPrompts && summaryData.followUpPrompts.length > 0 && (
                     <div className="space-y-2 md:space-y-3">
-                        <p className="text-base font-semibold leading-normal text-neutral-900">
+                        <p className="typo-body-1 text-neutral-900-old">
                             Follow up prompts
                         </p>
                         <div className="flex flex-wrap gap-1 md:gap-2">
@@ -80,7 +87,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                                     <TooltipTrigger asChild>
                                         <Button
                                             variant="ghost"
-                                            className="rounded-lg bg-neutral-100 px-2 py-[3px]"
+                                            className="rounded-lg px-2 py-[3px]"
                                         >
                                             <Sparkles className="h-4 w-4 flex-shrink-0 text-[#525252]" />
                                             <span>{truncateText(prompt, 50)}</span>
@@ -90,9 +97,10 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                                     <TooltipContent
                                         side="top"
                                         align="center"
-                                        className="rounded-lg border border-neutral-200 bg-white shadow-lg"
+                                        className="rounded-lg border border-neutral-200 shadow-lg"
+                                        variant="inverted"
                                     >
-                                        <span className="text-sm text-neutral-900">{prompt}</span>
+                                        <span className="typo-body-2 text-neutral-900-old">{prompt}</span>
                                     </TooltipContent>
                                 </Tooltip>
                             ))}

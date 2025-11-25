@@ -145,10 +145,11 @@ export default function PatientListPage() {
 
             {/* Title and add new patient button */}
             <div className="flex items-center justify-between">
-                <h1 className="text-5xl font-semibold text-neutral-900">Patients</h1>
+                <h1 className="typo-h1 text-neutral-900-old">Patients</h1>
                 <Button
                     onClick={() => dispatch(openAddPatientDialog())}
-                    className="bg-violet-700 hover:bg-violet-400 text-neutral-50 text-sm font-medium rounded-lg "
+                    className="typo-body-2 rounded-lg"
+                    variant="accent"
                 >
                     <UserPlus className="w-4 h-4" />
                     Add new patient
@@ -159,7 +160,7 @@ export default function PatientListPage() {
             <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-2 rounded-2xl">
                 <div className="flex-1 min-w-60">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400-old" />
                         <Input
                             placeholder="Search"
                             className="pl-9 bg-white border border-neutral-200 max-w-[240px] w-full"

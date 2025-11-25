@@ -180,7 +180,7 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "text-neutral-950 text-sm font-medium leading-normal",
+                      "text-neutral-950 typo-body-2  ",
                       (header.column.columnDef.meta as TableColumnMeta)?.headerClassName
                     )}
                   >
@@ -212,7 +212,7 @@ export function DataTable<TData, TValue>({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        "px-2 text-neutral-700",
+                        "px-2 text-neutral-700-old",
                         cellClassName,
                         (cell.column.columnDef.meta as TableColumnMeta)?.cellClassName
                       )}
@@ -290,7 +290,7 @@ export function DataTable<TData, TValue>({
                     onPageChange(pagination.page + 1);
                   }
                 }}
-                className={cn("text-sm font-medium leading-normal text-neutral-700", !pagination.hasNextPage && "!pointer-events-none !opacity-50")}
+                className={cn("typo-body-2   text-neutral-700-old", !pagination.hasNextPage && "!pointer-events-none !opacity-50")}
               />
             </PaginationItem>
           </PaginationContent>

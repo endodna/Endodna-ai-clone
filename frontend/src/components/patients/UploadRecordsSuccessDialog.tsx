@@ -23,7 +23,7 @@ export function UploadRecordsSuccessDialog() {
     <Dialog open={isUploadSuccessDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[375px] md:max-w-[420px] p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg md:text-xl font-semibold text-neutral-900">
+          <DialogTitle className="text-lg md:  text-neutral-900-old">
             Medical records added successfully!
           </DialogTitle>
         </DialogHeader>

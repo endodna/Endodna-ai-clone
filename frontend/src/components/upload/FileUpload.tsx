@@ -236,25 +236,25 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
             )}
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100">
-              <UploadCloud className="h-6 w-6 text-neutral-600" aria-hidden />
+              <UploadCloud className="h-6 w-6 text-neutral-600-old" aria-hidden />
             </span>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm md:text-base font-semibold text-neutral-950 leading-normal">
+              <span className="typo-body-2  text-neutral-950 ">
                 {dropzoneText}{" "}
                 <span className="text-violet-600 underline-offset-2">choose</span>{" "}
                 {instructionSuffix}
               </span>
-              {dropzoneSubtext && <span className="text-xs md:text-sm font-normal text-neutral-500">{dropzoneSubtext}</span>}
+              {dropzoneSubtext && <span className="typo-body-3  text-neutral-500-old">{dropzoneSubtext}</span>}
               {supportedTypesText &&
-                <span className="text-xs md:text-sm font-normal text-neutral-500">Supported file types: {supportedTypesText}</span>
+                <span className="typo-body-3  text-neutral-500-old">Supported file types: {supportedTypesText}</span>
               }
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="px-4 py-[7.5px] text-neutral-950 font-medium text-sm leading-normal"
+              className="px-4 py-[7.5px] text-neutral-950  typo-body-2 "
               onClick={(event) => {
                 event.preventDefault();
                 triggerFilePicker();
@@ -279,26 +279,26 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
       <div className="space-y-1">
         {showProgress ? (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-neutral-800">Upload progress</p>
+            <p className="typo-body-2  text-neutral-800-old">Upload progress</p>
             <Progress value={uploadProgress} className="h-3" />
           </div>
         ) : null}
 
         {showFileList ? (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-neutral-800">Files</p>
+            <p className="typo-body-2  text-neutral-800-old">Files</p>
             <div className="space-y-1">
               {files.map((file) => (
                 <Card key={file.name} className="border border-neutral-200 shadow-none">
                   <CardContent className="flex items-center justify-between gap-3 px-1 md:px-2 py-0">
-                    <div className="text-xs font-semibold leading-normal text-neutral-700">
+                    <div className="typo-body-3   text-neutral-700-old">
                       {file.name}
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="text-neutral-500 hover:text-red-600"
+                      className="text-neutral-500-old hover:text-red-600"
                       onClick={() => handleRemoveFile(file.name)}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden />
@@ -313,7 +313,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(function
 
         {rejectionMessage && (
           <Card className="border-red-200 bg-red-50">
-            <CardContent className="flex items-center gap-[10px] p-2 text-xs font-semibold text-red-500">
+            <CardContent className="flex items-center gap-[10px] p-2 typo-body-3  text-red-500">
               <AlertCircle className="h-5 w-5" aria-hidden />
               <span>{rejectionMessage}</span>
             </CardContent>

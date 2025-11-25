@@ -169,7 +169,7 @@ export function FormFieldRenderer({
                     disabled={field.disabled}
                     aria-invalid={fieldState.invalid}
                   />
-                  <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  <Label className="  leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     {field.label}
                   </Label>
                 </div>
@@ -199,7 +199,7 @@ export function FormFieldRenderer({
                       />
                       <Label
                         htmlFor={`${field.name}-${option.value}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="  leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {option.label}
                       </Label>
@@ -225,7 +225,7 @@ export function FormFieldRenderer({
         return (
           <div className="space-y-2">
             {field.type !== "checkbox" && (
-              <Label htmlFor={field.name} className="text-xs font-medium">
+              <Label htmlFor={field.name} className="text-xs ">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </Label>
@@ -234,18 +234,18 @@ export function FormFieldRenderer({
             <div className={field.className}>{renderField()}</div>
 
             {field.description && (
-              <p className="text-sm text-muted-foreground">
+              <p className=" text-muted-foreground">
                 {field.description}
               </p>
             )}
 
             {fieldState.invalid && fieldState.error && (
-              <p className="text-xs font-medium text-red-500">
+              <p className="text-xs  text-red-500">
                 {fieldState.error.message}
               </p>
             )}
             {customError && (
-              <p className="text-xs font-medium text-red-500">{customError}</p>
+              <p className="text-xs  text-red-500">{customError}</p>
             )}
           </div>
         );

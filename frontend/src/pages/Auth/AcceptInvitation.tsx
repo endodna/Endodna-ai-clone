@@ -58,13 +58,13 @@ export default function AcceptInvitation() {
     <AuthContainer
       header={
         <div className="flex flex-col gap-4">
-          <div className="text-4xl pt-4 text-neutral-700 font-semibold">
+          <div className="typo-h1 pt-4 text-neutral-700-old">
             Welcome!
           </div>
-          <div className="text-base text-neutral-600">
+          <div className="typo-body-1 text-neutral-600-old">
             <p>
               {doctorName} has invited you to join{" "}
-              <span className="font-semibold">{orgName}</span>. Here you&apos;ll
+              <span className="">{orgName}</span>. Here you&apos;ll
               be able to access your medical and labs records easily.
             </p>
           </div>

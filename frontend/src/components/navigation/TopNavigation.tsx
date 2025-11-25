@@ -72,7 +72,7 @@ export function TopNavigation() {
                 variant="default"
                 size="sm"
                 className={cn(
-                  "text-sm rounded-xl border-0 font-medium text-neutral-950 min-w-20 w-auto hover:bg-white px-4 shadow-sm",
+                  " rounded-xl border-0  text-neutral-950 min-w-20 w-auto hover:bg-white px-4 shadow-sm",
                   location.pathname === item.url
                     ? "bg-white"
                     : "bg-transparent shadow-none",
@@ -100,7 +100,7 @@ export function TopNavigation() {
                 align="end"
                 className="w-56 bg-white border border-neutral-200 shadow-lg rounded-md"
               >
-                <DropdownMenuLabel className="text-neutral-400 text-sm font-normal px-2 py-1.5">
+                <DropdownMenuLabel className="text-neutral-400-old   px-2 py-1.5">
                   Settings
                 </DropdownMenuLabel>
                 <DropdownMenuItem className="cursor-pointer px-2 py-1.5 text-neutral-950 hover:bg-neutral-100">

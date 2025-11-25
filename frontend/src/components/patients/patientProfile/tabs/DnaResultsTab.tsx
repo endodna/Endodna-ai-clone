@@ -105,7 +105,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
     if (!patientId) {
         return (
             <div className="rounded-3xl border border-neutral-100 bg-white p-6">
-                <p className="text-sm text-neutral-600">Select a patient to view DNA results.</p>
+                <p className="typo-body-2 text-neutral-600-old">Select a patient to view DNA results.</p>
             </div>
         );
     }
@@ -114,18 +114,19 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
         <div className="">
             <div className="flex justify-end">
                 <Button
-                    className="bg-violet-700 hover:bg-violet-800 text-white relative -top-12 px-4 md:px-6 py-1 md:py-[9.5px]"
+                    className="relative -top-12 px-4 md:px-6 py-1 md:py-[9.5px]"
+                    variant="accent"
                     onClick={() => setShowOptionsModal(true)}
                 >
                     <ShoppingCart className="h-4 w-4" />
-                    <span className="text-sm font-medium leading-normal">Order Test</span>
+                    <span className="typo-body-2">Order Test</span>
                 </Button>
             </div>
             <div className="space-y-4 md:space-y-6 bg-white p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-semibold text-neutral-900">Results</h3>
+                    <h3 className="typo-h3 text-neutral-900-old">Results</h3>
                     {lastUpdated && (
-                        <p className="text-smfont-regular text-neutral-500">Updated on {lastUpdated}</p>
+                        <p className="typo-body-2 text-neutral-500-old">Updated on {lastUpdated}</p>
                     )}
                 </div>
 
