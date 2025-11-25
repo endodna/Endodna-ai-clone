@@ -73,6 +73,20 @@ class PatientChatHelper extends BaseChatHelper {
         if (patient.gender) {
             formatted += `Gender: ${patient.gender}\n`;
         }
+        if (patient.patientInfo) {
+            if (patient.patientInfo.weight) {
+                formatted += `Weight: ${patient.patientInfo.weight} kg\n`;
+            }
+            if (patient.patientInfo.height) {
+                formatted += `Height: ${patient.patientInfo.height} cm\n`;
+            }
+            if (patient.patientInfo.bmi) {
+                formatted += `BMI: ${patient.patientInfo.bmi}\n`;
+            }
+            if (patient.patientInfo.bloodType) {
+                formatted += `Blood Type: ${patient.patientInfo.bloodType}\n`;
+            }
+        }
 
         formatted += `\n`;
 
@@ -223,6 +237,7 @@ class PatientChatHelper extends BaseChatHelper {
                     ...buildOrganizationUserFilter(organizationId),
                 },
                 include: {
+                    patientInfo: true,
                     patientAllergies: {
                         where: {
                             organizationId,

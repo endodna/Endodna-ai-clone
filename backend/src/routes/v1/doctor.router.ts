@@ -19,6 +19,7 @@ import {
   createAlertOrAllergyParamsSchema,
   updateAlertOrAllergyParamsSchema,
   deleteAlertOrAllergyParamsSchema,
+  updatePatientInfoSchema,
   createAlertOrAllergyBodySchema,
   updateAlertOrAllergyBodySchema,
   createGeneralConversationSchema,
@@ -56,6 +57,11 @@ doctorRouter.get(
 doctorRouter.get("/patients/:patientId",
   validateParams(patientIdParamsSchema),
   DoctorController.getPatient
+);
+doctorRouter.put("/patients/:patientId",
+  validateParams(patientIdParamsSchema),
+  validate(updatePatientInfoSchema),
+  DoctorController.updatePatientInfo
 );
 
 // Medication Routes

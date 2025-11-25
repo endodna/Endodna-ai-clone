@@ -430,6 +430,30 @@ export const reportIdParamsSchema = z.object({
 }).strict();
 export type ReportIdParamsSchema = z.infer<typeof reportIdParamsSchema>;
 
+export const updatePatientInfoSchema = z.object({
+  dateOfBirth: z.coerce.date().transform((val) => val.toISOString()).optional(),
+  gender: z.string().optional(),
+  bloodType: z.string().optional(),
+  weight: z.number().int().positive("Weight must be a positive integer").optional(),
+  height: z.number().int().positive("Height must be a positive integer").optional(),
+  bmi: z.number().int().positive("BMI must be a positive integer").optional(),
+}).strict().refine(
+  (data) => {
+    return (
+      data.dateOfBirth !== undefined ||
+      data.gender !== undefined ||
+      data.bloodType !== undefined ||
+      data.weight !== undefined ||
+      data.height !== undefined ||
+      data.bmi !== undefined
+    );
+  },
+  {
+    message: "At least one field must be provided for update",
+  }
+);
+export type UpdatePatientInfoSchema = z.infer<typeof updatePatientInfoSchema>;
+
 export const createReportSchema = z.object({
   code: z.string().min(1, "Code is required"),
   title: z.string().min(1, "Title is required"),
