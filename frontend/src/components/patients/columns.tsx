@@ -9,17 +9,36 @@ import { formatDate } from "@/utils/date.utils";
 import { getDNAStatusDisplay } from "@/utils/patient.utils";
 import { truncateText } from "@/utils/utils";
 import { AlertIcon } from "./AlertIcon";
+import { PatientStatus } from "@/components/constants/patient";
 
+type InviteHandler = (patient: PatientRow) => void;
 
-export const patientColumns: ColumnDef<PatientRow>[] = [
+export const getPatientColumns = (
+  onInvite?: InviteHandler,
+): ColumnDef<PatientRow>[] => [
   {
     id: "alert",
     header: "",
     cell: ({ row }) => {
       const patientStatus = row.original.status;
-      return (
-        <AlertIcon status={patientStatus} />
-      );
+      const isPending = patientStatus === PatientStatus.PENDING;
+
+      if (isPending && onInvite) {
+        return (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onInvite(row.original);
+            }}
+            className=""
+          >
+            <AlertIcon status={patientStatus} />
+          </button>
+        );
+      }
+
+      return <AlertIcon status={patientStatus} />;
     },
   },
   {
