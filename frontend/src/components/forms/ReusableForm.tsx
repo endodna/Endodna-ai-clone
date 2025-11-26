@@ -6,7 +6,9 @@ import { FormFieldRenderer } from "./FormFieldRenderer";
 import { ReusableFormProps } from "./types";
 import { Spinner } from "@/components/ui/spinner";
 
-export function ReusableForm<T extends z.ZodTypeAny>({
+export function 
+
+ReusableForm<T extends z.ZodTypeAny>({
   schema,
   fields,
   onSubmit,
@@ -72,7 +74,7 @@ export function ReusableForm<T extends z.ZodTypeAny>({
         <Button
           type="submit"
           disabled={!isFormValid || isLoading}
-          className="ml-auto w-full bg-violet-600 hover:bg-violet-600"
+          className="ml-auto w-full"
         >
           {isLoading ? <Spinner /> : null}
           {submitText}

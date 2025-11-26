@@ -23,17 +23,17 @@ export function UploadRecordsSuccessDialog() {
     <Dialog open={isUploadSuccessDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[375px] md:max-w-[420px] p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg md:  text-neutral-900-old">
-            Medical records added successfully!
+          <DialogTitle className="text-foreground">
+            <h4>Medical records added successfully!</h4>
           </DialogTitle>
         </DialogHeader>
         <DialogFooter className="mt-4">
           <Button
             type="button"
-            className="w-full bg-violet-700 text-white hover:bg-violet-500 md:w-auto"
+            className="w-fit hover:bg-primary/80 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleClose}
           >
-            Close
+            <span className="text-primary-foreground">Close</span>
           </Button>
         </DialogFooter>
       </DialogContent>

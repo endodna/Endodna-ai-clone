@@ -63,7 +63,7 @@ export function TopNavigation() {
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       }
-      <nav className="bg-neutral-200 w-full rounded-3xl rounded-l-2xl p-1">
+      <nav className="bg-muted-foreground w-full rounded-3xl rounded-l-2xl p-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center px-2 gap-4">
             {navItems.map((item) => (
@@ -72,9 +72,9 @@ export function TopNavigation() {
                 variant="default"
                 size="sm"
                 className={cn(
-                  " rounded-xl border-0  text-neutral-950 min-w-20 w-auto hover:bg-white px-4 shadow-sm",
+                  " rounded-xl border-0 text-foreground min-w-20 w-auto hover:bg-primary-foreground px-4 shadow-sm typo-body-2",
                   location.pathname === item.url
-                    ? "bg-white"
+                    ? "bg-primary-foreground"
                     : "bg-transparent shadow-none",
                 )}
                 onClick={() => navigate(item.url)}
@@ -87,7 +87,7 @@ export function TopNavigation() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="cursor-pointer">
-                  <Avatar className="border-2 border-white">
+                  <Avatar className="border-2 border-primary-foreground">
                     <AvatarImage src="" />
                     <AvatarFallback>
                       {userConfig?.firstName?.[0] || "U"}
@@ -98,25 +98,25 @@ export function TopNavigation() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 bg-white border border-neutral-200 shadow-lg rounded-md"
+                className="w-56 bg-primary-foreground border border-muted-foreground shadow-lg rounded-md"
               >
-                <DropdownMenuLabel className="text-neutral-400-old   px-2 py-1.5">
+                <DropdownMenuLabel className="px-2 py-1.5">
                   Settings
                 </DropdownMenuLabel>
-                <DropdownMenuItem className="cursor-pointer px-2 py-1.5 text-neutral-950 hover:bg-neutral-100">
+                <DropdownMenuItem className="cursor-pointer px-2 py-1.5 ">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer px-2 py-1.5 text-neutral-950 hover:bg-neutral-100">
+                <DropdownMenuItem className="cursor-pointer px-2 py-1.5">
                   <Syringe className="mr-2 h-4 w-4" />
                   <span>Integrations</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer px-2 py-1.5 text-neutral-950 hover:bg-neutral-100">
+                <DropdownMenuItem className="cursor-pointer px-2 py-1.5">
                   <Dna className="mr-2 h-4 w-4" />
                   <span>Support</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="cursor-pointer px-2 py-1.5 text-neutral-950 hover:bg-neutral-100"
+                  className="cursor-pointer px-2 py-1.5"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />

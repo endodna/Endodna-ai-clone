@@ -115,7 +115,6 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
             <div className="flex justify-end">
                 <Button
                     className="relative -top-12 px-4 md:px-6 py-1 md:py-[9.5px]"
-                    variant="accent"
                     onClick={() => setShowOptionsModal(true)}
                 >
                     <ShoppingCart className="h-4 w-4" />

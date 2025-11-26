@@ -284,7 +284,7 @@ export function ChatModal({
                                                     "w-full rounded-3xl px-5 py-4 transition-colors",
                                                     isUser
                                                         ? "bg-primary text-black"
-                                                        : "text-neutral-900 border border-neutral-200"
+                                                        : "text-neutral-900-old border border-neutral-200"
                                                 )}
                                             >
                                                 <div
@@ -390,7 +390,7 @@ export function ChatModal({
                         <Button
                             type="button"
                             className="h-[40px] w-[40px] gap-2 px-0 disabled:cursor-not-allowed disabled:opacity-60 shrink-0"
-                            variant="accent"
+                            variant="ghost"
                             disabled={!chatModalPrompt.trim() || !currentConversationId || isSendingMessage}
                             onClick={handleChatModalSubmit}
                         >

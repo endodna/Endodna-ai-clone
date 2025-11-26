@@ -73,10 +73,10 @@ export function AllChatsHistory() {
         )}
       >
         <div className="flex flex-col flex-1 min-w-0">
-          <p className="typo-body-2 text-neutral-900-old truncate">
+          <p className="typo-body-2 typo-body-2-regular text-foreground truncate">
             {item.title}
           </p>
-          <p className="typo-body-3 text-neutral-500-old">{date}</p>
+          <p className="typo-body-3 typo-body-3-regular text-foreground">{date}</p>
         </div>
         <ChevronRight className="h-4 w-4 text-neutral-400-old flex-shrink-0" />
       </button>
@@ -115,11 +115,11 @@ export function AllChatsHistory() {
               onClick={() => setGlobalResearchCollapsed((prev) => !prev)}
               className="flex items-center justify-between py-2 text-left"
             >
-              <p className="typo-body-2 text-neutral-900-old">Global Research</p>
+              <p className="typo-body-2  text-foreground">Global Research</p>
               {globalResearchCollapsed ? (
-                <ChevronDown className="h-4 w-4 text-neutral-400-old" />
+                <ChevronDown className="h-4 w-4 text-foreground" />
               ) : (
-                <ChevronUp className="h-4 w-4 text-neutral-400-old" />
+                <ChevronUp className="h-4 w-4 text-foreground" />
               )}
             </button>
             {!globalResearchCollapsed && (
@@ -140,11 +140,11 @@ export function AllChatsHistory() {
               onClick={() => setPatientResearchCollapsed((prev) => !prev)}
               className="flex items-center justify-between py-2 text-left"
             >
-              <p className="typo-body-2 text-neutral-900-old">Patient Research</p>
+              <p className="typo-body-2 text-foreground">Patient Research</p>
               {patientResearchCollapsed ? (
-                <ChevronDown className="h-4 w-4 text-neutral-400-old" />
+                <ChevronDown className="h-4 w-4 text-foreground" />
               ) : (
-                <ChevronUp className="h-4 w-4 text-neutral-400-old" />
+                <ChevronUp className="h-4 w-4 text-foreground" />
               )}
             </button>
             {!patientResearchCollapsed && (

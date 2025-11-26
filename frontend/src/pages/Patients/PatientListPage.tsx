@@ -146,19 +146,18 @@ export default function PatientListPage() {
 
             {/* Title and add new patient button */}
             <div className="flex items-center justify-between">
-                <h1 className="typo-h1 text-neutral-900-old">Patients</h1>
+                <h1 className="text-foreground">Patients</h1>
                 <div className="flex items-center gap-3">
                     <Button
                         onClick={() => dispatch(openAddPatientDialog())}
                         className="typo-body-2 rounded-lg"
-                        variant="accent"
                     >
                         <UserPlus className="w-4 h-4" />
                         Add new patient
                     </Button>
                     <Button
                         onClick={() => setIsSearchVisible(!isSearchVisible)}
-                        className="text-neutral-700 typo-body-2 cursor-pointer transition-colors bg-transparent shadow-none"
+                        variant="ghost"
                     >
                         {isSearchVisible ? "Hide Search" : "Show Search"}
                     </Button>
@@ -167,68 +166,68 @@ export default function PatientListPage() {
 
             {/* Search and filter */}
             {isSearchVisible && (
-            <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-2 rounded-2xl">
-                <div className="flex-1 min-w-60">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400-old" />
-                        <Input
-                            placeholder="Search"
-                            className="pl-9 bg-white border border-neutral-200 max-w-[240px] w-full"
-                            value={searchInput}
-                            onChange={(event) => handleSearchChange(event.target.value)}
-                        />
+                <div className="flex items-center justify-between gap-4 flex-wrap bg-primary-foreground p-2 rounded-2xl">
+                    <div className="flex-1 min-w-60">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground" />
+                            <Input
+                                placeholder="Search"
+                                className="pl-9 max-w-[240px] w-full"
+                                value={searchInput}
+                                onChange={(event) => handleSearchChange(event.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <Select
+                            value={selectedPhysician}
+                            defaultValue={DEFAULT_PHYSICIAN_VALUE}
+                            isClearable
+                            onValueChange={(value) => {
+                                setFilters((prev) => ({
+                                    ...prev,
+                                    selectedPhysician: value,
+                                    page: 1, // Reset to first page when filter changes
+                                }));
+                            }}
+                        >
+                            <SelectTrigger className="w-44 overflow-hidden text-left">
+                                <SelectValue placeholder="All Physicians" className="truncate" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {physicianOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            isClearable={true}
+                            defaultValue={DEFAULT_STATUS_VALUE}
+                            value={selectedStatus}
+                            onValueChange={(value) => {
+                                setFilters((prev) => ({
+                                    ...prev,
+                                    selectedStatus: value,
+                                    page: 1, // Reset to first page when filter changes
+                                }));
+                            }}
+                        >
+                            <SelectTrigger className="w-40 overflow-hidden text-left">
+                                <SelectValue placeholder="All Statuses" className="truncate" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {statusOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                    <Select
-                        value={selectedPhysician}
-                        defaultValue={DEFAULT_PHYSICIAN_VALUE}
-                        isClearable
-                        onValueChange={(value) => {
-                            setFilters((prev) => ({
-                                ...prev,
-                                selectedPhysician: value,
-                                page: 1, // Reset to first page when filter changes
-                            }));
-                        }}
-                    >
-                        <SelectTrigger className="w-44 bg-white overflow-hidden text-left">
-                            <SelectValue placeholder="All Physicians" className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {physicianOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        isClearable={true}
-                        defaultValue={DEFAULT_STATUS_VALUE}
-                        value={selectedStatus}
-                        onValueChange={(value) => {
-                            setFilters((prev) => ({
-                                ...prev,
-                                selectedStatus: value,
-                                page: 1, // Reset to first page when filter changes
-                            }));
-                        }}
-                    >
-                        <SelectTrigger className="w-40 bg-white overflow-hidden text-left">
-                            <SelectValue placeholder="All Statuses" className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {statusOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
             )}
 
             <PatientTable

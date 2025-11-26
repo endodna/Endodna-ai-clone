@@ -30,7 +30,7 @@ export function InvitePatientDialog() {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  
+
   const maxCharacters = 500;
   const minCharacters = 150;
   const characterCount = message.length;
@@ -126,34 +126,34 @@ export function InvitePatientDialog() {
   const applyHighlighting = () => {
     const div = contentEditableRef.current;
     if (!div) return;
-    
+
     const text = div.textContent || "";
     let html = text;
-    
+
     VARIABLES.forEach((variable) => {
       // Escape special regex characters, but keep the token format
       const escaped = variable.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(${escaped})`, 'g');
       html = html.replace(regex, '<span class="text-violet-600 ">$1</span>');
     });
-    
+
     if (div.innerHTML !== html) {
       const selection = window.getSelection();
       const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
       div.innerHTML = html;
-      
+
       if (range) {
         try {
           const newRange = document.createRange();
           const walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT);
           let node = walker.nextNode();
           let offset = 0;
-          
+
           while (node && offset + node.textContent!.length < range.startOffset) {
             offset += node.textContent!.length;
             node = walker.nextNode();
           }
-          
+
           if (node) {
             newRange.setStart(node, Math.min(range.startOffset - offset, node.textContent!.length));
             newRange.setEnd(node, Math.min(range.endOffset - offset, node.textContent!.length));
@@ -170,12 +170,12 @@ export function InvitePatientDialog() {
     const div = contentEditableRef.current;
     if (!div) return;
     let text = div.textContent || "";
-    
+
     if (text.length > maxCharacters) {
       text = text.substring(0, maxCharacters);
       div.textContent = text;
     }
-    
+
     setMessage(text);
     setTimeout(applyHighlighting, 0);
   };
@@ -214,10 +214,10 @@ export function InvitePatientDialog() {
     <Dialog open={isInvitePatientDialogOpen} onOpenChange={handleClose}>
       <DialogContent className="p-4 md:p-6 max-w-[560px] w-full">
         <DialogHeader className="space-y-2">
-          <DialogTitle className="typo-h4  text-neutral-900-old">
-            Invite your patient
+          <DialogTitle className="text-foreground typo-h4">
+            <h4>Invite your patient</h4>
           </DialogTitle>
-          <DialogDescription className="typo-body-2 text-neutral-600-old">
+          <DialogDescription className="typo-body-2 text-foreground">
             Invite with a preformatted email or customize it to your needs.
           </DialogDescription>
         </DialogHeader>
@@ -229,29 +229,27 @@ export function InvitePatientDialog() {
             onInput={handleInput}
             onBlur={applyHighlighting}
             data-placeholder="Write your invitation..."
-            className={`w-full min-h-[220px] p-4 rounded-2xl border resize-none typo-body-2 focus:outline-none focus:ring-2 focus:ring-violet-500 whitespace-pre-wrap break-words ${
-              inlineError ? "border-red-500" : "border-neutral-300"
-            } text-neutral-900-old`}
+            className={`w-full min-h-[220px] p-4 rounded-2xl border resize-none typo-body-2 focus:outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap break-words ${inlineError ? "border-destructive" : "border-muted-foreground"
+              } text-foreground`}
             suppressContentEditableWarning
           />
           <style>{`
             [contenteditable][data-placeholder]:empty:before {
               content: attr(data-placeholder);
-              color: #a3a3a3;
+              color: var(--muted-foreground);
               pointer-events: none;
             }
           `}</style>
           <div
-            className={`typo-body-3 text-right ${
-              inlineError ? "text-red-500" : "text-neutral-500-old"
-            }`}
+            className={`typo-body-3 text-right ${inlineError ? "text-destructive" : "text-muted-foreground"
+              }`}
           >
             {inlineError ?? `${characterCount}/${maxCharacters}`}
           </div>
         </div>
 
         <div className="space-y-2">
-          <p className="typo-body-2  text-neutral-900-old">
+          <p className="typo-body-2  text-foreground">
             Email variables
           </p>
           <div className="flex flex-wrap gap-2">
@@ -260,7 +258,7 @@ export function InvitePatientDialog() {
                 key={variable.value}
                 type="button"
                 variant="outline"
-                className="typo-body-3 border-dashed border-neutral-300"
+                className="typo-body-3 border-dashed border-muted-foreground"
                 onClick={() => insertVariable(variable.value)}
               >
                 + {variable.label}
@@ -274,7 +272,7 @@ export function InvitePatientDialog() {
             type="button"
             variant="outline"
             onClick={handleClose}
-            className="typo-body-2  rounded-lg"
+            className="typo-body-2  rounded-lg text-foreground"
           >
             Cancel
           </Button>
@@ -287,10 +285,10 @@ export function InvitePatientDialog() {
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Sending...
+                <span className="text-primary-foreground">Sending...</span>
               </>
             ) : (
-              "Send invite"
+              <span className="text-primary-foreground">Send invite</span>
             )}
           </Button>
         </DialogFooter>
@@ -299,19 +297,18 @@ export function InvitePatientDialog() {
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
         <DialogContent className="max-w-[520px] w-full rounded-3xl shadow-xl p-0 overflow-hidden">
           <div className="flex items-start justify-between px-6 pt-6">
-            <DialogTitle className="typo-h5  text-neutral-900-old">
-              Invite your patient
+            <DialogTitle className="typo-h5  text-foreground">
+              <h4>Invite your patient</h4>
             </DialogTitle>
           </div>
-          <DialogDescription className="px-6 typo-body-2 text-neutral-500-old">
+          <DialogDescription className="px-6 typo-body-2 text-foreground">
             Patient invited successfully!
           </DialogDescription>
           <div className="px-6 pb-6 pt-4 flex justify-end">
             <Button
               onClick={() => setIsSuccessOpen(false)}
-              className="bg-violet-700 hover:bg-violet-600"
             >
-              Close
+              <span className="text-primary-foreground">Close</span>
             </Button>
           </div>
         </DialogContent>

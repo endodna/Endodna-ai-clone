@@ -223,7 +223,7 @@ export function GlobalChatModal() {
                                                 )}
                                             >
                                                 <div className={cn(
-                                                    "typo-body-2 leading-relaxed prose prose-sm max-w-none",
+                                                    "chat-content leading-relaxed prose prose-sm max-w-none",
                                                     isUser
                                                         ? "prose-invert text-white [&_*]:text-white"
                                                         : "text-neutral-900-old"

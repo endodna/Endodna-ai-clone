@@ -49,10 +49,10 @@ export const getPatientColumns = (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 typo-body-2  hover:bg-transparent"
+            className="p-0"
           >
-            Patient
-            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+            <span className="text-foreground">Patient</span>
+            <ArrowUpDown className="ml-2 h-4 w-4 text-foreground opacity-50" />
           </Button>
         );
       },
@@ -85,16 +85,16 @@ export const getPatientColumns = (
         return (
           <div className="flex items-start gap-3">
             <div className="flex flex-col gap-1">
-              <span className="text-neutral-950 typo-body-2 capitalize">
+              <span className="text-foreground typo-body-2 capitalize">
                 {fullName ?? ''}
               </span>
               {infoParts.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap typo-body-3 text-neutral-600-old">
+                <div className="flex items-center gap-2 flex-wrap typo-body-3 text-foreground">
                   {infoParts.map((part, index) => (
                     <span key={`${part}-${index}`} className="inline-flex items-center">
                       {part}
                       {index < infoParts.length - 1 && (
-                        <span className="mx-1.5 text-neutral-400-old">•</span>
+                        <span className="mx-1.5 text-foreground">•</span>
                       )}
                     </span>
                   ))}
@@ -116,10 +116,10 @@ export const getPatientColumns = (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
+            className="p-0"
           >
-            DNA Test Status
-            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+            <span className="text-foreground">DNA Test Status</span>
+            <ArrowUpDown className="ml-2 h-4 w-4 text-foreground opacity-50" />
           </Button>
         );
       },
@@ -155,14 +155,14 @@ export const getPatientColumns = (
           })[0];
 
         if (!latestDNAResult) {
-          return <span className="text-neutral-400-old">-</span>;
+          return <span className="text-foreground">-</span>;
         }
 
         const statusText = formatStatusText(latestDNAResult.status);
 
         return (
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="px-2 py-[3px] typo-body-3 capitalize">{statusText}</Badge>
+            <Badge variant="secondary" className="px-2 py-[3px] typo-body-3 text-foreground capitalize">{statusText}</Badge>
           </div>
         );
       },
@@ -178,10 +178,10 @@ export const getPatientColumns = (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 typo-body-2  hover:bg-transparent"
+            className="p-0"
           >
-            Last activity
-            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+            <span className="text-foreground">Last activity</span>
+            <ArrowUpDown className="ml-2 h-4 w-4 text-foreground opacity-50" />
           </Button>
         );
       },
@@ -199,7 +199,7 @@ export const getPatientColumns = (
           })[0];
 
         if (!latestActivity) {
-          return <span className="text-neutral-400-old">-</span>;
+          return <span className="text-foreground">-</span>;
         }
 
         // Get the date from dateCompleted or createdAt
@@ -208,10 +208,10 @@ export const getPatientColumns = (
 
         return (
           <div className="flex flex-col items-start">
-            <span className="text-neutral-950  typo-body-2 ">
+            <span className="text-foreground  typo-body-2 ">
               Lab Results
             </span>
-            <span className="text-muted-foreground typo-body-3  ">
+            <span className="text-foreground typo-body-3  ">
               {formattedDate}
             </span>
           </div>
@@ -224,15 +224,13 @@ export const getPatientColumns = (
     {
       id: "healthGoal",
       accessorKey: "healthGoal",
-      header: "Health Goals",
+      header: () => {
+        return <span className="text-foreground">Health Goals</span>;
+      },
       cell: ({ row }) => {
         const goal = row.original.patientGoals?.[0]?.description || "-";
         const truncated = truncateText(goal, 50);
-        return (
-          <div className="line-clamp-1 text-neutral-700-old">
-            {truncated}
-          </div>
-        );
+        return <div className="line-clamp-1 text-foreground">{truncated}</div>;
       },
       meta: {
         headerClassName: "",
@@ -246,10 +244,10 @@ export const getPatientColumns = (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
+            className="p-0"
           >
-            Physician
-            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+            <span className="text-foreground">Physician</span>
+            <ArrowUpDown className="ml-2 h-4 w-4 text-foreground opacity-50" />
           </Button>
         );
       },
@@ -267,8 +265,8 @@ export const getPatientColumns = (
           ? `Dr. ${doctor.firstName} ${doctor.lastName}`.trim()
           : "";
         return (
-          <span className="text-neutral-700-old">
-            {physicianName ?? <span className="text-neutral-400-old">No physician assigned</span>}
+          <span className="text-foreground">
+            {physicianName ?? <span className="text-foreground">No physician assigned</span>}
           </span>
         );
       },

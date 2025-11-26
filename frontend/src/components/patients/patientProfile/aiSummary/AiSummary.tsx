@@ -376,7 +376,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 <TooltipContent
                                     side="top"
                                     align="center"
-                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900 shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900-old shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
                                 >
                                     <p className="text-sm font-semibold text-neutral-900">Upload</p>
                                     <p className="mt-1 text-[11px] font-normal text-neutral-500">
@@ -399,7 +399,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 <TooltipContent
                                     side="top"
                                     align="center"
-                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900 shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900-old shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
                                 >
                                     <p className="text-sm font-semibold text-neutral-900">Connecter</p>
                                     <p className="mt-1 text-[11px] font-normal text-neutral-500">

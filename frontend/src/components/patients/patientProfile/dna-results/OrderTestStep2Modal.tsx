@@ -132,7 +132,6 @@ export const OrderTestStep2Modal = ({
                         Cancel
                     </Button>
                     <Button
-                        variant="accent"
                         disabled={isSubmitting}
                         onClick={onConfirm}
                     >

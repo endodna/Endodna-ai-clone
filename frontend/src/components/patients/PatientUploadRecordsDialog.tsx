@@ -5,9 +5,9 @@ import { FileUpload, FileUploadHandle } from "@/components/upload/FileUpload";
 import { useUploadMedicalRecords } from "@/hooks/useDoctor";
 import { closeUploadDialog, openUploadSuccessDialog, setCurrentPatientId } from "@/store/features/patient";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MAX_UPLOAD_FILE_SIZE_MB } from "../constants/patient";
+import { Spinner } from "../ui/spinner";
 
 export function PatientUploadRecordsDialog() {
   const dispatch = useAppDispatch();
@@ -93,14 +93,14 @@ export function PatientUploadRecordsDialog() {
     <Dialog open={isUploadDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="p-4 md:p-8 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader className="space-y-1 md:space-y-2 mb-4 md:mb-6">
-          <DialogTitle className=" md:  text-neutral-900-old">Upload medical records</DialogTitle>
-          <DialogDescription className=" md: text-neutral-500-old">
+          <DialogTitle className="text-foreground">Upload medical records</DialogTitle>
+          <DialogDescription className="text-foreground">
             Additionally, you can include medical history records if you have them.
           </DialogDescription>
         </DialogHeader>
 
         {currentPatientId === null ? (
-          <p className="mb-4  text-red-500">Patient information is missing. Please close this dialog and try again.</p>
+          <p className="mb-4 text-destructive">Patient information is missing. Please close this dialog and try again.</p>
         ) : null}
 
         <FileUpload
@@ -116,8 +116,8 @@ export function PatientUploadRecordsDialog() {
         />
 
         {submissionError ? (
-          <Card className="mt-4 border-red-200 bg-red-50">
-            <CardContent className="flex items-start gap-2 p-3   text-red-600">
+          <Card className="mt-4 border-destructive bg-destructive/10">
+            <CardContent className="flex items-start gap-2 p-3 text-destructive typo-body-2">
               {submissionError}
             </CardContent>
           </Card>
@@ -126,17 +126,17 @@ export function PatientUploadRecordsDialog() {
         <DialogFooter className="mt-8">
           <Button
             type="button"
-            className="w-full md:w-auto"
+            className="w-full md:w-auto bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={disableFinish}
             onClick={handleFinish}
           >
             {uploadMutation.isPending ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
+                <Spinner className="" />
+                <span className="text-primary-foreground">Uploading...</span>
               </>
             ) : (
-              <span className="  ">Finish</span>
+              <span className="text-primary-foreground">Finish</span>
             )}
           </Button>
         </DialogFooter>

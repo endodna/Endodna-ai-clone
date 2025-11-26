@@ -180,7 +180,7 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "text-neutral-950 typo-body-2  ",
+                      "text-foreground typo-body-2  ",
                       (header.column.columnDef.meta as TableColumnMeta)?.headerClassName
                     )}
                   >
@@ -195,7 +195,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="bg-white">
+          <TableBody className="bg-primary-foreground">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
@@ -203,7 +203,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                   className={cn(
                     "border-none",
-                    onRowClick && "cursor-pointer hover:bg-neutral-50 transition-colors",
+                    onRowClick && "cursor-pointer hover:bg-muted-foreground/10 transition-colors",
                     rowClassName
                   )}
                   onClick={() => onRowClick?.(row.original)}
@@ -212,7 +212,7 @@ export function DataTable<TData, TValue>({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        "px-2 text-neutral-700-old",
+                        "px-2 text-foreground",
                         cellClassName,
                         (cell.column.columnDef.meta as TableColumnMeta)?.cellClassName
                       )}
@@ -229,7 +229,7 @@ export function DataTable<TData, TValue>({
               <TableRow className="">
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-24 text-center text-foreground typo-body-1"
                 >
                   No results.
                 </TableCell>
@@ -290,7 +290,7 @@ export function DataTable<TData, TValue>({
                     onPageChange(pagination.page + 1);
                   }
                 }}
-                className={cn("typo-body-2   text-neutral-700-old", !pagination.hasNextPage && "!pointer-events-none !opacity-50")}
+                className={cn("typo-body-2 text-foreground", !pagination.hasNextPage && "!pointer-events-none !opacity-50")}
               />
             </PaginationItem>
           </PaginationContent>

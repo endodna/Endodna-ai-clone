@@ -14,7 +14,6 @@ export default function Error404() {
         </p>
       </div>
       <Button
-        variant="accent"
         onClick={() => navigate("/")}
       >
         Back to Home Page
