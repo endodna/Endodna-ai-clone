@@ -36,8 +36,11 @@ import {
     Stethoscope,
     Upload,
     UserRound,
+    Box,
+    Plus,
+    Boxes
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChatModal } from "./ChatModal";
 
@@ -49,10 +52,17 @@ interface AiSummaryProps {
 
 const MODEL_OPTIONS = [
     {
-        id: "gpt-5",
-        label: "GPT 5°",
+        id: "biod",
+        label: "BIOS",
         description: "Best for nuanced clinical reasoning.",
-    }
+        icon: Box,
+    },
+    {
+        id: "model",
+        label: "Add Custom Model",
+        description: "Personalized care for you.",
+        icon: Plus,
+    },
 ];
 
 const PERSONA_OPTIONS = [
@@ -81,6 +91,16 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
     const [persona, setPersona] =
         useState<(typeof PERSONA_OPTIONS)[number]>(PERSONA_OPTIONS[0]);
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
+    const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
+    const [isExternalThinking, setIsExternalThinking] = useState(false);
+
+    const handleOptimisticDelivered = useCallback(() => {
+        setOptimisticMessage(null);
+    }, []);
+
+    const handleResponseReceived = useCallback(() => {
+        setIsExternalThinking(false);
+    }, []);
 
     // Get patient data for title generation
     const { data: patientData } = useGetPatientById(patientId ?? "", {
@@ -154,6 +174,9 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
 
         // Clear input immediately for better UX
         setPrompt("");
+        setOptimisticMessage(message);
+        setIsExternalThinking(true);
+        dispatch(openChatModal());
 
         try {
             if (isPatientPersona) {
@@ -171,6 +194,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(createResponse.message || "Unable to create conversation.");
                     // Restore message if error
                     setPrompt(message);
+                    setOptimisticMessage(null);
+                    setIsExternalThinking(false);
                     return;
                 }
                 const conversationId = createResponse.data.id;
@@ -194,6 +219,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(sendResponse.message || "Unable to send message.");
                     // Restore message if error
                     setPrompt(message);
+                    setOptimisticMessage(null);
+                    setIsExternalThinking(false);
                     return;
                 }
                 toast.success("Message sent via patient chat.");
@@ -207,8 +234,6 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     queryKey: queryKeys.doctor.chat.patient.allPatients(),
                 });
                 
-                // Open chat modal automatically
-                dispatch(openChatModal());
             } else {
                 // Always create a new conversation when sending from input
                 // This ensures a fresh conversation starts
@@ -217,6 +242,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(createResponse.message || "Unable to start a conversation.");
                     // Restore message if error
                     setPrompt(message);
+                    setOptimisticMessage(null);
+                    setIsExternalThinking(false);
                     return;
                 }
                 const conversationId = createResponse.data.id;
@@ -237,6 +264,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(sendResponse.message || "Unable to send message.");
                     // Restore message if error
                     setPrompt(message);
+                    setOptimisticMessage(null);
+                    setIsExternalThinking(false);
                     return;
                 }
                 toast.success("Message sent via general chat.");
@@ -250,8 +279,6 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     queryKey: queryKeys.doctor.chat.general.conversations(),
                 });
                 
-                // Open chat modal automatically
-                dispatch(openChatModal());
             }
 
             onSubmit?.({
@@ -263,6 +290,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
             toast.error(error?.message || "Unable to send message.");
             // Restore message if error
             setPrompt(message);
+            setOptimisticMessage(null);
+            setIsExternalThinking(false);
         }
     };
 
@@ -331,16 +360,53 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                     }
                                 }}
                             />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 rounded-full"
-                                aria-label="Upload reference files"
-                                onClick={() => uploadInputRef.current?.click()}
-                            >
-                                <Upload className="h-5 w-5" />
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 rounded-full text-black"
+                                        aria-label="Upload reference files"
+                                        onClick={() => uploadInputRef.current?.click()}
+                                    >
+                                        <Upload className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side="top"
+                                    align="center"
+                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900 shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                >
+                                    <p className="text-sm font-semibold text-neutral-900">Upload</p>
+                                    <p className="mt-1 text-[11px] font-normal text-neutral-500">
+                                        Upload reference files to the conversation
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 rounded-full text-black"
+                                        aria-label="Connecter"
+                                    >
+                                        <Boxes className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side="top"
+                                    align="center"
+                                    className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 text-xs text-neutral-900 shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                >
+                                    <p className="text-sm font-semibold text-neutral-900">Connecter</p>
+                                    <p className="mt-1 text-[11px] font-normal text-neutral-500">
+                                        connect to MCP and other connectors and extensions
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
                         <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-1 py-1 shadow-sm">
                             {PERSONA_OPTIONS.map((option) => {
@@ -355,7 +421,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                                 className={cn(
                                                     "flex h-7 w-7 items-center justify-center rounded-full border typo-body-3 transition",
                                                     isActive
-                                                        ? "border-violet-500 bg-white text-violet-600 shadow-[0_4px_12px_rgba(109,62,245,0.25)]"
+                                                        ? "bg-white shadow-[0_4px_12px_rgba(109,62,245,0.25)]"
                                                         : "border-transparent bg-transparent text-neutral-500-old hover:border-neutral-200",
                                                 )}
                                                 aria-label={option.label}
@@ -369,7 +435,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                             className="w-48 rounded-xl border border-neutral-200 bg-white px-4 py-4 typo-body-3 text-neutral-900-old shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
                                         >
                                             <p className="typo-body-2  text-neutral-900-old">{option.label}</p>
-                                            <p className="mt-1 text-[11px]  text-neutral-500-old">
+                                            <p className="mt-1 text-[11px] font-normal text-neutral-500">
                                                 {option.description}
                                             </p>
                                         </TooltipContent>
@@ -382,7 +448,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className="gap-2 rounded-full border border-neutral-200 bg-white px-4 py-[6px] typo-body-2  text-neutral-700-old hover:bg-neutral-100"
+                                    className="gap-2 rounded-full border border-neutral-200 bg-white px-4 py-[6px] typo-body-2  text-neutral-700-old hover:bg-primary"
                                 >
                                     <ChevronDown className="h-4 w-4 text-black" />
                                     {selectedModel.label}
@@ -392,15 +458,18 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 {MODEL_OPTIONS.map((option) => (
                                     <DropdownMenuItem
                                         key={option.id}
-                                        className="flex flex-col items-start gap-1 py-2"
+                                        className="flex gap-3 py-2 items-center"
                                         onClick={() => setSelectedModel(option)}
                                     >
-                                        <span className="typo-body-2  text-neutral-900-old">
-                                            {option.label}
-                                        </span>
-                                        <span className="typo-body-3 text-neutral-500-old">
-                                            {option.description}
-                                        </span>
+                                        <option.icon className="h-4 w-4 text-neutral-600" />
+                                        <div className="flex flex-col text-left">
+                                            <span className="text-sm font-medium text-neutral-900">
+                                                {option.label}
+                                            </span>
+                                            <span className="text-xs text-neutral-500">
+                                                {option.description}
+                                            </span>
+                                        </div>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
@@ -421,7 +490,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
 
                         <Button
                             type="button"
-                            className="h-10 w-10 gap-2 bg-violet-700 px-5 typo-body-2  text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="h-10 w-10 gap-2 px-5 typo-body-2  text-black  disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={isSendDisabled}
                             onClick={handleSubmit}
                         >
@@ -435,7 +504,14 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                 </div>
             </div>
 
-            <ChatModal patientId={patientId} isPatientPersona={isPatientPersona} />
+            <ChatModal
+                patientId={patientId}
+                isPatientPersona={isPatientPersona}
+                optimisticMessage={optimisticMessage}
+                isExternalThinking={isExternalThinking}
+                onOptimisticDelivered={handleOptimisticDelivered}
+                onResponseReceived={handleResponseReceived}
+            />
         </div>
     );
 }

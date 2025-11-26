@@ -63,8 +63,8 @@ export default function AcceptInvitation() {
           </div>
           <div className="typo-body-1 text-neutral-600-old">
             <p>
-              {doctorName} has invited you to join{" "}
-              <span className="">{orgName}</span>. Here you&apos;ll
+              <span className="font-semibold">{doctorName}</span> has invited you to join{" "}
+              <span className="font-semibold">{orgName}</span>. Here you&apos;ll
               be able to access your medical and labs records easily.
             </p>
           </div>

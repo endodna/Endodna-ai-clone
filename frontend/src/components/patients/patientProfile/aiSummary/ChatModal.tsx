@@ -35,9 +35,20 @@ import {
 interface ChatModalProps {
     readonly patientId?: string;
     readonly isPatientPersona: boolean;
+    readonly optimisticMessage?: string | null;
+    readonly isExternalThinking?: boolean;
+    readonly onOptimisticDelivered?: () => void;
+    readonly onResponseReceived?: () => void;
 }
 
-export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalProps>) {
+export function ChatModal({
+    patientId,
+    isPatientPersona,
+    optimisticMessage = null,
+    isExternalThinking = false,
+    onOptimisticDelivered,
+    onResponseReceived,
+}: Readonly<ChatModalProps>) {
     const dispatch = useAppDispatch();
     const queryClient = useQueryClient();
     const { activePatientConversationId, activeGeneralConversationId, isChatModalOpen, selectedConversationId, conversationType } = useAppSelector(
@@ -81,6 +92,56 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
         ? isLoadingPatientMessages
         : isLoadingGeneralMessages;
     const isSendingMessage = sendPatientConversationMessage.isPending || sendGeneralConversationMessage.isPending;
+    const showThinkingIndicator = isSendingMessage || isExternalThinking;
+    const lastAssistantMessageIdRef = useRef<string | null>(null);
+    const hasAcknowledgedOptimisticRef = useRef(false);
+
+    useEffect(() => {
+        hasAcknowledgedOptimisticRef.current = false;
+    }, [optimisticMessage]);
+
+    useEffect(() => {
+        if (!optimisticMessage || !currentMessages?.length || hasAcknowledgedOptimisticRef.current) {
+            return;
+        }
+        const normalizedOptimistic = optimisticMessage.trim();
+        const hasPersistedUserMessage = currentMessages.some(
+            (msg) =>
+                msg.role?.toLowerCase() === "user" &&
+                msg.content?.trim() === normalizedOptimistic,
+        );
+        if (hasPersistedUserMessage) {
+            hasAcknowledgedOptimisticRef.current = true;
+            onOptimisticDelivered?.();
+        }
+    }, [optimisticMessage, currentMessages, onOptimisticDelivered]);
+
+    useEffect(() => {
+        const messages = currentMessages ?? [];
+        if (!messages.length) {
+            return;
+        }
+
+        if (!isExternalThinking) {
+            const lastAssistant = [...messages]
+                .reverse()
+                .find((msg) => msg.role?.toLowerCase() !== "user");
+            lastAssistantMessageIdRef.current = lastAssistant?.id ?? null;
+            return;
+        }
+
+        const lastMessage = messages[messages.length - 1];
+        const role = lastMessage?.role?.toLowerCase();
+        if (
+            role &&
+            role !== "user" &&
+            lastMessage?.id &&
+            lastMessage.id !== lastAssistantMessageIdRef.current
+        ) {
+            lastAssistantMessageIdRef.current = lastMessage.id;
+            onResponseReceived?.();
+        }
+    }, [isExternalThinking, currentMessages, onResponseReceived]);
 
     // Auto-scroll to bottom when messages change or when sending
     useEffect(() => {
@@ -95,6 +156,8 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
             handleChatModalSubmit();
         }
     };
+
+    const hasPersistedMessages = Boolean(currentMessages?.length);
 
     const handleChatModalSubmit = async () => {
         const message = chatModalPrompt.trim();
@@ -171,7 +234,7 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
             <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
                 <DialogHeader className="px-6 pt-6 pb-4 border-b border-neutral-200">
                     <DialogTitle className="flex items-center gap-2 typo-h5 ">
-                        <MessageSquare className="h-5 w-5 text-violet-600" />
+                        <MessageSquare className="h-5 w-5 text-primary" />
                         Chat Conversation
                     </DialogTitle>
                     <DialogDescription className="typo-body-2 text-neutral-500-old mt-1">
@@ -181,46 +244,57 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-neutral-50/30">
                     {isLoadingMessages ? (
                         <div className="flex flex-col items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-violet-600 border-t-transparent"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
                             <p className="mt-4 typo-body-2 text-neutral-500-old">Loading messages...</p>
                         </div>
-                    ) : currentMessages && currentMessages.length > 0 ? (
+                    ) : hasPersistedMessages || Boolean(optimisticMessage) ? (
                         <>
-                            {currentMessages.map((message) => {
-                                const isUser = message.role === "user";
+                            {(currentMessages ?? []).map((message) => {
+                                const isUser = message.role?.toLowerCase() === "user";
                                 return (
                                     <div
                                         key={message.id}
                                         className={cn(
-                                            "flex gap-3 w-full items-start",
-                                            isUser ? "flex-row-reverse justify-end" : "flex-row justify-start"
+                                            "flex w-full items-start gap-3",
+                                            isUser ? "justify-end" : "justify-start"
                                         )}
                                     >
-                                        {!isUser && (
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
-                                                <Bot className="h-4 w-4 text-violet-600" />
-                                            </div>
-                                        )}
                                         <div
                                             className={cn(
-                                                "flex flex-col gap-1.5 max-w-[75%]",
-                                                isUser ? "items-end" : "items-start"
+                                                "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border text-sm",
+                                                isUser
+                                                    ? "order-2 border-primary-200 text-black"
+                                                    : "order-1 border-violet-100"
+                                            )}
+                                        >
+                                            {isUser ? (
+                                                <UserRound className="h-4 w-4 text-primary" />
+                                            ) : (
+                                                <Bot className="h-4 w-4 text-primary" />
+                                            )}
+                                        </div>
+                                        <div
+                                            className={cn(
+                                                "flex max-w-[75%] flex-col gap-1.5 text-sm leading-relaxed",
+                                                isUser ? "order-1 items-end" : "order-2 items-start"
                                             )}
                                         >
                                             <div
                                                 className={cn(
-                                                    "rounded-2xl px-4 py-3",
+                                                    "w-full rounded-3xl px-5 py-4 transition-colors",
                                                     isUser
-                                                        ? "bg-violet-600 text-white"
-                                                        : "bg-white text-neutral-900-old border border-neutral-200 shadow-sm"
+                                                        ? "bg-primary text-black"
+                                                        : "text-neutral-900 border border-neutral-200"
                                                 )}
                                             >
-                                                <div className={cn(
-                                                    "typo-body-2 leading-relaxed prose prose-sm max-w-none",
-                                                    isUser
-                                                        ? "prose-invert text-white [&_*]:text-white"
-                                                        : "text-neutral-900-old"
-                                                )}>
+                                                <div
+                                                    className={cn(
+                                                        "prose prose-sm max-w-none",
+                                                        isUser
+                                                            ? "prose-invert text-white [&_*]:text-white"
+                                                            : "text-neutral-900"
+                                                    )}
+                                                >
                                                     <ReactMarkdown
                                                         rehypePlugins={[rehypeRaw]}
                                                         remarkPlugins={[remarkGfm]}
@@ -230,44 +304,59 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
                                                 </div>
                                             </div>
                                             {message.createdAt && (
-                                                <p className={cn(
-                                                    "typo-body-3 text-neutral-400-old px-1",
-                                                    isUser ? "text-right" : "text-left"
-                                                )}>
-                                                    {new Date(message.createdAt).toLocaleString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        hour: 'numeric',
-                                                        minute: '2-digit',
-                                                        hour12: true
+                                                <p
+                                                    className={cn(
+                                                        "text-xs text-neutral-400",
+                                                        isUser ? "text-right" : "text-left"
+                                                    )}
+                                                >
+                                                    {new Date(message.createdAt).toLocaleString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        hour: "numeric",
+                                                        minute: "2-digit",
+                                                        hour12: true,
                                                     })}
                                                 </p>
                                             )}
                                         </div>
-                                        {isUser && (
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center">
-                                                <UserRound className="h-4 w-4 text-white" />
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             })}
                             
-                            {/* Loading indicator when sending message */}
-                            {isSendingMessage && (
-                                <div className="flex gap-3 w-full items-start justify-start">
-                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
-                                        <Bot className="h-4 w-4 text-violet-600" />
+                            {optimisticMessage && (
+                                <div className="flex w-full items-start gap-3 justify-end">
+                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-violet-200 bg-primary text-white">
+                                        <UserRound className="h-4 w-4" />
                                     </div>
-                                    <div className="flex flex-col gap-1.5 max-w-[75%] items-start">
-                                        <div className="rounded-2xl px-4 py-3 bg-white text-neutral-900-old border border-neutral-200 shadow-sm">
-                                            <div className="flex items-center gap-2">
+                                    <div className="flex max-w-[75%] flex-col items-end gap-1.5 text-sm leading-relaxed">
+                                        <div className="w-full rounded-3xl bg-primary px-5 py-4 text-white shadow-[0_12px_40px_rgba(109,62,245,0.35)]">
+                                            <div className="prose prose-sm max-w-none prose-invert text-white [&_*]:text-white">
+                                                <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                                                    {optimisticMessage}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-neutral-400 text-right">Sending…</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Loading indicator when sending message */}
+                            {showThinkingIndicator && (
+                                <div className="flex w-full items-start gap-3 justify-start">
+                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-violet-100 bg-violet-50">
+                                        <Bot className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex max-w-[75%] flex-col items-start gap-1.5 text-sm leading-relaxed">
+                                        <div className="w-full rounded-3xl border border-neutral-200 bg-white px-5 py-4 shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+                                            <div className="flex items-center gap-2 text-xs text-neutral-500">
                                                 <div className="flex gap-1">
-                                                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-400" style={{ animationDelay: "0ms" }}></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-400" style={{ animationDelay: "150ms" }}></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-400" style={{ animationDelay: "300ms" }}></div>
                                                 </div>
-                                                <span className="typo-body-3 text-neutral-500-old">Searching...</span>
+                                                <span>Thinking...</span>
                                             </div>
                                         </div>
                                     </div>
@@ -277,7 +366,7 @@ export function ChatModal({ patientId, isPatientPersona }: Readonly<ChatModalPro
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mb-4">
-                                <MessageSquare className="h-8 w-8 text-violet-600" />
+                                <MessageSquare className="h-8 w-8" />
                             </div>
                             <p className="typo-body-1  text-neutral-900-old mb-1">No messages yet</p>
                             <p className="typo-body-2 text-neutral-500-old">Start a conversation by sending a message.</p>
