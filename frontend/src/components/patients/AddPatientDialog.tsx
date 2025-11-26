@@ -172,9 +172,9 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
       <DialogContent className="p-4 max-w-[375px] md:max-w-[640px] w-full">
         <DialogHeader>
           <DialogTitle>
-            <h4 className="typo-h4 leading-[120%] ">Add new patient</h4>
+            <h4>Add new patient</h4>
           </DialogTitle>
-          <DialogDescription className="typo-body-1 text-neutral-600-old pt-4 md:pt-[26px]">
+          <DialogDescription className="pt-4 md:pt-[26px]">
             Build your patient list by adding individuals under your care. Once added, you’ll be able to assign health goals, and monitor their health progress.
           </DialogDescription>
         </DialogHeader>
@@ -183,14 +183,14 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-4">
             {/* First Name */}
             <div className="space-y-1">
-              <label htmlFor="firstName" className="typo-body-2  ">First name *</label>
+              <label htmlFor="firstName" className="typo-body-2">First name *</label>
               <Input
                 {...register("firstName")}
                 placeholder="First name"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.firstName ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.firstName ? "border-destructive" : "")}
               />
               {errors.firstName && (
-                <p className="typo-body-2   text-red-500 md:mt-1">
+                <p className="typo-body-2 text-destructive md:mt-1">
                   {errors.firstName.message}
                 </p>
               )}
@@ -204,10 +204,10 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
               <Input
                 {...register("lastName")}
                 placeholder="Last name"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.lastName ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.lastName ? "border-destructive" : "")}
               />
               {errors.lastName && (
-                <p className="typo-body-2   text-red-500 md:mt-1">
+                <p className="typo-body-2 text-destructive md:mt-1">
                   {errors.lastName.message}
                 </p>
               )}
@@ -240,7 +240,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                           variant="outline"
                           className={cn(
                             "px-2 md:px-4 py-[6px] md:py-[9.5px] w-full justify-start text-left ",
-                            errors.dateOfBirth ? "border-red-500" : ""
+                            errors.dateOfBirth ? "border-destructive" : ""
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -281,7 +281,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 }}
               />
               {errors.dateOfBirth && (
-                <p className="typo-body-2   text-red-500 md:mt-1">
+                <p className="typo-body-2 text-destructive md:mt-1">
                   {errors.dateOfBirth.message}
                 </p>
               )}
@@ -297,7 +297,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 onValueChange={(value) => setValue("gender", value)}
               >
                 <SelectTrigger
-                  className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.gender ? "border-red-500" : "")}
+                  className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.gender ? "border-destructive" : "")}
                 >
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
@@ -310,7 +310,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 </SelectContent>
               </Select>
               {errors.gender && (
-                <p className="typo-body-2   text-red-500 md:mt-1">{errors.gender.message}</p>
+                <p className="typo-body-2 text-destructive md:mt-1">{errors.gender.message}</p>
               )}
             </div>
 
@@ -323,10 +323,10 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 {...register("email")}
                 type="email"
                 placeholder="user@mail.com"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.email ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.email ? "border-destructive" : "")}
               />
               {errors.email && (
-                <p className="typo-body-2   text-red-500 md:mt-1">{errors.email.message}</p>
+                <p className="typo-body-2 text-destructive md:mt-1">{errors.email.message}</p>
               )}
             </div>
 
@@ -339,10 +339,10 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 {...register("phoneNumber")}
                 type="tel"
                 placeholder="+121201234567"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.phoneNumber ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.phoneNumber ? "border-destructive" : "")}
               />
               {errors.phoneNumber && (
-                <p className="typo-body-2   text-red-500 md:mt-1">
+                <p className="typo-body-2 text-destructive md:mt-1">
                   {errors.phoneNumber.message}
                 </p>
               )}
@@ -357,7 +357,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 {...register("homePhone")}
                 type="tel"
                 placeholder="+121201234567"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.homePhone ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.homePhone ? "border-destructive" : "")}
               />
             </div>
 
@@ -370,13 +370,13 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                 {...register("workPhone")}
                 type="tel"
                 placeholder="+121201234567"
-                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.workPhone ? "border-red-500" : "")}
+                className={cn("px-2 md:px-4 py-[6px] md:py-[9.5px]", errors.workPhone ? "border-destructive" : "")}
               />
             </div>
           </div>
 
           {error && (
-            <div className="typo-body-2   text-red-500 md:mt-1">
+            <div className="typo-body-2 text-destructive md:mt-1">
               {error}
             </div>
           )}
@@ -385,12 +385,12 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
             <Button
               type="submit"
               disabled={createPatientMutation.isPending}
-              className="px-4 py-[7.5px] space-x-2 bg-violet-700 hover:bg-violet-400 text-neutral-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-[7.5px] space-x-2 bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createPatientMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              <span className="typo-body-2  ">Add Patient</span>
+              <span className="typo-body-2 text-primary-foreground">Add Patient</span>
             </Button>
           </DialogFooter>
         </form>

@@ -139,7 +139,6 @@ export default function ResetPasswordForm() {
             <Button
               onClick={() => navigate("/")}
               className="ml-auto w-full"
-              variant="accent"
             >
               Back to Login
             </Button>

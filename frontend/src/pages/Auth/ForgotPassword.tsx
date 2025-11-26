@@ -90,7 +90,6 @@ export default function LoginForm() {
         <div>
           <Button
             onClick={() => navigate("/")}
-            variant="accent"
           >
             Back to Login
           </Button>

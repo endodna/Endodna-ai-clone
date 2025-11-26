@@ -282,14 +282,12 @@ export function GlobalChatModal() {
                                                         : "bg-white text-neutral-900 border border-neutral-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)]"
                                                 )}
                                             >
-                                                <div
-                                                    className={cn(
-                                                        "prose prose-sm max-w-none",
-                                                        isUser
-                                                            ? "prose-invert text-white [&_*]:text-white"
-                                                            : "text-neutral-900"
-                                                    )}
-                                                >
+                                                <div className={cn(
+                                                    "chat-content leading-relaxed prose prose-sm max-w-none",
+                                                    isUser
+                                                        ? "prose-invert text-white [&_*]:text-white"
+                                                        : "text-neutral-900-old"
+                                                )}>
                                                     <ReactMarkdown
                                                         rehypePlugins={[rehypeRaw]}
                                                         remarkPlugins={[remarkGfm]}

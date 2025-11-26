@@ -84,8 +84,7 @@ export function AppSidebar() {
         <div className={cn("flex flex-col", isCollapsed ? "gap-4" : "gap-10")}>
           <Button
             className={cn(
-              "transition-all text-violet-600 hover:text-violet-600 hover:bg-transparent",
-              isCollapsed ? "w-auto px-2 justify-center" : "w-20 px-6",
+              "transition-all w-fit p-0",
             )}
             variant="ghost"
             size={isCollapsed ? "icon" : "default"}

@@ -112,11 +112,11 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   };
 
   if (isLoading) {
-    const skeletonBg = "bg-neutral-200";
+    const skeletonBg = "bg-muted-foreground/10";
     const skeletonHighlight = "bg-neutral-100";
 
     return (
-      <div className="flex w-full flex-col rounded-3xl border border-neutral-100 bg-white py-5">
+      <div className="flex w-full flex-col rounded-3xl border border-muted-foreground bg-primary-foreground py-5">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <Skeleton className={`h-9 w-9 rounded-2xl ${skeletonBg} ${skeletonHighlight}`} />
@@ -137,7 +137,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   return (
     <div
       className={cn(
-        "flex w-full flex-col rounded-3xl border border-neutral-100 bg-white",
+        "flex w-full flex-col rounded-3xl border border-muted-foreground bg-primary-foreground",
         "py-5",
       )}
     >
@@ -146,18 +146,18 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
           <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-primary">
             <MessageSquare className="h-4 w-4" />
           </span>
-          <p className="typo-h5 text-neutral-900-old">Chats</p>
+          <p className="typo-h5 text-foreground">Chats</p>
         </div>
         <button
           type="button"
           aria-label={isCollapsed ? "Expand chats" : "Collapse chats"}
-          className="rounded-full  p-2 text-neutral-600-old transition hover:bg-neutral-100"
+          className="rounded-full  p-2 text-muted-foreground transition hover:bg-muted-foreground/10"
           onClick={() => setIsCollapsed((prev) => !prev)}
         >
           {isCollapsed ? (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 text-primary" />
           ) : (
-            <ChevronUp className="h-4 w-4" />
+            <ChevronUp className="h-4 w-4 text-primary" />
           )}
         </button>
       </div>
@@ -186,11 +186,11 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
 
           {!conversations.length ? (
             <div className="mt-4 px-4 py-8 text-center">
-              <p className="typo-body-2 text-neutral-500-old">No chats found</p>
-              <p className="typo-body-2 text-neutral-500-old">Create new chat using chatbox.</p>
+              <p className="typo-body-2 text-foreground">No chats found</p>
+              <p className="typo-body-2 text-foreground">Create new chat using chatbox.</p>
             </div>
           ) : (
-            <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
+            <div className="mt-4 flex flex-col divide-y divide-muted-foreground/40 px-2">
               {filteredChats.map((item) => {
                 // Always use "patient" type since we only show patient conversations
                 const chatType = "patient" as const;
@@ -209,7 +209,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                   <div
                     key={item.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition hover:bg-primary hover:text-white",
+                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
                     )}
                   >
                     <button
@@ -232,15 +232,15 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                                 handleCancelEdit(e as any);
                               }
                             }}
-                            className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1"
+                            className="h-7 typo-body-2 border-muted-foreground/40 focus-visible:ring-1 focus-visible:ring-primary"
                             autoFocus
                           />
                         ) : (
-                          <p className="typo-body-2 text-neutral-900-old truncate">
+                          <p className="typo-body-2 text-foreground truncate">
                             {item.title}
                           </p>
                         )}
-                        <p className="typo-body-3 text-neutral-500-old">{date}</p>
+                        <p className="typo-body-3 text-foreground">{date}</p>
                       </div>
                     </button>
                     <div className="flex items-center gap-1 edit-controls flex-shrink-0">
@@ -250,7 +250,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                             type="button"
                             onClick={(e) => handleSaveEdit(e, item.id)}
                             disabled={updatePatientConversationTitle.isPending}
-                            className="p-1.5 rounded-full text-violet-600 hover:bg-violet-100 transition"
+                            className="p-1.5 rounded-full text-primary hover:bg-primary/10 transition"
                             aria-label="Save title"
                           >
                             <Check className="h-3.5 w-3.5" />
@@ -258,7 +258,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                           <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="p-1.5 rounded-full text-neutral-500-old hover:bg-neutral-200 transition"
+                            className="p-1.5 rounded-full text-muted-foreground hover:bg-muted-foreground/10 transition"
                             aria-label="Cancel edit"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -269,12 +269,12 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                           <button
                             type="button"
                             onClick={(e) => handleEditClick(e, item.id, item.title)}
-                            className="p-1.5 rounded-full text-neutral-400-old hover:text-neutral-600-old hover:bg-neutral-100 transition"
+                            className="p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted-foreground/10 transition"
                             aria-label="Edit title"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <ChevronRight className="h-4 w-4 text-neutral-400-old" />
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </>
                       )}
                     </div>

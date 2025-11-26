@@ -231,7 +231,6 @@ export const OrderTestStep1Modal = ({
                     <div className="flex flex-1 items-center justify-end gap-3">
                         {errorMessage && <p className="typo-body-2 text-red-600">{errorMessage}</p>}
                         <Button
-                            variant="accent"
                             disabled={!canProceed || isSubmitting}
                             onClick={handleSave}
                         >

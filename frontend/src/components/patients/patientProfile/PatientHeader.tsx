@@ -86,7 +86,7 @@ function InfoRow({ icon: Icon, label, value }: Readonly<InfoRowProps>) {
 
 function EmptyStateCard({ message }: { readonly message: string }) {
     return (
-        <div className="rounded-3xl border border-dashed border-neutral-200 bg-white p-5 text-center typo-body-2 text-neutral-500-old">
+        <div className="rounded-3xl border border-dashed border-muted-foreground bg-primary-foreground p-5 text-center typo-body-2 text-foreground">
             {message}
         </div>
     );
@@ -100,10 +100,10 @@ function ErrorState({
     readonly onRetry: () => void;
 }) {
     return (
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-center">
-            <p className="typo-body-2 text-red-700">{message}</p>
+        <div className="rounded-3xl border border-destructive p-5 text-center">
+            <p className="typo-body-2 text-destructive">{message}</p>
             <Button size="sm" className="mt-4" onClick={onRetry}>
-                Try again
+                <span className="text-primary-foreground">Try again</span>
             </Button>
         </div>
     );
@@ -166,44 +166,45 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                 />
             )}
             {enabled && !shouldShowSkeleton && !error && !responseError && patient && (
-                <div className="rounded-3xl border border-neutral-100 bg-white divide-y divide-neutral-100">
+                <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
                     {/* Patient Info */}
                     <div className="space-y-4 px-4 pb-4 pt-4 md:px-6 md:pt-6 md:pb-4">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 md:gap-4">
                                 <Avatar className="h-12 w-12 rounded-full md:h-16 md:w-16">
                                     <AvatarImage src={patient.photo ?? undefined} className="rounded-full" alt={derivedDetails.fullName} />
-                                    <AvatarFallback className="rounded-full bg-neutral-100 typo-h4  text-neutral-700-old">
+                                    <AvatarFallback className="rounded-full bg-muted-foreground/30 typo-h4 text-foreground">
                                         {derivedDetails.initials || "P"}
                                     </AvatarFallback>
                                 </Avatar>
 
                                 <div>
-                                    <p className="typo-h2  leading-none text-neutral-900-old">
+                                    <p className="typo-h2  leading-none text-foreground">
                                         {derivedDetails.fullName ?? "Unnamed patient"}
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 aria-label={isCollapsed ? "Show patient details" : "Hide patient details"}
-                                className="rounded-full  p-2 text-neutral-600-old transition hover:bg-neutral-100"
+                                className="rounded-full p-2"
                                 onClick={() => setIsCollapsed((prev) => !prev)}
                             >
                                 {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                            </button>
+                            </Button>
                         </div>
 
                         {!isCollapsed && (
                             <div className="space-y-4">
                                 <InfoRow icon={Calendar} label="DOB:" value={derivedDetails.dobDisplay} />
-                                <InfoRow 
-                                    icon={User} 
-                                    label="Gender:" 
-                                    value={patient.gender 
+                                <InfoRow
+                                    icon={User}
+                                    label="Gender:"
+                                    value={patient.gender
                                         ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase()
                                         : null
-                                    } 
+                                    }
                                 />
                                 <InfoRow icon={Phone} label="Phone:" value={patient.phoneNumber} />
                                 <InfoRow icon={Mail} label="Email:" value={patient.email} />
@@ -219,10 +220,10 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                     className="flex w-full items-center justify-between rounded-b-3xl bg-orange-50 px-4 py-4 text-left typo-body-2  text-amber-700 transition data-[state=open]:hidden P-4 md:p-6"
                                 >
                                     <span>Alerts &amp; Allergies</span>
-                                    <span className="typo-body-3  text-neutral-700-old">Show</span>
+                                    <span className="typo-body-3  text-foreground hover:text-primary">Show</span>
                                 </button>
                             </CollapsibleTrigger>
-                            <CollapsibleContent className="divide-y divide-neutral-100">
+                            <CollapsibleContent className="divide-y divide-muted-foreground/40">
                                 {/* Patient Alerts */}
                                 <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                                     <div className="flex items-center justify-between">
@@ -231,7 +232,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-auto p-0 typo-body-3  text-neutral-700-old hover:text-neutral-700-old"
+                                                className="h-auto p-0 typo-body-3  text-foreground hover:text-primary"
                                             >
                                                 Hide
                                             </Button>
@@ -242,14 +243,14 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                             {patient.patientAlerts.map((alert) => (
                                                 <p
                                                     key={alert.uuid || alert.id}
-                                                    className="pb-1 typo-body-1   text-neutral-500-old md:pb-2"
+                                                    className="pb-1 typo-body-1   text-foreground md:pb-2"
                                                 >
                                                     {alert.description}
                                                 </p>
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="typo-body-2 text-neutral-400-old">No alerts</p>
+                                        <p className="typo-body-2 text-foreground">No alerts</p>
                                     )}
                                 </div>
 
@@ -266,14 +267,14 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                             {patient.patientAllergies.map((allergy) => (
                                                 <p
                                                     key={allergy.uuid || allergy.id}
-                                                    className="pb-1 typo-body-1   text-neutral-500-old md:pb-2"
+                                                    className="pb-1 typo-body-1   text-foreground md:pb-2"
                                                 >
                                                     {allergy.allergen}
                                                 </p>
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="typo-body-2 text-neutral-400-old">No Allergies</p>
+                                        <p className="typo-body-2 text-foreground">No Allergies</p>
                                     )}
                                 </div>
                             </CollapsibleContent>

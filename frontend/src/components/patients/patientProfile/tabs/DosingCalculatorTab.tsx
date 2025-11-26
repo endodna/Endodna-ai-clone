@@ -296,7 +296,6 @@ export function DosingCalculatorTab() {
                             </Button>
                             <Button
                                 type="submit"
-                                variant="accent"
                                 className="rounded-lg text-white min-w-[150px]"
                                 disabled={isSubmitting}
                             >
@@ -379,7 +378,6 @@ function ResultsCard({
 
             <div className="flex justify-end">
                 <Button
-                    variant="accent"
                     className="rounded-lg bg-violet-600 text-white"
                     disabled={!selectedPlan}
                 >
