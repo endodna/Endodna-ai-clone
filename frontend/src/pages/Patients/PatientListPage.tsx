@@ -34,6 +34,7 @@ export default function PatientListPage() {
 
     const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const [search, setSearch] = useState("");
+    const [isSearchVisible, setIsSearchVisible] = useState(true);
     const { searchInput, selectedPhysician, selectedStatus, page, limit } = filters;
 
     // Fetch doctors and get constants from context
@@ -146,17 +147,26 @@ export default function PatientListPage() {
             {/* Title and add new patient button */}
             <div className="flex items-center justify-between">
                 <h1 className="typo-h1 text-neutral-900-old">Patients</h1>
-                <Button
-                    onClick={() => dispatch(openAddPatientDialog())}
-                    className="typo-body-2 rounded-lg"
-                    variant="accent"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    Add new patient
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        onClick={() => dispatch(openAddPatientDialog())}
+                        className="typo-body-2 rounded-lg"
+                        variant="accent"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        Add new patient
+                    </Button>
+                    <Button
+                        onClick={() => setIsSearchVisible(!isSearchVisible)}
+                        className="text-neutral-700 typo-body-2 cursor-pointer transition-colors bg-transparent shadow-none"
+                    >
+                        {isSearchVisible ? "Hide Search" : "Show Search"}
+                    </Button>
+                </div>
             </div>
 
             {/* Search and filter */}
+            {isSearchVisible && (
             <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-2 rounded-2xl">
                 <div className="flex-1 min-w-60">
                     <div className="relative">
@@ -219,6 +229,7 @@ export default function PatientListPage() {
                     </Select>
                 </div>
             </div>
+            )}
 
             <PatientTable
                 data={patients}
