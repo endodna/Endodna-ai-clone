@@ -337,7 +337,7 @@ export function ChatModal({
                                                 </ReactMarkdown>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-neutral-400 text-right">Sending…</p>
+                                        <p className="text-xs text-neutral-400 text-right">Sent</p>
                                     </div>
                                 </div>
                             )}
