@@ -16,7 +16,7 @@ import {
   useGetAllPatientConversations,
   useUpdatePatientConversationTitle,
 } from "@/hooks/useDoctor";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
 
@@ -26,9 +26,6 @@ interface ChatsHistoryProps {
 
 export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const dispatch = useAppDispatch();
-  const { selectedConversationId } = useAppSelector(
-    (state) => state.chat
-  );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
@@ -146,7 +143,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     >
       <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-primary">
             <MessageSquare className="h-4 w-4" />
           </span>
           <p className="typo-h5 text-neutral-900-old">Chats</p>
@@ -197,7 +194,6 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
               {filteredChats.map((item) => {
                 // Always use "patient" type since we only show patient conversations
                 const chatType = "patient" as const;
-                const isSelected = selectedConversationId === item.id;
                 const dateObj = item.createdAt
                   ? new Date(item.createdAt)
                   : item.updatedAt
@@ -213,10 +209,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                   <div
                     key={item.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
-                      isSelected
-                        ? "bg-violet-50 hover:bg-violet-100"
-                        : "hover:bg-neutral-50"
+                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition hover:bg-primary hover:text-white",
                     )}
                   >
                     <button
@@ -239,7 +232,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                                 handleCancelEdit(e as any);
                               }
                             }}
-                            className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1 focus-visible:ring-violet-500"
+                            className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1"
                             autoFocus
                           />
                         ) : (

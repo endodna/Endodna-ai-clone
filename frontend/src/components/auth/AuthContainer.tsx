@@ -32,7 +32,7 @@ export default function AuthContainer({
                   <img
                     src={bellaVita}
                     alt="Powered by BellaVita"
-                    className="w-30 h-auto"
+                    className="w-60 h-auto"
                   />
                 </div>
                 {header}
