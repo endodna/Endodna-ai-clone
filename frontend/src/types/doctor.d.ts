@@ -138,19 +138,37 @@ interface PatientRow {
     firstName: string;
     lastName: string;
     status: string; // User account status: ACTIVE, PENDING, etc.
+    dateOfBirth?: string | Date | null;
+    gender?: string | null;
+    email?: string | null;
+    phoneNumber?: string | null;
+    workPhoneNumber?: string | null;
+    homePhoneNumber?: string | null;
+    patientInfo?: {
+        id: string;
+        weight?: number | null;
+        height?: number | null;
+        bloodType?: string | null;
+        bmi?: number | null;
+        age?: number | null;
+        prefilledData?: Record<string, any> | null;
+    } | null;
     patientDNAResults: Array<{
         id: string;
+        uuid: string;
         status: string; // DNA result status
         updatedAt?: string | Date; // Used to find the most recent result
     }>;
     patientActivities?: Array<{
-        id: number;
+        id: string;
+        uuid: string;
         activity: string;
         status?: string;
         createdAt?: string | Date; // Fallback if dateCompleted is not available
     }>;
     patientGoals: Array<{
         id: string;
+        uuid?: string;
         description: string;
     }>;
     managingDoctor: {
@@ -159,7 +177,6 @@ interface PatientRow {
         lastName: string;
         email: string;
     } | null;
-    dateOfBirth?: string | Date | null; // May not be in current response
 }
 
 /**
@@ -238,7 +255,18 @@ interface PatientDetail {
     bloodType?: string | null;
     email?: string | null;
     phoneNumber?: string | null;
+    workPhoneNumber?: string | null;
+    homePhoneNumber?: string | null;
     photo?: string | null;
+    patientInfo?: {
+        id: string;
+        weight?: number | null;
+        height?: number | null;
+        bloodType?: string | null;
+        bmi?: number | null;
+        age?: number | null;
+        prefilledData?: Record<string, any> | null;
+    } | null;
     patientDNAResults: Array<{
         uuid: string;
         status: string;

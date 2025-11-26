@@ -21,25 +21,28 @@ interface InfoRowProps {
 }
 
 function PatientHeaderSkeleton() {
+    const skeletonBg = "bg-neutral-200";
+    const skeletonHighlight = "bg-neutral-100";
+
     return (
         <div className="rounded-3xl border border-neutral-100 bg-white divide-y divide-neutral-100">
             {/* Info block */}
             <div className="space-y-6 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                 <div className="flex items-center gap-4">
-                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <Skeleton className={`h-16 w-16 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
                     <div className="flex-1 space-y-2">
-                        <Skeleton className="h-6 w-40" />
-                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className={`h-6 w-40 ${skeletonBg} ${skeletonHighlight}`} />
+                        <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
                     </div>
                 </div>
                 <div className="space-y-4 pt-4">
                     {[0, 1, 2].map((index) => (
                         <div key={`info-${index}`} className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <Skeleton className="h-6 w-6 rounded-full" />
-                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className={`h-6 w-6 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
+                                <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
                             </div>
-                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
                         </div>
                     ))}
                 </div>
@@ -48,20 +51,20 @@ function PatientHeaderSkeleton() {
             {/* Alerts */}
             <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                 <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-24" />
-                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
+                    <Skeleton className={`h-4 w-12 ${skeletonBg} ${skeletonHighlight}`} />
                 </div>
                 <div className="space-y-2">
                     {[0, 1].map((index) => (
-                        <Skeleton key={`alert-${index}`} className="h-4 w-full" />
+                        <Skeleton key={`alert-${index}`} className={`h-4 w-full ${skeletonBg} ${skeletonHighlight}`} />
                     ))}
                 </div>
             </div>
 
             {/* Allergies */}
             <div className="space-y-2 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
+                <Skeleton className={`h-4 w-32 ${skeletonBg} ${skeletonHighlight}`} />
             </div>
         </div>
     );
@@ -140,7 +143,14 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
 
         const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : "";
         const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
-        const dobDisplay = dob && age !== null ? `${dob} (${age} ${age === 1 ? 'year' : 'years'})` : dob;
+        // Format: DOB: MM/DD/YYYY (age years)
+        let dobDisplay: string | null = null;
+        if (dob && age !== null) {
+            const ageText = age === 1 ? 'year' : 'years';
+            dobDisplay = `${dob} (${age} ${ageText})`;
+        } else if (dob) {
+            dobDisplay = dob;
+        }
         return { fullName, initials, dobDisplay };
     }, [patient]);
 
@@ -187,7 +197,14 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                         {!isCollapsed && (
                             <div className="space-y-4">
                                 <InfoRow icon={Calendar} label="DOB:" value={derivedDetails.dobDisplay} />
-                                <InfoRow icon={User} label="Gender:" value={patient.gender} />
+                                <InfoRow 
+                                    icon={User} 
+                                    label="Gender:" 
+                                    value={patient.gender 
+                                        ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase()
+                                        : null
+                                    } 
+                                />
                                 <InfoRow icon={Phone} label="Phone:" value={patient.phoneNumber} />
                                 <InfoRow icon={Mail} label="Email:" value={patient.email} />
                             </div>

@@ -21,15 +21,18 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
     const renderSummaryCard = () => {
         if (isLoading) {
+            const skeletonBg = "bg-neutral-200";
+            const skeletonHighlight = "bg-neutral-100";
+
             return (
                 <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-4">
                     <div className="flex items-center gap-3 text-neutral-700-old">
                         <Spinner className="size-5" />
                         <span className="typo-body-2">Generating patient summary...</span>
                     </div>
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className={`h-6 w-32 ${skeletonBg} ${skeletonHighlight}`} />
+                    <Skeleton className={`h-4 w-full ${skeletonBg} ${skeletonHighlight}`} />
+                    <Skeleton className={`h-4 w-3/4 ${skeletonBg} ${skeletonHighlight}`} />
                 </div>
             );
         }

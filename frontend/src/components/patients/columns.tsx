@@ -1,274 +1,294 @@
+import { PatientStatus } from "@/components/constants/patient";
 import { Button } from "@/components/ui/button";
+import { calculateAge, formatDate } from "@/utils/date.utils";
+import { formatStatusText } from "@/utils/patient.utils";
+import { truncateText } from "@/utils/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
   EllipsisVertical,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { formatDate, calculateAge } from "@/utils/date.utils";
-import { getDNAStatusDisplay } from "@/utils/patient.utils";
-import { truncateText } from "@/utils/utils";
 import { AlertIcon } from "./AlertIcon";
-import { PatientStatus } from "@/components/constants/patient";
 
 type InviteHandler = (patient: PatientRow) => void;
 
 export const getPatientColumns = (
   onInvite?: InviteHandler,
 ): ColumnDef<PatientRow>[] => [
-  {
-    id: "alert",
-    header: "",
-    cell: ({ row }) => {
-      const patientStatus = row.original.status;
-      const isPending = patientStatus === PatientStatus.PENDING;
+    {
+      id: "alert",
+      header: "",
+      cell: ({ row }) => {
+        const patientStatus = row.original.status;
+        const isPending = patientStatus === PatientStatus.PENDING;
 
-      if (isPending && onInvite) {
+        if (isPending && onInvite) {
+          return (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onInvite(row.original);
+              }}
+              className=""
+            >
+              <AlertIcon status={patientStatus} />
+            </button>
+          );
+        }
+
+        return <AlertIcon status={patientStatus} />;
+      },
+    },
+    {
+      id: "patient",
+      accessorKey: "patient",
+      header: ({ column }) => {
         return (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onInvite(row.original);
-            }}
-            className=""
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0 typo-body-2  hover:bg-transparent"
           >
-            <AlertIcon status={patientStatus} />
-          </button>
+            Patient
+            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+          </Button>
         );
-      }
+      },
+      enableSorting: true,
+      sortingFn: (rowA, rowB) => {
+        const nameA = `${rowA.original.firstName ?? ""} ${rowA.original.lastName ?? ""}`.trim().toLowerCase();
+        const nameB = `${rowB.original.firstName ?? ""} ${rowB.original.lastName ?? ""}`.trim().toLowerCase();
+        return nameA.localeCompare(nameB);
+      },
+      cell: ({ row }) => {
+        const patient = row.original;
+        const fullName = `${patient.firstName || ""} ${patient.lastName || ""}`.trim();
 
-      return <AlertIcon status={patientStatus} />;
-    },
-  },
-  {
-    id: "patient",
-    accessorKey: "patient",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 typo-body-2  hover:bg-transparent"
-        >
-          Patient
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
-        </Button>
-      );
-    },
-    enableSorting: true,
-    sortingFn: (rowA, rowB) => {
-      const nameA = `${rowA.original.firstName ?? ""} ${rowA.original.lastName ?? ""}`.trim().toLowerCase();
-      const nameB = `${rowB.original.firstName ?? ""} ${rowB.original.lastName ?? ""}`.trim().toLowerCase();
-      return nameA.localeCompare(nameB);
-    },
-    cell: ({ row }) => {
-      const patient = row.original;
-      const fullName = `${patient.firstName || ""} ${patient.lastName || ""}`.trim();
+        const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : null;
+        const age = calculateAge(patient.dateOfBirth);
+        const gender = patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase() : null;
 
-      const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : null;
-      const age = calculateAge(patient.dateOfBirth);
+        // Build the info array with available data
+        const infoParts: string[] = [];
+        if (dob) {
+          infoParts.push(`DOB: ${dob}`);
+        }
+        if (age !== null) {
+          infoParts.push(`${age} ${age === 1 ? 'year' : 'years'}`);
+        }
+        if (gender) {
+          infoParts.push(gender);
+        }
 
-      return (
-        <div className="flex items-start gap-3">
-
-          <div className="flex flex-col">
-            <span className="text-neutral-950 typo-body-2   capitalize">
-              {fullName ?? ''}
-            </span>
-            <div className="space-x-2 typo-body-3   ">
-              {dob && <span className="typo-body-3 ">DOB: {dob}</span>}
-              {age !== null && <span className="typo-body-3 ">{age} {age === 1 ? 'year' : 'years'}</span>}
+        return (
+          <div className="flex items-start gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-neutral-950 typo-body-2 capitalize">
+                {fullName ?? ''}
+              </span>
+              {infoParts.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap typo-body-3 text-neutral-600-old">
+                  {infoParts.map((part, index) => (
+                    <span key={`${part}-${index}`} className="inline-flex items-center">
+                      {part}
+                      {index < infoParts.length - 1 && (
+                        <span className="mx-1.5 text-neutral-400-old">•</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      );
+        );
+      },
+      meta: {
+        headerClassName: "",
+      },
     },
-    meta: {
-      headerClassName: "",
-    },
-  },
-  {
-    id: "status",
-    accessorKey: "status",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
-        >
-          DNA Test Status
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
-        </Button>
-      );
-    },
-    enableSorting: true,
-    sortingFn: (rowA, rowB) => {
-      // Get the most recent DNA result for each patient
-      const getLatestDNAStatus = (patient: PatientRow): string => {
+    {
+      id: "status",
+      accessorKey: "status",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
+          >
+            DNA Test Status
+            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+          </Button>
+        );
+      },
+      enableSorting: true,
+      sortingFn: (rowA, rowB) => {
+        // Get the most recent DNA result for each patient
+        const getLatestDNAStatus = (patient: PatientRow): string => {
+          const latestDNAResult = patient.patientDNAResults
+            ?.filter(result => result.status)
+            .sort((a, b) => {
+              const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+              const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+              return dateB - dateA;
+            })[0];
+          return latestDNAResult?.status || "";
+        };
+
+        const statusA = getLatestDNAStatus(rowA.original);
+        const statusB = getLatestDNAStatus(rowB.original);
+
+        // Sort alphabetically by status string
+        return statusA.localeCompare(statusB);
+      },
+      cell: ({ row }) => {
+        const patient = row.original;
+        // Get the most recent DNA result based on updatedAt
         const latestDNAResult = patient.patientDNAResults
-          ?.filter(result => result.status)
+          ?.filter(result => result.status) // Only results with a status
           .sort((a, b) => {
             const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
             const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-            return dateB - dateA;
+            return dateB - dateA; // Most recent first
           })[0];
-        return latestDNAResult?.status || "";
-      };
 
-      const statusA = getLatestDNAStatus(rowA.original);
-      const statusB = getLatestDNAStatus(rowB.original);
-      
-      // Sort alphabetically by status string
-      return statusA.localeCompare(statusB);
+        if (!latestDNAResult) {
+          return <span className="text-neutral-400-old">-</span>;
+        }
+
+        const statusText = formatStatusText(latestDNAResult.status);
+
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="px-2 py-[3px] typo-body-3 capitalize">{statusText}</Badge>
+          </div>
+        );
+      },
+      meta: {
+        headerClassName: "",
+      },
     },
-    cell: ({ row }) => {
-      const patient = row.original;
-      // Get the most recent DNA result based on updatedAt
-      const latestDNAResult = patient.patientDNAResults
-        ?.filter(result => result.status) // Only results with a status
-        .sort((a, b) => {
-          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return dateB - dateA; // Most recent first
-        })[0];
+    {
+      id: "patientActivities",
+      accessorKey: "patientActivities",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0 typo-body-2  hover:bg-transparent"
+          >
+            Last activity
+            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+          </Button>
+        );
+      },
+      enableSorting: true,
+      cell: ({ row }) => {
+        const patient = row.original;
+        // Get the most recent activity based on dateCompleted (preferred) or createdAt (fallback)
+        const latestActivity = patient.patientActivities
+          ?.filter(activity => activity.activity) // Only activities with an activity field
+          .sort((a, b) => {
+            // Prefer dateCompleted, fallback to createdAt
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA; // Most recent first
+          })[0];
 
-      if (!latestDNAResult) {
-        return <span className="text-neutral-400-old">-</span>;
-      }
+        if (!latestActivity) {
+          return <span className="text-neutral-400-old">-</span>;
+        }
 
-      const { text } = getDNAStatusDisplay(latestDNAResult.status);
+        // Get the date from dateCompleted or createdAt
+        const activityDate = latestActivity.createdAt;
+        const formattedDate = formatDate(activityDate);
 
-      return (
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="px-2 py-[3px] typo-body-3 capitalize">{text}</Badge>
-        </div>
-      );
+        return (
+          <div className="flex flex-col items-start">
+            <span className="text-neutral-950  typo-body-2 ">
+              Lab Results
+            </span>
+            <span className="text-muted-foreground typo-body-3  ">
+              {formattedDate}
+            </span>
+          </div>
+        );
+      },
+      meta: {
+        headerClassName: "",
+      },
     },
-    meta: {
-      headerClassName: "",
+    {
+      id: "healthGoal",
+      accessorKey: "healthGoal",
+      header: "Health Goals",
+      cell: ({ row }) => {
+        const goal = row.original.patientGoals?.[0]?.description || "-";
+        const truncated = truncateText(goal, 50);
+        return (
+          <div className="line-clamp-1 text-neutral-700-old">
+            {truncated}
+          </div>
+        );
+      },
+      meta: {
+        headerClassName: "",
+      },
     },
-  },
-  {
-    id: "patientActivities",
-    accessorKey: "patientActivities",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 typo-body-2  hover:bg-transparent"
-        >
-          Last activity
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
-        </Button>
-      );
-    },
-    enableSorting: true,
-    cell: ({ row }) => {
-      const patient = row.original;
-      // Get the most recent activity based on dateCompleted (preferred) or createdAt (fallback)
-      const latestActivity = patient.patientActivities
-        ?.filter(activity => activity.activity) // Only activities with an activity field
-        .sort((a, b) => {
-          // Prefer dateCompleted, fallback to createdAt
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA; // Most recent first
-        })[0];
-
-      if (!latestActivity) {
-        return <span className="text-neutral-400-old">-</span>;
-      }
-
-      // Get the date from dateCompleted or createdAt
-      const activityDate = latestActivity.createdAt;
-      const formattedDate = formatDate(activityDate);
-
-      return (
-        <div className="flex flex-col items-start">
-          <span className="text-neutral-950  typo-body-2 ">
-            Lab Results
+    {
+      id: "physician",
+      accessorKey: "physician",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
+          >
+            Physician
+            <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
+          </Button>
+        );
+      },
+      enableSorting: true,
+      sortingFn: (rowA, rowB) => {
+        const doctorA = rowA.original.managingDoctor;
+        const doctorB = rowB.original.managingDoctor;
+        const nameA = doctorA ? `${doctorA.firstName} ${doctorA.lastName}`.trim().toLowerCase() : "";
+        const nameB = doctorB ? `${doctorB.firstName} ${doctorB.lastName}`.trim().toLowerCase() : "";
+        return nameA.localeCompare(nameB);
+      },
+      cell: ({ row }) => {
+        const doctor = row.original.managingDoctor;
+        const physicianName = doctor
+          ? `Dr. ${doctor.firstName} ${doctor.lastName}`.trim()
+          : "";
+        return (
+          <span className="text-neutral-700-old">
+            {physicianName ?? <span className="text-neutral-400-old">No physician assigned</span>}
           </span>
-          <span className="text-muted-foreground typo-body-3  ">
-            {formattedDate}
-          </span>
+        );
+      },
+      meta: {
+        headerClassName: "",
+      },
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: () => (
+        <div className="text-right last:rounded-r-xl" onClick={(e) => e.stopPropagation()}>
+          <button className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-200">
+            <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
+          </button>
         </div>
-      );
+      ),
+      meta: {
+        headerClassName: "",
+      },
     },
-    meta: {
-      headerClassName: "",
-    },
-  },
-  {
-    id: "healthGoal",
-    accessorKey: "healthGoal",
-    header: "Health Goals",
-    cell: ({ row }) => {
-      const goal = row.original.patientGoals?.[0]?.description || "-";
-      const truncated = truncateText(goal, 50);
-      return (
-        <div className="line-clamp-1 text-neutral-700-old">
-          {truncated}
-        </div>
-      );
-    },
-    meta: {
-      headerClassName: "",
-    },
-  },
-  {
-    id: "physician",
-    accessorKey: "physician",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0  text-neutral-950 typo-body-2  hover:bg-transparent"
-        >
-          Physician
-          <ArrowUpDown className="ml-2 h-4 w-4 text-neutral-600-old opacity-50" />
-        </Button>
-      );
-    },
-    enableSorting: true,
-    sortingFn: (rowA, rowB) => {
-      const doctorA = rowA.original.managingDoctor;
-      const doctorB = rowB.original.managingDoctor;
-      const nameA = doctorA ? `${doctorA.firstName} ${doctorA.lastName}`.trim().toLowerCase() : "";
-      const nameB = doctorB ? `${doctorB.firstName} ${doctorB.lastName}`.trim().toLowerCase() : "";
-      return nameA.localeCompare(nameB);
-    },
-    cell: ({ row }) => {
-      const doctor = row.original.managingDoctor;
-      const physicianName = doctor
-        ? `Dr. ${doctor.firstName} ${doctor.lastName}`.trim()
-        : "";
-      return (
-        <span className="text-neutral-700-old">
-          {physicianName ?? <span className="text-neutral-400-old">No physician assigned</span>}
-        </span>
-      );
-    },
-    meta: {
-      headerClassName: "",
-    },
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: () => (
-      <div className="text-right last:rounded-r-xl" onClick={(e) => e.stopPropagation()}>
-        <button className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-200">
-          <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
-        </button>
-      </div>
-    ),
-    meta: {
-      headerClassName: "",
-    },
-  },
-];
+  ];
 
