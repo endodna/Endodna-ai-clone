@@ -16,7 +16,7 @@ import {
   useGetAllPatientConversations,
   useUpdatePatientConversationTitle,
 } from "@/hooks/useDoctor";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
 
@@ -26,9 +26,6 @@ interface ChatsHistoryProps {
 
 export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const dispatch = useAppDispatch();
-  const { selectedConversationId } = useAppSelector(
-    (state) => state.chat
-  );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
@@ -119,7 +116,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     const skeletonHighlight = "bg-neutral-100";
 
     return (
-        <div className="flex w-full flex-col rounded-3xl border border-muted-foreground bg-primary-foreground py-5">
+      <div className="flex w-full flex-col rounded-3xl border border-muted-foreground bg-primary-foreground py-5">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <Skeleton className={`h-9 w-9 rounded-2xl ${skeletonBg} ${skeletonHighlight}`} />
@@ -146,7 +143,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     >
       <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-primary">
             <MessageSquare className="h-4 w-4" />
           </span>
           <p className="typo-h5 text-foreground">Chats</p>
@@ -189,7 +186,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
 
           {!conversations.length ? (
             <div className="mt-4 px-4 py-8 text-center">
-                <p className="typo-body-2 text-foreground">No chats found</p>
+              <p className="typo-body-2 text-foreground">No chats found</p>
               <p className="typo-body-2 text-foreground">Create new chat using chatbox.</p>
             </div>
           ) : (
@@ -197,7 +194,6 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
               {filteredChats.map((item) => {
                 // Always use "patient" type since we only show patient conversations
                 const chatType = "patient" as const;
-                const isSelected = selectedConversationId === item.id;
                 const dateObj = item.createdAt
                   ? new Date(item.createdAt)
                   : item.updatedAt
@@ -214,9 +210,6 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                     key={item.id}
                     className={cn(
                       "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
-                      isSelected
-                        ? "bg-primary hover:bg-primary/10"
-                        : "hover:bg-muted-foreground/10"
                     )}
                   >
                     <button

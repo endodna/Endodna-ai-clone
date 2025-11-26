@@ -21,10 +21,12 @@ import {
 } from "@/hooks/useDoctor";
 import { cn } from "@/lib/utils";
 import {
-    openChatModal,
+    selectGlobalConversation,
     setActiveGeneralConversation,
     setActivePatientConversation,
     setSelectedPersona,
+    setOptimisticMessage,
+    setIsExternalThinking,
 } from "@/store/features/chat";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatDate } from "@/utils/date.utils";
@@ -40,9 +42,8 @@ import {
     Plus,
     Boxes
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChatModal } from "./ChatModal";
 
 interface AiSummaryProps {
     readonly className?: string;
@@ -91,16 +92,6 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
     const [persona, setPersona] =
         useState<(typeof PERSONA_OPTIONS)[number]>(PERSONA_OPTIONS[0]);
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
-    const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
-    const [isExternalThinking, setIsExternalThinking] = useState(false);
-
-    const handleOptimisticDelivered = useCallback(() => {
-        setOptimisticMessage(null);
-    }, []);
-
-    const handleResponseReceived = useCallback(() => {
-        setIsExternalThinking(false);
-    }, []);
 
     // Get patient data for title generation
     const { data: patientData } = useGetPatientById(patientId ?? "", {
@@ -174,9 +165,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
 
         // Clear input immediately for better UX
         setPrompt("");
-        setOptimisticMessage(message);
-        setIsExternalThinking(true);
-        dispatch(openChatModal());
+        dispatch(setOptimisticMessage(message));
+        dispatch(setIsExternalThinking(true));
 
         try {
             if (isPatientPersona) {
@@ -194,12 +184,17 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(createResponse.message || "Unable to create conversation.");
                     // Restore message if error
                     setPrompt(message);
-                    setOptimisticMessage(null);
-                    setIsExternalThinking(false);
+                    dispatch(setOptimisticMessage(null));
+                    dispatch(setIsExternalThinking(false));
                     return;
                 }
                 const conversationId = createResponse.data.id;
                 dispatch(setActivePatientConversation(conversationId));
+                dispatch(selectGlobalConversation({
+                    conversationId,
+                    type: "patient",
+                    patientId,
+                }));
 
                 // Set conversation title
                 const title = generatePatientConversationTitle();
@@ -219,8 +214,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(sendResponse.message || "Unable to send message.");
                     // Restore message if error
                     setPrompt(message);
-                    setOptimisticMessage(null);
-                    setIsExternalThinking(false);
+                    dispatch(setOptimisticMessage(null));
+                    dispatch(setIsExternalThinking(false));
                     return;
                 }
                 toast.success("Message sent via patient chat.");
@@ -242,12 +237,16 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(createResponse.message || "Unable to start a conversation.");
                     // Restore message if error
                     setPrompt(message);
-                    setOptimisticMessage(null);
-                    setIsExternalThinking(false);
+                    dispatch(setOptimisticMessage(null));
+                    dispatch(setIsExternalThinking(false));
                     return;
                 }
                 const conversationId = createResponse.data.id;
                 dispatch(setActiveGeneralConversation(conversationId));
+                dispatch(selectGlobalConversation({
+                    conversationId,
+                    type: "general",
+                }));
 
                 // Set conversation title
                 const title = generateGeneralConversationTitle();
@@ -264,8 +263,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     toast.error(sendResponse.message || "Unable to send message.");
                     // Restore message if error
                     setPrompt(message);
-                    setOptimisticMessage(null);
-                    setIsExternalThinking(false);
+                    dispatch(setOptimisticMessage(null));
+                    dispatch(setIsExternalThinking(false));
                     return;
                 }
                 toast.success("Message sent via general chat.");
@@ -290,8 +289,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
             toast.error(error?.message || "Unable to send message.");
             // Restore message if error
             setPrompt(message);
-            setOptimisticMessage(null);
-            setIsExternalThinking(false);
+            dispatch(setOptimisticMessage(null));
+            dispatch(setIsExternalThinking(false));
         }
     };
 
@@ -503,15 +502,6 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                     </div>
                 </div>
             </div>
-
-            <ChatModal
-                patientId={patientId}
-                isPatientPersona={isPatientPersona}
-                optimisticMessage={optimisticMessage}
-                isExternalThinking={isExternalThinking}
-                onOptimisticDelivered={handleOptimisticDelivered}
-                onResponseReceived={handleResponseReceived}
-            />
         </div>
     );
 }
