@@ -16,7 +16,7 @@ import {
   useGetAllPatientConversations,
   useUpdatePatientConversationTitle,
 } from "@/hooks/useDoctor";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
 
@@ -26,9 +26,6 @@ interface ChatsHistoryProps {
 
 export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const dispatch = useAppDispatch();
-  const { selectedConversationId } = useAppSelector(
-    (state) => state.chat
-  );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
@@ -197,7 +194,6 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
               {filteredChats.map((item) => {
                 // Always use "patient" type since we only show patient conversations
                 const chatType = "patient" as const;
-                const isSelected = selectedConversationId === item.id;
                 const dateObj = item.createdAt
                   ? new Date(item.createdAt)
                   : item.updatedAt
