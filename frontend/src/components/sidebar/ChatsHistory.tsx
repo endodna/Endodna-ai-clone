@@ -24,7 +24,7 @@ interface ChatsHistoryProps {
   patientId?: string;
 }
 
-export function ChatsHistory({ patientId }: ChatsHistoryProps) {
+export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const dispatch = useAppDispatch();
   const { selectedConversationId } = useAppSelector(
     (state) => state.chat
@@ -115,18 +115,21 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
   };
 
   if (isLoading) {
+    const skeletonBg = "bg-neutral-200";
+    const skeletonHighlight = "bg-neutral-100";
+
     return (
       <div className="flex w-full flex-col rounded-3xl border border-neutral-100 bg-white py-5">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-9 w-9 rounded-2xl" />
-            <Skeleton className="h-5 w-16" />
+            <Skeleton className={`h-9 w-9 rounded-2xl ${skeletonBg} ${skeletonHighlight}`} />
+            <Skeleton className={`h-5 w-16 ${skeletonBg} ${skeletonHighlight}`} />
           </div>
-          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className={`h-8 w-8 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
         </div>
         <div className="mt-4 space-y-2 px-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+            <Skeleton key={i} className={`h-16 w-full rounded-2xl ${skeletonBg} ${skeletonHighlight}`} />
           ))}
         </div>
       </div>
@@ -192,98 +195,98 @@ export function ChatsHistory({ patientId }: ChatsHistoryProps) {
           ) : (
             <div className="mt-4 flex flex-col divide-y divide-neutral-100 px-2">
               {filteredChats.map((item) => {
-              // Always use "patient" type since we only show patient conversations
-              const chatType = "patient" as const;
-              const isSelected = selectedConversationId === item.id;
-              const dateObj = item.createdAt
-                ? new Date(item.createdAt)
-                : item.updatedAt
-                  ? new Date(item.updatedAt)
-                  : null;
-              const date = dateObj
-                ? `${formatDate(dateObj, "MM/DD/YYYY")} - ${formatDate(dateObj, "").toLowerCase()}`
-                : "";
+                // Always use "patient" type since we only show patient conversations
+                const chatType = "patient" as const;
+                const isSelected = selectedConversationId === item.id;
+                const dateObj = item.createdAt
+                  ? new Date(item.createdAt)
+                  : item.updatedAt
+                    ? new Date(item.updatedAt)
+                    : null;
+                const date = dateObj
+                  ? `${formatDate(dateObj, "MM/DD/YYYY")} - ${formatDate(dateObj, "").toLowerCase()}`
+                  : "";
 
-              const isEditing = editingConversationId === item.id;
+                const isEditing = editingConversationId === item.id;
 
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
-                    isSelected
-                      ? "bg-violet-50 hover:bg-violet-100"
-                      : "hover:bg-neutral-50"
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => handleConversationClick(item.id, chatType, e, (item as any).patient?.id)}
-                    className="flex items-center flex-1 min-w-0 gap-2 text-left"
-                  >
-                    <div className="flex flex-col flex-1 min-w-0">
-                      {isEditing ? (
-                        <Input
-                          value={editedTitle}
-                          onChange={(e) => setEditedTitle(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleSaveEdit(e as any, item.id);
-                            } else if (e.key === "Escape") {
-                              e.preventDefault();
-                              handleCancelEdit(e as any);
-                            }
-                          }}
-                          className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1 focus-visible:ring-violet-500"
-                          autoFocus
-                        />
-                      ) : (
-                        <p className="typo-body-2 text-neutral-900-old truncate">
-                          {item.title}
-                        </p>
-                      )}
-                      <p className="typo-body-3 text-neutral-500-old">{date}</p>
-                    </div>
-                  </button>
-                  <div className="flex items-center gap-1 edit-controls flex-shrink-0">
-                    {isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => handleSaveEdit(e, item.id)}
-                          disabled={updatePatientConversationTitle.isPending}
-                          className="p-1.5 rounded-full text-violet-600 hover:bg-violet-100 transition"
-                          aria-label="Save title"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          className="p-1.5 rounded-full text-neutral-500-old hover:bg-neutral-200 transition"
-                          aria-label="Cancel edit"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => handleEditClick(e, item.id, item.title)}
-                          className="p-1.5 rounded-full text-neutral-400-old hover:text-neutral-600-old hover:bg-neutral-100 transition"
-                          aria-label="Edit title"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <ChevronRight className="h-4 w-4 text-neutral-400-old" />
-                      </>
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
+                      isSelected
+                        ? "bg-violet-50 hover:bg-violet-100"
+                        : "hover:bg-neutral-50"
                     )}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => handleConversationClick(item.id, chatType, e, (item as any).patient?.id)}
+                      className="flex items-center flex-1 min-w-0 gap-2 text-left"
+                    >
+                      <div className="flex flex-col flex-1 min-w-0">
+                        {isEditing ? (
+                          <Input
+                            value={editedTitle}
+                            onChange={(e) => setEditedTitle(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleSaveEdit(e as any, item.id);
+                              } else if (e.key === "Escape") {
+                                e.preventDefault();
+                                handleCancelEdit(e as any);
+                              }
+                            }}
+                            className="h-7 typo-body-2 border-neutral-300 focus-visible:ring-1 focus-visible:ring-violet-500"
+                            autoFocus
+                          />
+                        ) : (
+                          <p className="typo-body-2 text-neutral-900-old truncate">
+                            {item.title}
+                          </p>
+                        )}
+                        <p className="typo-body-3 text-neutral-500-old">{date}</p>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 edit-controls flex-shrink-0">
+                      {isEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => handleSaveEdit(e, item.id)}
+                            disabled={updatePatientConversationTitle.isPending}
+                            className="p-1.5 rounded-full text-violet-600 hover:bg-violet-100 transition"
+                            aria-label="Save title"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="p-1.5 rounded-full text-neutral-500-old hover:bg-neutral-200 transition"
+                            aria-label="Cancel edit"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => handleEditClick(e, item.id, item.title)}
+                            className="p-1.5 rounded-full text-neutral-400-old hover:text-neutral-600-old hover:bg-neutral-100 transition"
+                            aria-label="Edit title"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <ChevronRight className="h-4 w-4 text-neutral-400-old" />
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
+                );
               })}
             </div>
           )}

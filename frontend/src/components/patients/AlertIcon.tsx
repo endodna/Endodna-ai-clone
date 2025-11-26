@@ -25,7 +25,7 @@ interface AlertIconProps {
  * @param status - Patient status string
  * @returns React component with appropriate status icon
  */
-export function AlertIcon({ status }: AlertIconProps) {
+export function AlertIcon({ status }: Readonly<AlertIconProps>) {
   const statusText = status ? formatStatusText(status) : "Invalid";
   let icon: React.ReactNode = null;
   switch (status) {
