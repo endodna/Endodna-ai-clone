@@ -321,7 +321,7 @@ export function GlobalChatModal() {
 
                             {optimisticMessage && (
                                 <div className="flex w-full items-start gap-3 justify-end">
-                                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-violet-200 bg-primary text-white shadow-[0_8px_30px_rgba(134,96,255,0.35)]">
+                                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-violet-200 bg-primary text-white">
                                         <UserRound className="h-4 w-4" />
                                     </div>
                                     <div className="flex max-w-[75%] flex-col items-end gap-1.5 text-sm leading-relaxed">
