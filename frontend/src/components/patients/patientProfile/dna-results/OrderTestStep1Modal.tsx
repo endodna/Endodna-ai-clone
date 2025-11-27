@@ -79,16 +79,16 @@ export const OrderTestStep1Modal = ({
         if (!addressRequired) return null;
         if (addressesLoading) {
             return (
-                <div className="flex items-center gap-2 typo-body-2 text-neutral-600-old">
+                <div className="flex items-center gap-2 typo-body-2 text-muted-foreground">
                     <Spinner className="size-4" />
-                    Loading addresses...
+                    <span className="typo-body-2 ">Loading addresses...</span>
                 </div>
             );
         }
         if (addresses.length === 0) {
             return (
-                <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center">
-                    <p className="typo-body-2 text-neutral-600-old">
+                <div className="rounded-lg border border-dashed border-muted-foreground bg-primary-foreground p-4 text-center">
+                    <p className="typo-body-2 text-muted-foreground">
                         No addresses found. Please add an address before shipping directly.
                     </p>
                 </div>
@@ -114,7 +114,7 @@ export const OrderTestStep1Modal = ({
     const renderReportCards = () => {
         if (reportsLoading) {
             return (
-                <div className="flex items-center gap-2 typo-body-2 text-neutral-600-old">
+                <div className="flex items-center gap-2 typo-body-2 text-muted-foreground">
                     <Spinner className="size-4" />
                     <span className="typo-body-2 ">Loading reports...</span>
                 </div>
@@ -122,8 +122,8 @@ export const OrderTestStep1Modal = ({
         }
         if (reports.length === 0) {
             return (
-                <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-2 md:p-4 text-center">
-                    <p className="typo-body-2 text-neutral-600-old">No reports available for this patient.</p>
+                <div className="rounded-lg border border-dashed border-muted-foreground bg-primary-foreground p-2 md:p-4 text-center">
+                    <p className="typo-body-2 text-muted-foreground">No reports available for this patient.</p>
                 </div>
             );
         }
@@ -135,10 +135,10 @@ export const OrderTestStep1Modal = ({
                         <Card
                             key={report.id}
                             className={cn(
-                                "p-4 cursor-pointer border-2 transition-colors",
+                                "p-4 cursor-pointer border-2 transition-all duration-300",
                                 isSelected
-                                    ? "border-violet-700 bg-violet-50"
-                                    : "border-neutral-200 hover:border-neutral-300",
+                                    ? "border-primary-brand-teal-1/40 bg-primary/70"
+                                    : "border-muted-foreground hover:scale-105 hover:border-primary-brand-teal-1/70",
                             )}
                             onClick={() => setSelectedReportId(report.id)}
                         >
@@ -146,22 +146,22 @@ export const OrderTestStep1Modal = ({
                                 <div className="flex-1">
                                     <h4 className=" typo-body-2">{report.title}</h4>
                                     {report.genders.length > 0 && (
-                                        <p className="typo-body-3 text-neutral-800-old mt-1">
+                                        <p className="typo-body-3 text-foreground mt-1">
                                             {report.genders.map((gender) => gender).join(", ")}
                                         </p>
                                     )}
                                     {report.description && (
-                                        <p className="typo-body-3 text-neutral-500-old mt-1 line-clamp-2">
+                                        <p className="typo-body-3 text-muted-foreground mt-1 line-clamp-2">
                                             {report.description}
                                         </p>
                                     )}
-                                    <p className="typo-body-2  text-violet-700 mt-2">
+                                    <p className="typo-body-2  text-primary-brand-teal-1 mt-2">
                                         ${report.price}
                                     </p>
                                 </div>
                                 {isSelected && (
-                                    <div className="h-5 w-5 rounded-full bg-violet-700 flex items-center justify-center shrink-0">
-                                        <div className="h-2 w-2 rounded-full bg-white" />
+                                    <div className="h-5 w-5 rounded-full bg-primary-brand-teal-1 flex items-center justify-center shrink-0">
+                                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                                     </div>
                                 )}
                             </div>
@@ -185,8 +185,8 @@ export const OrderTestStep1Modal = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="typo-h4 ">Order DNA Test - Step 1</DialogTitle>
-                    <DialogDescription className="typo-body-1 text-neutral-600-old pt-2">
+                    <DialogTitle className="typo-h4 text-foreground">Order DNA Test - Step 1</DialogTitle>
+                    <DialogDescription className="typo-body-1 text-foreground pt-2">
                         {formatOrderTypeDisplay(orderType)}
                     </DialogDescription>
                 </DialogHeader>
@@ -194,8 +194,8 @@ export const OrderTestStep1Modal = ({
                 <div className="space-y-6 pt-4">
                     <div className="space-y-2">
                         <Label className="typo-body-2 ">Patient Details</Label>
-                        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                            <p className="typo-body-2 text-neutral-700-old">{patientSummary}</p>
+                        <div className="rounded-lg border border-muted-foreground bg-primary-foreground p-3">
+                            <p className="typo-body-2 text-foreground">{patientSummary}</p>
                         </div>
                     </div>
 
@@ -225,11 +225,11 @@ export const OrderTestStep1Modal = ({
                 </div>
 
                 <DialogFooter className="pt-4">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
                     <div className="flex flex-1 items-center justify-end gap-3">
-                        {errorMessage && <p className="typo-body-2 text-red-600">{errorMessage}</p>}
+                        {errorMessage && <p className="typo-body-2 text-destructive">{errorMessage}</p>}
                         <Button
                             disabled={!canProceed || isSubmitting}
                             onClick={handleSave}
@@ -240,7 +240,7 @@ export const OrderTestStep1Modal = ({
                                     <span className="typo-body-2 ">Submitting...</span>
                                 </>
                             ) : (
-                                "Save"
+                                <span className="typo-body-2 ">Save</span>
                             )}
                         </Button>
                     </div>

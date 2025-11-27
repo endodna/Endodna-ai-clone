@@ -27,7 +27,7 @@ export function TabNavigation<TProps extends object = Record<string, never>>({
 }: Readonly<TabNavigationProps<TProps>>) {
     if (!tabs.length) {
         return (
-            <div className={cn("flex-1 rounded-3xl border border-dashed border-neutral-200 bg-white p-6 text-center typo-body-1  text-neutral-500-old", className)}>
+            <div className={cn("flex-1 rounded-3xl border border-dashed border-muted-foreground bg-primary-foreground p-6 text-center typo-body-1  text-foreground", className)}>
                 No tabs available.
             </div>
         );
@@ -49,13 +49,13 @@ export function TabNavigation<TProps extends object = Record<string, never>>({
             className={cn("flex-1", className)}
         >
             <div className="">
-                <div className="border border-neutral-200 rounded-2xl bg-neutral-100 w-fit p-2">
-                    <TabsList className="">
+                <div className="border border-muted-foreground bg-secondary-background rounded-2xl w-fit p-2">
+                    <TabsList className="bg-muted-foreground/10">
                         {tabs.map((tab) => (
                             <TabsTrigger
                                 key={tab.id}
                                 value={tab.id}
-                                className="flex-1 typo-body-2  text-neutral-950  rounded-[10px]"
+                                className="flex-1 typo-body-2 text-foreground  rounded-[10px]"
                             >
                                 {tab.label}
                             </TabsTrigger>

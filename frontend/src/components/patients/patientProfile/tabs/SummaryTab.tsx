@@ -21,26 +21,25 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
     const renderSummaryCard = () => {
         if (isLoading) {
-            const skeletonBg = "bg-neutral-200";
-            const skeletonHighlight = "bg-neutral-100";
+            const skeletonHighlight = "bg-muted-foreground/20";
 
             return (
-                <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-4">
-                    <div className="flex items-center gap-3 text-neutral-700-old">
+                <div className="rounded-3xl border border-muted-foreground bg-primary-foreground p-6 space-y-4">
+                    <div className="flex items-center gap-3 text-foreground">
                         <Spinner className="size-5" />
                         <span className="typo-body-2">Generating patient summary...</span>
                     </div>
-                    <Skeleton className={`h-6 w-32 ${skeletonBg} ${skeletonHighlight}`} />
-                    <Skeleton className={`h-4 w-full ${skeletonBg} ${skeletonHighlight}`} />
-                    <Skeleton className={`h-4 w-3/4 ${skeletonBg} ${skeletonHighlight}`} />
+                    <Skeleton className={`h-6 w-32 ${skeletonHighlight}`} />
+                    <Skeleton className={`h-4 w-full ${skeletonHighlight}`} />
+                    <Skeleton className={`h-4 w-3/4 ${skeletonHighlight}`} />
                 </div>
             );
         }
 
         if (isError || data?.error) {
             return (
-                <div className="rounded-3xl border border-neutral-100 bg-white p-6">
-                    <p className="mt-2 typo-body-2 text-red-600">
+                <div className="rounded-3xl border border-muted-foreground bg-primary-foreground p-6">
+                    <p className="mt-2 typo-body-2 text-destructive">
                         {data?.message || "Failed to load patient summary"}
                     </p>
                 </div>
@@ -49,10 +48,10 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
         if (!data?.data) {
             return (
-                <div className="space-y-4 rounded-3xl border border-neutral-100 bg-white p-6">
-                    <h3 className="typo-h3 text-neutral-900-old">Summary</h3>
-                    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 text-center">
-                        <p className="typo-body-2 text-neutral-700-old">
+                <div className="space-y-4 rounded-3xl border border-muted-foreground bg-primary-foreground p-6">
+                    <h3 className="typo-h3 text-foreground">Summary</h3>
+                    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl bg-muted-foreground/10 border border-muted-foreground px-4 text-center">
+                        <p className="typo-body-2 text-foreground">
                             AI summary will be available once recent lab results are uploaded.
                         </p>
                     </div>
@@ -60,10 +59,10 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
             );
         }
 
-        const summaryData = data.data as { summary: string; followUpPrompts: string[] };
+        const summaryData = data?.data as { summary: string; followUpPrompts: string[] };
 
         return (
-            <div className="space-y-6 rounded-3xl border border-neutral-100 bg-white p-6 shadow-[0px_1px_2px_-1px_rgba(0,0,0,0.1),0px_1px_3px_0px_rgba(0,0,0,0.1)]">
+            <div className="space-y-6 rounded-3xl bg-primary-foreground p-6 shadow-[0px_1px_2px_-1px_rgba(0,0,0,0.1),0px_1px_3px_0px_rgba(0,0,0,0.1)]">
                 <h3 className="">Summary</h3>
 
                 {/* <ReactMarkdown
@@ -81,7 +80,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
 
                 {summaryData.followUpPrompts && summaryData.followUpPrompts.length > 0 && (
                     <div className="space-y-2 md:space-y-3">
-                        <p className="typo-body-1 text-neutral-900-old">
+                        <p className="typo-body-1 text-foreground">
                             Follow up prompts
                         </p>
                         <div className="flex flex-wrap gap-1 md:gap-2">
@@ -92,7 +91,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                                             variant="ghost"
                                             className="rounded-lg px-2 py-[3px]"
                                         >
-                                            <Sparkles className="h-4 w-4 flex-shrink-0 text-[#525252]" />
+                                            <Sparkles className="h-4 w-4 flex-shrink-0 text-foreground" />
                                             <span>{truncateText(prompt, 50)}</span>
                                         </Button>
                                     </TooltipTrigger>
@@ -100,10 +99,10 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                                     <TooltipContent
                                         side="top"
                                         align="center"
-                                        className="rounded-lg border border-neutral-200 shadow-lg"
+                                        className="rounded-lg border border-muted-foreground shadow-lg"
                                         variant="inverted"
                                     >
-                                        <span className="typo-body-2 text-neutral-900-old">{prompt}</span>
+                                        <span className="typo-body-2 text-foreground">{prompt}</span>
                                     </TooltipContent>
                                 </Tooltip>
                             ))}

@@ -3,7 +3,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   ChevronDown,
-  ChevronRight,
   ChevronUp,
   MessageSquare,
   Pencil,
@@ -19,6 +18,7 @@ import {
 import { useAppDispatch } from "@/store/hooks";
 import { selectGlobalConversation } from "@/store/features/chat";
 import { formatDate } from "@/utils/date.utils";
+import { Button } from "../ui/button";
 
 interface ChatsHistoryProps {
   patientId?: string;
@@ -143,54 +143,35 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     >
       <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-primary">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-muted-foreground/10 text-primary">
             <MessageSquare className="h-4 w-4" />
           </span>
-          <p className="typo-h5 text-foreground">Chats</p>
+          <h3 className="text-foreground">Chats</h3>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label={isCollapsed ? "Expand chats" : "Collapse chats"}
-          className="rounded-full  p-2 text-muted-foreground transition hover:bg-muted-foreground/10"
+          className="rounded-full p-2"
           onClick={() => setIsCollapsed((prev) => !prev)}
         >
           {isCollapsed ? (
-            <ChevronDown className="h-4 w-4 text-primary" />
+            <ChevronDown className="h-4 w-4 transition-colors group-hover:text-primary" />
           ) : (
-            <ChevronUp className="h-4 w-4 text-primary" />
+            <ChevronUp className="h-4 w-4 transition-colors group-hover:text-primary" />
           )}
-        </button>
+        </Button>
       </div>
 
       {!isCollapsed && (
         <>
-          {/* <div className="flex items-center gap-2 px-4 pt-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 rounded-2xl border border-neutral-200 bg-white typo-body-2  text-neutral-700-old hover:bg-neutral-50"
-            >
-              <Plus className="h-4 w-4" />
-              New
-            </Button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400-old" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search"
-                className="h-9 rounded-2xl border border-neutral-200 bg-neutral-50 pl-9 typo-body-2 text-neutral-800-old placeholder:text-neutral-400-old focus-visible:ring-0"
-              />
-            </div>
-          </div> */}
-
           {!conversations.length ? (
             <div className="mt-4 px-4 py-8 text-center">
               <p className="typo-body-2 text-foreground">No chats found</p>
               <p className="typo-body-2 text-foreground">Create new chat using chatbox.</p>
             </div>
           ) : (
-            <div className="mt-4 flex flex-col divide-y divide-muted-foreground/40 px-2">
+            <div className="mt-4 flex flex-col px-2">
               {filteredChats.map((item) => {
                 // Always use "patient" type since we only show patient conversations
                 const chatType = "patient" as const;
@@ -209,13 +190,14 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                   <div
                     key={item.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition",
+                      "group flex items-center justify-between gap-2 rounded-2xl px-2 py-3 transition-colors hover:bg-primary-brand-teal-2/10"
                     )}
                   >
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => handleConversationClick(item.id, chatType, e, (item as any).patient?.id)}
-                      className="flex items-center flex-1 min-w-0 gap-2 text-left"
+                      className="flex items-center flex-1 min-w-0 gap-2 text-left text-foreground transition-colors hover:text-primary-brand-teal-1 focus-visible:ring-primary-brand-teal-1"
                     >
                       <div className="flex flex-col flex-1 min-w-0">
                         {isEditing ? (
@@ -232,50 +214,52 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                                 handleCancelEdit(e as any);
                               }
                             }}
-                            className="h-7 typo-body-2 border-muted-foreground/40 focus-visible:ring-1 focus-visible:ring-primary"
+                            className="h-7 typo-body-2 border-muted-foreground/40 text-foreground focus-visible:ring-1 focus-visible:ring-primary-brand-teal-1"
                             autoFocus
                           />
                         ) : (
-                          <p className="typo-body-2 text-foreground truncate">
+                          <p className="typo-body-2 text-foreground truncate transition-colors group-hover:text-primary-brand-teal-1">
                             {item.title}
                           </p>
                         )}
-                        <p className="typo-body-3 text-foreground">{date}</p>
+                        <p className="typo-body-3 typo-body-3-regular text-foreground transition-colors group-hover:text-primary-brand-teal-2/70">
+                          {date}
+                        </p>
                       </div>
-                    </button>
+                    </Button>
                     <div className="flex items-center gap-1 edit-controls flex-shrink-0">
                       {isEditing ? (
                         <>
-                          <button
-                            type="button"
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={(e) => handleSaveEdit(e, item.id)}
                             disabled={updatePatientConversationTitle.isPending}
-                            className="p-1.5 rounded-full text-primary hover:bg-primary/10 transition"
+                            className="rounded-full p-1.5 text-primary-brand-teal-1 transition-colors hover:bg-primary-brand-teal-2/20"
                             aria-label="Save title"
                           >
                             <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={handleCancelEdit}
-                            className="p-1.5 rounded-full text-muted-foreground hover:bg-muted-foreground/10 transition"
+                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/10 hover:text-primary-brand-teal-2"
                             aria-label="Cancel edit"
                           >
                             <X className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={(e) => handleEditClick(e, item.id, item.title)}
-                            className="p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted-foreground/10 transition"
-                            aria-label="Edit title"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => handleEditClick(e, item.id, item.title)}
+                          className="rounded-full p-1.5 text-muted-foreground transition-colors hover:text-primary-brand-teal-1"
+                          aria-label="Edit title"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
                   </div>

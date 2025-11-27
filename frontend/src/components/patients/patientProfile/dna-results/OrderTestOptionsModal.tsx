@@ -31,24 +31,23 @@ export const OrderTestOptionsModal = ({ open, onOpenChange, onSelectOption }: Or
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="typo-h4 ">Order Test</DialogTitle>
-                    <DialogDescription className="typo-body-1 text-neutral-600-old pt-2">
+                    <DialogTitle className="typo-h4 text-foreground">Order Test</DialogTitle>
+                    <DialogDescription className="typo-body-1 text-foreground pt-2">
                         Choose how you want to proceed with the DNA test.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 md:space-y-3 pt-4">
                     {orderTypes.length === 0 ? (
-                        <p className="typo-body-2 text-neutral-600-old text-center py-4">No order types available</p>
+                        <p className="typo-body-2 text-foreground text-center py-4">No order types available</p>
                     ) : (
                         orderTypes.map((orderType) => (
                             <Button
                                 key={orderType}
                                 type="button"
-                                variant="outline"
                                 className="w-full justify-start h-auto py-4 px-4 text-left"
                                 onClick={() => onSelectOption(orderType)}
                             >
-                                <span className="">{formatOrderTypeDisplay(orderType)}</span>
+                                <span>{formatOrderTypeDisplay(orderType)}</span>
                             </Button>
                         ))
                     )}

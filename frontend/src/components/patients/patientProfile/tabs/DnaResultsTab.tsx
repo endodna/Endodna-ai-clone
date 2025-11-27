@@ -104,8 +104,8 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
 
     if (!patientId) {
         return (
-            <div className="rounded-3xl border border-neutral-100 bg-white p-6">
-                <p className="typo-body-2 text-neutral-600-old">Select a patient to view DNA results.</p>
+            <div className="rounded-3xl border border-muted-foreground bg-primary-foreground p-6">
+                <p className="typo-body-2 text-muted-foreground">Select a patient to view DNA results.</p>
             </div>
         );
     }
@@ -121,11 +121,11 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
                     <span className="typo-body-2">Order Test</span>
                 </Button>
             </div>
-            <div className="space-y-4 md:space-y-6 bg-white p-4 md:p-6">
+            <div className="space-y-4 md:space-y-6 bg-primary-foreground p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="typo-h3 text-neutral-900-old">Results</h3>
+                    <h3 className="typo-h3 text-foreground">Results</h3>
                     {lastUpdated && (
-                        <p className="typo-body-2 text-neutral-500-old">Updated on {lastUpdated}</p>
+                        <p className="typo-body-2 text-muted-foreground">Updated on {lastUpdated}</p>
                     )}
                 </div>
 
