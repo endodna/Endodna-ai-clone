@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/collapsible";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { DataTable } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -30,6 +31,7 @@ import {
     dosingCalculatorDefaultValues,
     type DosingCalculatorFormValues,
 } from "@/schemas/dosingCalculator";
+import { getHistoryColumns, HistoryEntry } from "../../getHistoryColumns";
 
 const LAST_UPDATED = "12 / 22 / 2025";
 const MENSTRUAL_OPTIONS = [
@@ -53,6 +55,39 @@ const RESULT_VARIANTS = [
     { id: "standard", label: "Standard" },
     { id: "aggressive", label: "Aggressive" },
     { id: "performance", label: "High-Performance" },
+];
+
+const MOCK_HISTORY_DATA: HistoryEntry[] = [
+    {
+        id: "1",
+        date: "11/25/2025",
+        dateLabel: "Regular",
+        testosterone: {
+            value: "0 mg pellets",
+            description: "No supplementation needed at this level",
+        },
+        estradiol: {
+            value: "0 mg pellets",
+            description: "Not indicated when menstrual cycles are regular.",
+        },
+        vitaminD: "Consider Supplement",
+        diindolylmethane: "350 mg Per Day",
+    },
+    {
+        id: "2",
+        date: "08/25/2025",
+        dateLabel: "Booster",
+        testosterone: {
+            value: "0 mg pellets",
+            description: "No supplementation needed at this level",
+        },
+        estradiol: {
+            value: "0 mg pellets",
+            description: "Not indicated when menstrual cycles are regular.",
+        },
+        vitaminD: "Consider Supplement",
+        diindolylmethane: "350 mg Per Day",
+    },
 ];
 
 export function DosingCalculatorTab() {
@@ -82,7 +117,6 @@ export function DosingCalculatorTab() {
         setIsSubmitting(true);
     };
 
-
     useEffect(() => {
         if (!isSubmitting) {
             return;
@@ -110,9 +144,10 @@ export function DosingCalculatorTab() {
         <Collapsible open={openSections[section]} onOpenChange={toggleSection(section)}>
             <div className="border border-b-1 border-l-0 border-r-0 border-t-0">
                 <CollapsibleTrigger asChild>
-                    <button
+                    <Button
                         type="button"
-                        className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left sm:px-5"
+                        variant="ghost"
+                        className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left sm:px-5 h-auto hover:bg-neutral-50"
                     >
                         <div className="flex items-center gap-2 text-neutral-900">
                             <span className="text-neutral-600">{icon}</span>
@@ -124,7 +159,7 @@ export function DosingCalculatorTab() {
                                 openSections[section] && "rotate-180",
                             )}
                         />
-                    </button>
+                    </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <div className="space-y-6 px-4 py-5 sm:px-5">{content}</div>
@@ -314,12 +349,15 @@ export function DosingCalculatorTab() {
             )}
 
             {showResults && (
-                <ResultsCard
-                    selectedPlan={selectedPlan}
-                    onSelectPlan={setSelectedPlan}
-                    onReset={handleClear}
-                />
+                <div className="space-y-5">
+                    <ResultsCard
+                        selectedPlan={selectedPlan}
+                        onSelectPlan={setSelectedPlan}
+                        onReset={handleClear}
+                    />
+                </div>
             )}
+            <HistoryTable data={MOCK_HISTORY_DATA} />
         </div>
     );
 }
@@ -339,50 +377,82 @@ function ResultsCard({
                 <div>
                     <p className="typo-h4 text-neutral-900">Dosing Suggestions</p>
                 </div>
-                <button
+                <Button
                     type="button"
+                    variant="ghost"
                     onClick={onReset}
-                    className="text-sm font-medium text-violet-600 hover:underline"
+                    className="text-sm font-medium"
                 >
                     Reset Calculator
-                </button>
+                </Button>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {RESULT_VARIANTS.map((variant) => {
                     const isSelected = selectedPlan === variant.id;
                     return (
-                        <button
+                        <Button
                             key={variant.id}
                             type="button"
+                            variant="outline"
                             onClick={() => onSelectPlan(variant.id)}
                             className={cn(
-                                "rounded-2xl px-4 py-4 text-left transition",
-                                "bg-neutral-50 hover:shadow-md",
-                                isSelected && "bg-[#7C3AED] text-white shadow-lg",
+                                "rounded-2xl px-4 py-4 text-left transition h-auto",
+                                "bg-neutral-50 hover:shadow-md border-neutral-200",
+                                isSelected && "bg-primary text-white shadow-lg border-primary",
                             )}
                         >
-                            <p className="font-semibold">{variant.label}</p>
-                            <div className="mt-2 flex items-baseline gap-1 text-2xl font-semibold">
-                                <span>999</span>
-                                <span className="text-xs uppercase">mg</span>
+                            <div className="w-full">
+                                <p className="font-semibold">{variant.label}</p>
+                                <div className="mt-2 flex items-baseline gap-1 text-2xl font-semibold">
+                                    <span>999</span>
+                                    <span className="text-xs uppercase">mg</span>
+                                </div>
+                                <div className="flex items-baseline gap-1 text-sm font-medium">
+                                    <span>99</span>
+                                    <span className="text-xs uppercase">Pellets</span>
+                                </div>
                             </div>
-                            <div className="flex items-baseline gap-1 text-sm font-medium">
-                                <span>99</span>
-                                <span className="text-xs uppercase">Pellets</span>
-                            </div>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
 
             <div className="flex justify-end">
                 <Button
-                    className="rounded-lg bg-violet-600 text-white"
+                    className="rounded-lg bg-primary text-white"
                     disabled={!selectedPlan}
                 >
                     Apply Medications
                 </Button>
+            </div>
+        </div>
+    );
+}
+
+function HistoryTable({ data }: { data: HistoryEntry[] }) {
+    const columns = useMemo(() => getHistoryColumns(), []);
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="space-y-4">
+                <h3 className="typo-h4 text-neutral-900">History</h3>
+                <p className="text-sm text-neutral-500">No history data available.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <h3 className="typo-h4 text-neutral-900">History</h3>
+            <div className="w-full">
+                <DataTable
+                    columns={columns}
+                    data={data}
+                    enableSorting={false}
+                    enableFiltering={false}
+                    className="bg-white w-full"
+                />
             </div>
         </div>
     );
