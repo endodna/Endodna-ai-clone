@@ -114,13 +114,13 @@ export function DosingCalculatorTab() {
                         type="button"
                         className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left sm:px-5"
                     >
-                        <div className="flex items-center gap-2 text-neutral-900">
-                            <span className="text-neutral-600">{icon}</span>
+                        <div className="flex items-center gap-2 text-foreground">
+                            <span className="text-muted-foreground">{icon}</span>
                             <span className="font-medium">{title}</span>
                         </div>
                         <ChevronDown
                             className={cn(
-                                "h-4 w-4 text-neutral-400 transition-transform",
+                                "h-4 w-4 text-muted-foreground transition-transform",
                                 openSections[section] && "rotate-180",
                             )}
                         />
@@ -134,18 +134,18 @@ export function DosingCalculatorTab() {
     );
 
     return (
-        <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-5">
+        <div className="rounded-3xl bg-primary-foreground p-6 space-y-5">
             <div className="flex items-center justify-between">
-                <h3 className="typo-h3 text-neutral-900-old">Calculator</h3>
-                <p className="typo-body-2 text-neutral-500-old">Updated in: {LAST_UPDATED}</p>
+                <h3 className="typo-h3 text-foreground">Calculator</h3>
+                <p className="typo-body-2 text-muted-foreground">Updated in: {LAST_UPDATED}</p>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-5">
-                <p className="flex items-center gap-2 text-sm font-medium text-neutral-900">
-                    <AlertTriangle className="h-4 w-4 text-neutral-600" />
+            <div className="rounded-2xl border border-muted-foreground bg-primary-foreground px-4 py-5">
+                <p className="flex items-center gap-2 typo-body-2 text-foreground">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     Clinical Judgement Disclaimer
                 </p>
-                <p className="mt-2 text-sm font-light text-neutral-600 leading-relaxed">
+                <p className="mt-2 typo-body-2 typo-body-2-regular text-muted-foreground leading-relaxed">
                     This dosage calculator platform suggests dosage based on a limited set of clinical values. The
                     responsibility ultimately lies with the practitioner to diligently conduct their own comprehensive
                     assessment, and ultimately determine the most appropriate course of action.
@@ -159,7 +159,7 @@ export function DosingCalculatorTab() {
                             "lab",
                             <FlaskConical className="h-5 w-5" />,
                             "Laboratory Data",
-                            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-500">
+                            <div className="rounded-2xl border border-dashed border-muted-foreground bg-primary-foreground px-4 py-4 typo-body-2 text-muted-foreground">
                                 Laboratory inputs are pending.
                             </div>,
                         )}
@@ -174,13 +174,13 @@ export function DosingCalculatorTab() {
                                     name="menstrualCycle"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
-                                            <FormLabel className="typo-body-3 text-neutral-900 sm:min-w-[180px]">
+                                            <FormLabel className="typo-body-3 text-foreground sm:min-w-[180px]">
                                                 Menstrual Cycle*
                                             </FormLabel>
                                             <div className="flex-1">
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="w-full rounded-lg border-neutral-300">
+                                                        <SelectTrigger className="w-full rounded-lg border-muted-foreground">
                                                             <SelectValue placeholder="Select" />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -192,7 +192,7 @@ export function DosingCalculatorTab() {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
-                                                <FormMessage className="mt-2 text-red-500" />
+                                                <FormMessage className="mt-2 text-destructive" />
                                             </div>
                                         </FormItem>
                                     )}
@@ -206,7 +206,7 @@ export function DosingCalculatorTab() {
                                             name={fieldConfig.name}
                                             render={({ field }) => (
                                                 <FormItem className="space-y-2">
-                                                    <FormLabel className="typo-body-3 text-neutral-900">
+                                                    <FormLabel className="typo-body-3 text-foreground">
                                                         {fieldConfig.label}
                                                     </FormLabel>
                                                     <FormControl>
@@ -222,7 +222,7 @@ export function DosingCalculatorTab() {
                                                                 <label
                                                                     key={option.value}
                                                                     htmlFor={`${fieldConfig.name}-${option.value}`}
-                                                                    className="flex items-center gap-2 text-sm text-neutral-900"
+                                                                    className="flex items-center gap-2 text-sm text-foreground"
                                                                 >
                                                                     <RadioGroupItem
                                                                         id={`${fieldConfig.name}-${option.value}`}
@@ -233,7 +233,7 @@ export function DosingCalculatorTab() {
                                                             ))}
                                                         </RadioGroup>
                                                     </FormControl>
-                                                    <FormMessage className="text-red-500" />
+                                                    <FormMessage className="text-destructive" />
                                                 </FormItem>
                                             )}
                                         />
@@ -251,7 +251,7 @@ export function DosingCalculatorTab() {
                                 name="activityLevel"
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
-                                        <FormLabel className="typo-body-3 text-neutral-900">
+                                        <FormLabel className="typo-body-3 text-foreground">
                                             Activity level
                                         </FormLabel>
                                         <FormControl>
@@ -268,7 +268,7 @@ export function DosingCalculatorTab() {
                                                     <label
                                                         key={option.value}
                                                         htmlFor={`activity-${option.value}`}
-                                                        className="flex items-center gap-2 text-sm text-neutral-900"
+                                                        className="flex items-center gap-2 text-sm text-foreground"
                                                     >
                                                         <RadioGroupItem
                                                             id={`activity-${option.value}`}
@@ -279,7 +279,7 @@ export function DosingCalculatorTab() {
                                                 ))}
                                             </RadioGroup>
                                         </FormControl>
-                                        <FormMessage className="text-red-500" />
+                                        <FormMessage className="text-destructive" />
                                     </FormItem>
                                 )}
                             />,
@@ -289,19 +289,19 @@ export function DosingCalculatorTab() {
                             <Button
                                 type="button"
                                 variant="destructive"
-                                className="rounded-lg bg-red-100 px-6 text-white hover:bg-red-200"
+                                className="rounded-lg bg-destructive px-6 text-primary-foreground hover:bg-destructive/90"
                                 onClick={handleClear}
                             >
                                 Clear information
                             </Button>
                             <Button
                                 type="submit"
-                                className="rounded-lg text-white min-w-[150px]"
+                                className="rounded-lg min-w-[150px]"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
                                     <span className="flex items-center gap-2">
-                                        <Spinner className="text-white" />
+                                        <Spinner className="text-primary-foreground" />
                                         Calculating
                                     </span>
                                 ) : (
@@ -328,24 +328,23 @@ function ResultsCard({
     selectedPlan,
     onSelectPlan,
     onReset,
-}: {
+}: Readonly<{
     selectedPlan: string | null;
     onSelectPlan: (value: string) => void;
     onReset: () => void;
-}) {
+}>) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="typo-h4 text-neutral-900">Dosing Suggestions</p>
+                    <h4 className="text-foreground">Dosing Suggestions</h4>
                 </div>
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
                     onClick={onReset}
-                    className="text-sm font-medium text-violet-600 hover:underline"
                 >
                     Reset Calculator
-                </button>
+                </Button>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -357,19 +356,21 @@ function ResultsCard({
                             type="button"
                             onClick={() => onSelectPlan(variant.id)}
                             className={cn(
-                                "rounded-2xl px-4 py-4 text-left transition",
-                                "bg-neutral-50 hover:shadow-md",
-                                isSelected && "bg-[#7C3AED] text-white shadow-lg",
+                                "rounded-2xl px-4 py-4 text-left transition-all duration-300",
+                                "bg-muted-foreground/20 hover:scale-105",
+                                isSelected
+                                    ? "border-primary-brand-teal-1/40 bg-primary/70"
+                                    : "border-muted-foreground hover:scale-105 hover:border-primary-brand-teal-1/70",
                             )}
                         >
-                            <p className="font-semibold">{variant.label}</p>
-                            <div className="mt-2 flex items-baseline gap-1 text-2xl font-semibold">
+                            <p className="typo-body-2 text-foreground">{variant.label}</p>
+                            <div className="mt-2 flex justify-between items-baseline gap-1 typo-body-2 typo-body-2-regular text-foreground">
                                 <span>999</span>
-                                <span className="text-xs uppercase">mg</span>
+                                <span>mg</span>
                             </div>
-                            <div className="flex items-baseline gap-1 text-sm font-medium">
+                            <div className="flex justify-between items-baseline gap-1 typo-body-2 typo-body-2-regular text-foreground">
                                 <span>99</span>
-                                <span className="text-xs uppercase">Pellets</span>
+                                <span>Pellets</span>
                             </div>
                         </button>
                     );
@@ -378,7 +379,7 @@ function ResultsCard({
 
             <div className="flex justify-end">
                 <Button
-                    className="rounded-lg bg-violet-600 text-white"
+                    className="rounded-lg"
                     disabled={!selectedPlan}
                 >
                     Apply Medications

@@ -21,11 +21,11 @@ interface InfoRowProps {
 }
 
 function PatientHeaderSkeleton() {
-    const skeletonBg = "bg-neutral-200";
-    const skeletonHighlight = "bg-neutral-100";
+    const skeletonBg = "bg-muted-foreground/10";
+    const skeletonHighlight = "bg-muted-foreground/20";
 
     return (
-        <div className="rounded-3xl border border-neutral-100 bg-white divide-y divide-neutral-100">
+        <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
             {/* Info block */}
             <div className="space-y-6 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                 <div className="flex items-center gap-4">
@@ -72,9 +72,9 @@ function PatientHeaderSkeleton() {
 
 function InfoRow({ icon: Icon, label, value }: Readonly<InfoRowProps>) {
     return (
-        <div className="flex items-center justify-between typo-body-1   text-neutral-500-old">
+        <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
             <div className="flex items-center gap-2 md:gap-4">
-                <span className="flex items-center justify-center rounded-full text-violet-400">
+                <span className="flex items-center justify-center rounded-full text-primary">
                     <Icon className="h-4 w-4 md:h-6 md:w-6" />
                 </span>
                 <span>{label}</span>
@@ -100,7 +100,7 @@ function ErrorState({
     readonly onRetry: () => void;
 }) {
     return (
-        <div className="rounded-3xl border border-destructive p-5 text-center">
+        <div className="rounded-3xl border border-destructive bg-primary-foreground p-5 text-center">
             <p className="typo-body-2 text-destructive">{message}</p>
             <Button size="sm" className="mt-4" onClick={onRetry}>
                 <span className="text-primary-foreground">Try again</span>
@@ -179,9 +179,9 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                 </Avatar>
 
                                 <div>
-                                    <p className="typo-h2  leading-none text-foreground">
+                                    <h2 className="text-foreground">
                                         {derivedDetails.fullName ?? "Unnamed patient"}
-                                    </p>
+                                    </h2>
                                 </div>
                             </div>
                             <Button
@@ -215,24 +215,24 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                     {!isCollapsed && (
                         <Collapsible>
                             <CollapsibleTrigger asChild>
-                                <button
-                                    type="button"
-                                    className="flex w-full items-center justify-between rounded-b-3xl bg-orange-50 px-4 py-4 text-left typo-body-2  text-amber-700 transition data-[state=open]:hidden P-4 md:p-6"
+                                <Button
+                                    variant="ghost"
+                                    className="flex w-full items-center justify-between rounded-b-3xl bg-primary-brand-teal-2/5 px-4 py-4 text-left typo-body-2 text-bg-teal-gradient transition data-[state=open]:hidden P-4 md:p-6 hover:text-primary-brand-teal-1"
                                 >
                                     <span>Alerts &amp; Allergies</span>
-                                    <span className="typo-body-3  text-foreground hover:text-primary">Show</span>
-                                </button>
+                                    <span>Show</span>
+                                </Button>
                             </CollapsibleTrigger>
                             <CollapsibleContent className="divide-y divide-muted-foreground/40">
                                 {/* Patient Alerts */}
                                 <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                                     <div className="flex items-center justify-between">
-                                        <p className="typo-h4  leading-[120%] text-amber-700">Alerts</p>
+                                        <h4 className="text-primary-brand-teal-1">Alerts</h4>
                                         <CollapsibleTrigger asChild>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-auto p-0 typo-body-3  text-foreground hover:text-primary"
+                                                className="h-auto p-0 typo-body-3  text-primary-brand-teal-1"
                                             >
                                                 Hide
                                             </Button>
@@ -243,7 +243,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                             {patient.patientAlerts.map((alert) => (
                                                 <p
                                                     key={alert.uuid || alert.id}
-                                                    className="pb-1 typo-body-1   text-foreground md:pb-2"
+                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
                                                 >
                                                     {alert.description}
                                                 </p>
@@ -257,9 +257,9 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                 {/* Patient Allergies */}
                                 <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
                                     <div className="flex items-center justify-between">
-                                        <p className="typo-h4  leading-[120%] text-amber-700">
+                                        <h4 className="text-primary-brand-teal-1">
                                             Allergies
-                                        </p>
+                                        </h4>
                                     </div>
 
                                     {patient.patientAllergies?.length ? (
@@ -267,7 +267,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                                             {patient.patientAllergies.map((allergy) => (
                                                 <p
                                                     key={allergy.uuid || allergy.id}
-                                                    className="pb-1 typo-body-1   text-foreground md:pb-2"
+                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
                                                 >
                                                     {allergy.allergen}
                                                 </p>
