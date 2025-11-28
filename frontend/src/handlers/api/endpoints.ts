@@ -31,6 +31,8 @@ export const API_ENDPOINTS = {
       MEDICAL_RECORDS: (id: string) => `/doctor/patients/${id}/medical-records`,
       SUMMARY: (id: string) => `/doctor/patients/${id}/summary`,
       GENETICS: (id: string) => `/doctor/patients/${id}/genetics`,
+      UPDATE_GENETICS_STATUS: (patientId: string, dnaResultId: string) =>
+        `/doctor/patients/${patientId}/genetics/${dnaResultId}`,
       LAB_ORDERS: (id: string) => `/doctor/patients/${id}/lab-orders`,
       ADDRESSES: {
         LIST: (id: string) => `/doctor/patients/${id}/addresses`,

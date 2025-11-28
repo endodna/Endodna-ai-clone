@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import { Card } from "@/components/ui/card";
 import {
@@ -18,6 +18,8 @@ import { cn, formatAddress } from "@/lib/utils";
 import { useGetPatientAddresses, useGetReports } from "@/hooks/useDoctor";
 import { formatOrderTypeDisplay, requiresAddress } from "@/utils/orderType.utils";
 import { Step1Data } from '../tabs/DnaResultsTab';
+import { AddPatientAddressModal } from "@/components/patients/patientProfile/AddPatientAddressModal";
+import { Plus, AlertCircle } from "lucide-react";
 
 type OrderTestStep1ModalProps = {
     open: boolean;
@@ -44,6 +46,7 @@ export const OrderTestStep1Modal = ({
     const [barcode, setBarcode] = useState("");
     const [selectedReportId, setSelectedReportId] = useState<string>("");
     const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+    const [showAddressModal, setShowAddressModal] = useState(false);
 
     const {
         data: reportsResponse,
@@ -57,16 +60,37 @@ export const OrderTestStep1Modal = ({
     const {
         data: addressResponse,
         isLoading: addressesLoading,
+        isError: addressesError,
+        error: addressesErrorDetails,
+        refetch: refetchAddresses,
     } = useGetPatientAddresses(patientId, {
         enabled: open && requiresAddress(orderType),
     });
     const addresses = addressResponse?.data ?? [];
 
-    const patientSummary = useMemo(() => {
-        if (!patient) return "Loading patient...";
+    // Auto-select primary address or first address when addresses load
+    useEffect(() => {
+        if (addresses.length > 0 && !selectedAddressId) {
+            const primaryAddress = addresses.find((addr) => addr.isPrimary) ?? addresses[0];
+            if (primaryAddress) {
+                setSelectedAddressId(primaryAddress.id);
+            }
+        }
+    }, [addresses, selectedAddressId]);
+
+    const patientInfo = useMemo(() => {
+        if (!patient) {
+            return {
+                fullName: "Loading patient...",
+                dob: null,
+            };
+        }
         const fullName = `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim();
-        const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : "";
-        return dob ? `${fullName} | ${dob}` : fullName;
+        const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : null;
+        return {
+            fullName,
+            dob,
+        };
     }, [patient]);
 
     const addressRequired = requiresAddress(orderType);
@@ -75,39 +99,107 @@ export const OrderTestStep1Modal = ({
         Boolean(selectedReportId) &&
         (!addressRequired || Boolean(selectedAddressId));
 
+    const handleAddressAdded = async () => {
+        setShowAddressModal(false);
+        const result = await refetchAddresses();
+        // Auto-select the newly added address
+        if (result.data?.data && result.data.data.length > 0) {
+            const newAddress = result.data.data[result.data.data.length - 1];
+            setSelectedAddressId(newAddress.id);
+        }
+    };
+
     const renderAddressSelector = () => {
         if (!addressRequired) return null;
         if (addressesLoading) {
             return (
                 <div className="flex items-center gap-2 typo-body-2 text-muted-foreground">
                     <Spinner className="size-4" />
-                    <span className="typo-body-2 ">Loading addresses...</span>
+                    <span>Loading addresses...</span>
                 </div>
             );
         }
+
+        if (addressesError) {
+            return (
+                <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+                    <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                            <p className="typo-body-2 text-destructive">
+                                Failed to load addresses
+                            </p>
+                            <p className="typo-body-3 text-destructive mt-1">
+                                {addressesErrorDetails?.message || addressResponse?.message || "Please try again"}
+                            </p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => refetchAddresses()}
+                                className="mt-2"
+                            >
+                                Retry
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         if (addresses.length === 0) {
             return (
-                <div className="rounded-lg border border-dashed border-muted-foreground bg-primary-foreground p-4 text-center">
-                    <p className="typo-body-2 text-muted-foreground">
-                        No addresses found. Please add an address before shipping directly.
-                    </p>
+                <div className="rounded-lg border border-dashed border-muted-foreground p-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1">
+                            <p className="typo-body-2 text-muted-foreground">
+                                No addresses found. Please add an address before shipping directly.
+                            </p>
+                        </div>
+                        <Button
+                            size="icon"
+                            onClick={() => setShowAddressModal(true)}
+                            className="shrink-0"
+                            title="Add address"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             );
         }
+
         return (
-            <Select value={selectedAddressId} onValueChange={setSelectedAddressId}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select address" />
-                </SelectTrigger>
-                <SelectContent>
-                    {addresses.map((address) => (
-                        <SelectItem key={address.id} value={address.id}>
-                            {formatAddress(address.address)}
-                            {address.isPrimary ? " (Primary)" : ""}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="space-y-2">
+                <div className="flex items-start gap-2 min-w-0">
+                    <div className="flex-1 min-w-0">
+                        <Select value={selectedAddressId} onValueChange={setSelectedAddressId}>
+                            <SelectTrigger className="w-full min-w-0 whitespace-normal py-2 typo-body-2">
+                                <SelectValue placeholder="Select address" />
+                            </SelectTrigger>
+                            <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
+                                {addresses.map((address) => (
+                                    <SelectItem key={address.id} value={address.id}>
+                                        <span className="block break-words max-w-full typo-body-2">
+                                            {formatAddress(address.address)}
+                                            {address.isPrimary ? " (Primary)" : ""}
+                                        </span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShowAddressModal(true)}
+                        className="shrink-0 mt-0.5"
+                        title="Add new address"
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
         );
     };
 
@@ -182,8 +274,9 @@ export const OrderTestStep1Modal = ({
     };
 
     return (
+
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl overflow-y-auto">
+            <DialogContent className="max-w-2xl overflow-y-auto overflow-x-hidden">
                 <DialogHeader>
                     <DialogTitle className="typo-h4 text-foreground">Order DNA Test - Step 1</DialogTitle>
                     <DialogDescription className="typo-body-1 text-foreground pt-2">
@@ -194,8 +287,19 @@ export const OrderTestStep1Modal = ({
                 <div className="space-y-6 pt-4">
                     <div className="space-y-2">
                         <Label className="typo-body-2 ">Patient Details</Label>
-                        <div className="rounded-lg border border-muted-foreground bg-primary-foreground p-3">
-                            <p className="typo-body-2 text-foreground">{patientSummary}</p>
+                        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 space-y-3 min-w-0">
+                            <div className="min-w-0">
+                                <p className="typo-body-3 text-neutral-500-old mb-1">Name</p>
+                                <p className="typo-body-2 text-neutral-900-old font-medium break-words">
+                                    {patientInfo.fullName}
+                                </p>
+                            </div>
+                            {patientInfo.dob && (
+                                <div className="min-w-0">
+                                    <p className="typo-body-3 text-neutral-500-old mb-1">Date of Birth</p>
+                                    <p className="typo-body-2 text-neutral-900-old break-words">{patientInfo.dob}</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -225,11 +329,11 @@ export const OrderTestStep1Modal = ({
                 </div>
 
                 <DialogFooter className="pt-4">
-                    <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                        Cancel
-                    </Button>
+                    {errorMessage && <p className="typo-body-2 text-red-600">* {errorMessage}</p>}
                     <div className="flex flex-1 items-center justify-end gap-3">
-                        {errorMessage && <p className="typo-body-2 text-destructive">{errorMessage}</p>}
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
                         <Button
                             disabled={!canProceed || isSubmitting}
                             onClick={handleSave}
@@ -246,7 +350,17 @@ export const OrderTestStep1Modal = ({
                     </div>
                 </DialogFooter>
             </DialogContent>
+
+            {addressRequired && (
+                <AddPatientAddressModal
+                    open={showAddressModal}
+                    onOpenChange={setShowAddressModal}
+                    patientId={patientId}
+                    onSuccess={handleAddressAdded}
+                />
+            )}
         </Dialog>
+
     );
 };
 
