@@ -1,11 +1,9 @@
 import { ShoppingCart } from "lucide-react";
 import { useMemo, useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import { useGetPatientGenetics, useOrderDNAKit } from "@/hooks/useDoctor";
 import { formatDate } from "@/utils/date.utils";
 import { shouldSkipStep2 } from "@/utils/orderType.utils";
-
 import { DnaResultsTable } from "@/components/patients/patientProfile/dna-results/DnaResultsTable";
 import { OrderTestOptionsModal } from "@/components/patients/patientProfile/dna-results/OrderTestOptionsModal";
 import { OrderTestStep1Modal } from "@/components/patients/patientProfile/dna-results/OrderTestStep1Modal";
@@ -21,8 +19,6 @@ export type Step1Data = {
     reportId: string;
     addressId?: string;
 };
-
-
 
 export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProps>) {
     const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -114,7 +110,7 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
         <div className="">
             <div className="flex justify-end">
                 <Button
-                    className="relative -top-12 px-4 md:px-6 py-1 md:py-[9.5px]"
+                    className="relative top-0 xl:-top-12 px-4 md:px-6 py-1 md:py-[9.5px]"
                     onClick={() => setShowOptionsModal(true)}
                 >
                     <ShoppingCart className="h-4 w-4" />
@@ -123,13 +119,13 @@ export function DnaResultsTab({ patientId, patient }: Readonly<DnaResultsTabProp
             </div>
             <div className="space-y-4 md:space-y-6 bg-primary-foreground p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="typo-h3 text-foreground">Results</h3>
+                    <h3 className="text-foreground">Results</h3>
                     {lastUpdated && (
                         <p className="typo-body-2 text-muted-foreground">Updated on {lastUpdated}</p>
                     )}
                 </div>
 
-                <DnaResultsTable />
+                <DnaResultsTable patientId={patientId} />
 
                 <OrderTestOptionsModal
                     open={showOptionsModal}

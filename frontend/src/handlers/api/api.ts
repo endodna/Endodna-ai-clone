@@ -767,6 +767,36 @@ export const doctorsApi = {
     }
   },
 
+  updateDnaKitStatus: async (
+    patientId: string,
+    dnaResultId: string,
+    action: "HOLD" | "PROCESS" | "CANCEL"
+  ): Promise<ApiResponse<PatientDNAResult>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.UPDATE_GENETICS_STATUS,
+          patientId,
+          dnaResultId
+        ),
+        { action }
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<PatientDNAResult>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to update DNA kit status"),
+      };
+    }
+  },
+
   orderDNAKit: async (
     patientId: string,
     data: {

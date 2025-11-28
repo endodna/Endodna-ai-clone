@@ -83,6 +83,8 @@ interface PatientDNAResult {
     uuid: string;
     status: string;
     barcode?: string | null;
+    name?: string | null;
+    reportName?: string | null;
     isProcessed?: boolean;
     isFailedProcessing?: boolean;
     failedProcessingReason?: string | null;

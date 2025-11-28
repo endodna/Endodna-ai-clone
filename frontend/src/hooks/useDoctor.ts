@@ -423,6 +423,35 @@ export const useOrderDNAKit = (
     });
 };
 
+export const useUpdateDnaKitStatus = (
+    options?: Omit<
+        UseMutationOptions<
+            ApiResponse<PatientDNAResult>,
+            Error,
+            { patientId: string; dnaResultId: string; action: "HOLD" | "PROCESS" | "CANCEL" }
+        >,
+        "mutationFn"
+    >
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<
+        ApiResponse<PatientDNAResult>,
+        Error,
+        { patientId: string; dnaResultId: string; action: "HOLD" | "PROCESS" | "CANCEL" }
+    >({
+        mutationFn: ({ patientId, dnaResultId, action }) =>
+            doctorsApi.updateDnaKitStatus(patientId, dnaResultId, action),
+        onSuccess: (response, variables) => {
+            if (!response.error) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.doctor.dna.results(variables.patientId),
+                });
+            }
+        },
+        ...options,
+    });
+};
+
 // Patient Address hooks
 export const useGetPatientAddresses = (
     patientId: string,
