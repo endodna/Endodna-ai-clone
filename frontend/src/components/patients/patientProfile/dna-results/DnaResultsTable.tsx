@@ -65,7 +65,7 @@ export const DnaResultsTable = ({ patientId }: Readonly<DnaResultsTableProps>) =
 
     const results = geneticsResponse?.data ?? [];
     const showSkeleton = isLoading || isFetching;
-    const columns = useMemo(() => createDnaResultsColumns(), []);
+    const columns = useMemo(() => createDnaResultsColumns(patientId ?? ""), [patientId]);
 
     return (
         <div className="rounded-3xl border border-muted-foreground/40 bg-primary-foreground p-4">
