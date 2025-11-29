@@ -50,6 +50,7 @@
     "pgvector": "^0.2.1",
     "redis": "^4.6.10",
     "tesseract.js": "^6.0.1",
+    "ts-node": "^10.9.2",
     "typescript-eslint": "^8.46.2",
     "winston": "^3.11.0",
     "winston-cloudwatch": "^4.0.0",
