@@ -34,6 +34,8 @@ import {
   createReportSchema,
   updateReportSchema,
   reportIdParamsSchema,
+  calculatePatientTestosteroneDosingSuggestionsSchema,
+  savePatientDosageSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -284,4 +286,26 @@ doctorRouter.delete(
   validateParams(reportIdParamsSchema),
   DoctorController.deleteReport,
 );
+
+// Dosing Routes
+doctorRouter.post(
+  "/patients/:patientId/dosing/testosterone",
+  validateParams(patientIdParamsSchema),
+  validate(calculatePatientTestosteroneDosingSuggestionsSchema),
+  DoctorController.calculatePatientTestosteroneDosingSuggestions,
+);
+
+doctorRouter.post(
+  "/patients/:patientId/dosing",
+  validateParams(patientIdParamsSchema),
+  validate(savePatientDosageSchema),
+  DoctorController.savePatientDosage,
+);
+
+doctorRouter.get(
+  "/patients/:patientId/dosing",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientDosageHistory,
+);
+
 export default doctorRouter;

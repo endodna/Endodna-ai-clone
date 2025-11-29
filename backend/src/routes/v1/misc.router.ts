@@ -8,5 +8,6 @@ const miscRouter = Router().use("/", Authentication);
 miscRouter.get("/menu", MiscController.getMenu);
 miscRouter.get("/constants", MiscController.getConstants);
 miscRouter.get("/organization", MiscController.getOrganizationInfo);
+miscRouter.get("/prefilled-patient-health-data-fields", MiscController.getPrefilledPatientHealthDataFields);
 
 export default miscRouter;

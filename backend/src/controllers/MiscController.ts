@@ -12,12 +12,12 @@ import {
   OrderType,
   PaymentStatus,
   Priority,
-  RequestType,
   Status,
 } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import s3Helper from "../helpers/aws/s3.helper";
 import OrganizationCustomizationHelper from "../helpers/organization-customization.helper";
+import { PrefilledDataField, prefilledDataFields } from "../helpers/llm/prefilledDataField";
 
 class MiscController {
   public static async getMenu(req: AuthenticatedRequest, res: Response) {
@@ -179,6 +179,38 @@ class MiscController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to get organization info",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getPrefilledPatientHealthDataFields(req: AuthenticatedRequest, res: Response) {
+    try {
+      const prefilledDataFieldsList = prefilledDataFields;
+      const prefilledDataFieldsObject: Record<string, PrefilledDataField> = prefilledDataFieldsList.reduce((acc, field) => {
+        acc[field.id] = field;
+        return acc;
+      }, {} as Record<string, PrefilledDataField>);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: prefilledDataFieldsObject,
+        message: "Prefilled data fields fetched successfully",
+      });
+
+    } catch (err) {
+      logger.error("Get prefilled data fields failed", {
+        traceId: req.traceId,
+        method: "getPrefilledDataFields",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch prefilled data fields",
         },
         req,
       );
