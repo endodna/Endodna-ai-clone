@@ -773,7 +773,7 @@ export const doctorsApi = {
     action: "HOLD" | "PROCESS" | "CANCEL"
   ): Promise<ApiResponse<PatientDNAResult>> => {
     try {
-      const response = await apiClient.put(
+      const response = await apiClient.post(
         getEndpoint(
           API_ENDPOINTS.DOCTOR.PATIENTS.UPDATE_GENETICS_STATUS,
           patientId,

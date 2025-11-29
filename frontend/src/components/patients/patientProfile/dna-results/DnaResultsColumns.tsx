@@ -1,19 +1,16 @@
-import { Button } from "@/components/ui/button";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { ComponentProps } from "react";
 import { DnaResultTimeline } from "./DnaResultTimeline";
 import { getDnaResultStatus, HoldCancelDiscardResult, normalizeDnaStatus, StepStatusResult } from "@/utils/dnaResult.utils";
+import { DNA_RESULT_STATUS } from "@/components/constants/DnaResults";
+import { DnaResultActionButton, type RowAction } from "./DnaResultActionButton";
 
-type ButtonVariant = ComponentProps<typeof Button>["variant"];
-interface RowAction {
-    label: string;
-    variant?: ButtonVariant;
-    intent: "cancel" | "hold" | "resume" | "open";
-}
-
-const HOLD_STATUSES = new Set(["HOLD", "ON_HOLD"]);
-const CANCELLED_STATUSES = new Set(["CANCEL", "CANCELLED", "DISCARD"]);
-const COMPLETED_STATUSES = new Set(["DATA_DELIVERED"]);
+const HOLD_STATUSES = new Set<string>(["HOLD", "ON_HOLD"]);
+const CANCELLED_STATUSES = new Set<string>(["CANCEL", "CANCELLED", "DISCARD"]);
+const COMPLETED_STATUSES = new Set<string>([DNA_RESULT_STATUS.DATA_DELIVERED]);
+const GENOTYPING_ACCEPTED_STATUSES = new Set<string>([
+    DNA_RESULT_STATUS.GENOTYPING_ACCEPTED,
+    DNA_RESULT_STATUS.GENOTYPING_2ND_ACCEPTED,
+]);
 
 const getRowActions = (result: PatientDNAResult): RowAction[] => {
     if (!result) {
@@ -22,24 +19,28 @@ const getRowActions = (result: PatientDNAResult): RowAction[] => {
 
     const normalizedStatus = normalizeDnaStatus(result.status);
 
+    // If cancelled, cannot hold or process - no actions available
     if (CANCELLED_STATUSES.has(normalizedStatus)) {
-        return [
-            { label: "Resume", variant: "secondary", intent: "resume" },
-            { label: "Cancel", variant: "outline", intent: "cancel" },
-        ];
+        return [];
     }
+
+    // If data delivered or genotype accepted, cannot perform any action
+    if (COMPLETED_STATUSES.has(normalizedStatus) || GENOTYPING_ACCEPTED_STATUSES.has(normalizedStatus)) {
+        return [];
+    }
+
+    // If on hold, can process or cancel
     if (HOLD_STATUSES.has(normalizedStatus)) {
         return [
-            { label: "Resume", variant: "secondary", intent: "resume" },
-            { label: "Cancel", variant: "outline", intent: "cancel" },
+            { label: "Resume", variant: "secondary", intent: "resume", action: "PROCESS" },
+            { label: "Cancel", variant: "outline", intent: "cancel", action: "CANCEL" },
         ];
     }
-    if (COMPLETED_STATUSES.has(normalizedStatus)) {
-        return [{ label: "Open", variant: "secondary", intent: "open" }];
-    }
+
+    // Default: can cancel or put on hold
     return [
-        { label: "Cancel", variant: "outline", intent: "cancel" },
-        { label: "Put on hold", variant: "secondary", intent: "hold" },
+        { label: "Cancel", variant: "outline", intent: "cancel", action: "CANCEL" },
+        { label: "Put on hold", variant: "secondary", intent: "hold", action: "HOLD" },
     ];
 };
 
@@ -65,11 +66,7 @@ const renderSpecialStatus = (dnaResultStatus: HoldCancelDiscardResult): React.Re
     return null;
 };
 
-const handleAction = (action: RowAction, result: PatientDNAResult) => {
-    console.log("[DNA Results] action clicked", { intent: action.intent, dnaResultId: result.id });
-};
-
-export const createDnaResultsColumns = (): ColumnDef<PatientDNAResult>[] => [
+export const createDnaResultsColumns = (patientId: string): ColumnDef<PatientDNAResult>[] => [
     {
         id: "name",
         header: () => <span className="typo-body-2 font-semibold text-foreground">Name</span>,
@@ -109,20 +106,22 @@ export const createDnaResultsColumns = (): ColumnDef<PatientDNAResult>[] => [
         header: () => <span className="typo-body-2 font-semibold text-foreground">Actions</span>,
         cell: ({ row }) => {
             const actions = getRowActions(row.original);
+            if (actions.length === 0) {
+                return (
+                    <div className="ms-auto w-fit">
+                        <span className="typo-body-3 text-muted-foreground">No actions available</span>
+                    </div>
+                );
+            }
             return (
                 <div className="ms-auto w-fit flex flex-wrap gap-2">
                     {actions.map((action) => (
-                        <Button
+                        <DnaResultActionButton
                             key={`${row.id}-${action.label}`}
-                            variant={action.variant}
-                            size="sm"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                handleAction(action, row.original);
-                            }}
-                        >
-                            {action.label}
-                        </Button>
+                            action={action}
+                            result={row.original}
+                            patientId={patientId}
+                        />
                     ))}
                 </div>
             );
