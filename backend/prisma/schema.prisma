@@ -93,6 +93,7 @@ model Organization {
   patientOrders            PatientOrder[]
   patientAddresses         PatientAddress[]
   patientInfos             PatientInfo[]
+  patientDosageHistories   PatientDosageHistory[]
 }
 
 model OrganizationCustomization {
@@ -188,23 +189,58 @@ model User {
   patientAddresses           PatientAddress[]
   patientDNAResultActivities PatientDNAResultActivity[]
   patientInfo                PatientInfo?
+  patientDosageHistories     PatientDosageHistory[]     @relation("Patient")
+  doctorDosageHistories      PatientDosageHistory[]     @relation("Doctor")
 }
 
 model PatientInfo {
-  id             String       @id @unique @default(uuid())
-  weight         Int?
-  height         Int?
-  age            Int?
-  bloodType      String?
-  bmi            Int?
-  prefilledData  Json?
-  isOutdated     Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  patientId      String       @unique
-  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id              String       @id @unique @default(uuid())
+  weight          Int?
+  height          Int?
+  age             Int?
+  bloodType       String?
+  bmi             Int?
+  prefilledData   Json?
+  clinicalData    Json?
+  lifestyleData   Json?
+  medicationsData Json?
+  isOutdated      Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organizationId  Int
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId       String       @unique
+  patient         User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model PatientDosageHistory {
+  id                       String                    @id @unique @default(uuid())
+  data                     Json?
+  type                     DosageHistoryType
+  isOverridden             Boolean                   @default(false)
+  doctorId                 String
+  doctor                   User                      @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  organizationId           Int
+  organization             Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId                String
+  patient                  User                      @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  patientActiveMedications PatientActiveMedication[]
+  patientChartNotes        PatientChartNote[]
+}
+
+enum DosageTier {
+  conservative
+  standard
+  aggressive
+  high_performance
+}
+
+enum DosageHistoryType {
+  T100
+  T200
+  ESTRADIOL
 }
 
 model PatientActivity {
@@ -269,24 +305,26 @@ model PatientAlert {
 }
 
 model PatientActiveMedication {
-  id             Int          @id @unique @default(autoincrement())
-  uuid           String       @unique @default(uuid())
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  patientId      String
-  patient        User         @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
-  doctorId       String
-  doctor         User         @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
-  drugName       String
-  dosage         String
-  frequency      String
-  startDate      DateTime?
-  endDate        DateTime?
-  reason         String
-  notes          String?
-  deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                     Int                   @id @unique @default(autoincrement())
+  uuid                   String                @unique @default(uuid())
+  organizationId         Int
+  organization           Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId              String
+  patient                User                  @relation(name: "Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId               String
+  doctor                 User                  @relation(name: "Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  drugName               String
+  dosage                 String
+  frequency              String
+  patientDosageHistoryId String?
+  patientDosageHistory   PatientDosageHistory? @relation(fields: [patientDosageHistoryId], references: [id], onDelete: Cascade)
+  startDate              DateTime?
+  endDate                DateTime?
+  reason                 String
+  notes                  String?
+  deletedAt              DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 }
 
 model PatientProblemList {
@@ -703,19 +741,21 @@ model TokenUsage {
 }
 
 model PatientChartNote {
-  id             Int          @id @unique @default(autoincrement())
-  uuid           String       @unique @default(uuid())
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  patientId      String
-  patient        User         @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
-  doctorId       String?
-  doctor         User?        @relation("Doctor", fields: [doctorId], references: [id], onDelete: SetNull)
-  title          String?
-  content        String
-  deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                     Int                   @id @unique @default(autoincrement())
+  uuid                   String                @unique @default(uuid())
+  organizationId         Int
+  organization           Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId              String
+  patient                User                  @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  patientDosageHistoryId String?
+  patientDosageHistory   PatientDosageHistory? @relation(fields: [patientDosageHistoryId], references: [id], onDelete: Cascade)
+  doctorId               String?
+  doctor                 User?                 @relation("Doctor", fields: [doctorId], references: [id], onDelete: SetNull)
+  title                  String?
+  content                String
+  deletedAt              DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 
   @@index([patientId, organizationId])
   @@index([doctorId, organizationId])
@@ -776,32 +816,62 @@ model Report {
   genders              Gender[]
   price                Decimal               @db.Decimal(10, 2)
   metadata             Json?
+  currentVersionId     String?
   deletedAt            DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   patientDNAResultKits PatientDNAResultKit[]
   patientReports       PatientReport[]
+  reportVersions       ReportVersion[]
+}
+
+model ReportVersion {
+  id             String          @id @default(uuid())
+  reportId       String
+  report         Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  version        Int
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+  reportSNPs     ReportSNP[]
+  patientReports PatientReport[]
+}
+
+model ReportSNP {
+  id              String        @id @default(uuid())
+  reportVersionId String
+  reportVersion   ReportVersion @relation(fields: [reportVersionId], references: [id], onDelete: Cascade)
+  rsID            String
+  pathogenicity   String
+  genotype        String
+  sources         String[]
+  description     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 }
 
 model PatientReport {
-  id             String       @id @default(uuid())
-  patientId      String
-  doctorId       String?
-  organizationId Int
-  reportId       String
-  orderId        String
-  price          Decimal      @db.Decimal(10, 2)
-  isPrimary      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  status         Status       @default(PENDING)
-  updatedAt      DateTime     @updatedAt
-  deletedAt      DateTime?
-  report         Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  order          PatientOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  patient        User         @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
-  doctor         User?        @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid())
+  patientId       String
+  doctorId        String?
+  organizationId  Int
+  reportId        String
+  reportVersionId String?
+  reportVersion   ReportVersion? @relation(fields: [reportVersionId], references: [id], onDelete: Cascade)
+  orderId         String
+  price           Decimal        @db.Decimal(10, 2)
+  isPrimary       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  status          Status         @default(PENDING)
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  report          Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  order           PatientOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  patient         User           @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor          User?          @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([patientId, organizationId])
 }

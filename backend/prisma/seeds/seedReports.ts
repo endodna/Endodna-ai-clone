@@ -1,0 +1,124 @@
+import { Prisma, PrismaClient } from "@prisma/client";
+import { reports, organizationId } from "./reports";
+
+function generateCodeFromTitle(title: string): string {
+    return title
+        .toUpperCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join("_");
+}
+
+export async function seedReports(prisma: PrismaClient) {
+    console.log(`Starting to seed reports for organization ${organizationId}...`);
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    const reportsToCreate: typeof reports = [];
+
+    for (const reportData of reports) {
+        try {
+            const categoryName = reportData.category_name;
+
+            const existingReport = await prisma.report.findFirst({
+                where: {
+                    title: categoryName,
+                    organizationId: organizationId,
+                    deletedAt: null,
+                },
+            });
+
+            if (existingReport) {
+                console.log(`Report "${categoryName}" already exists, skipping...`);
+                skippedCount++;
+                continue;
+            }
+
+            reportsToCreate.push(reportData);
+        } catch (error) {
+            console.error(`Error checking report "${reportData.category_name}":`, error);
+            errorCount++;
+        }
+    }
+
+    if (reportsToCreate.length === 0) {
+        console.log("\n=== Seeding Summary ===");
+        console.log(`Created: ${createdCount}`);
+        console.log(`Skipped: ${skippedCount}`);
+        console.log(`Errors: ${errorCount}`);
+        console.log(`Total: ${reports.length}`);
+        return;
+    }
+
+    console.log(`\nCreating ${reportsToCreate.length} new reports in transaction...`);
+
+    try {
+        await prisma.$transaction(
+            async (tx) => {
+                for (const reportData of reportsToCreate) {
+                    const categoryName = reportData.category_name;
+                    const code = generateCodeFromTitle(categoryName);
+
+                    const report = await tx.report.create({
+                        data: {
+                            organizationId: organizationId,
+                            code: code,
+                            title: categoryName,
+                            description: null,
+                            genders: [reportData.gender],
+                            price: new Prisma.Decimal(0),
+                            metadata: Prisma.JsonNull,
+                        },
+                    });
+
+                    const reportVersion = await tx.reportVersion.create({
+                        data: {
+                            reportId: report.id,
+                            version: reportData.version,
+                        },
+                    });
+
+                    await tx.reportSNP.createMany({
+                        data: reportData.snps.map((snp) => ({
+                            reportVersionId: reportVersion.id,
+                            rsID: snp.rsID,
+                            pathogenicity: snp.pathogenicity,
+                            genotype: snp.genotype,
+                            sources: snp.sources,
+                            description: snp.description,
+                        })),
+                    });
+
+                    await tx.report.update({
+                        where: {
+                            id: report.id,
+                        },
+                        data: {
+                            currentVersionId: reportVersion.id,
+                        },
+                    });
+
+                    console.log(
+                        `Created report "${categoryName}" with ${reportData.snps.length} SNPs (version ${reportData.version})`
+                    );
+                    createdCount++;
+                }
+            },
+            {
+                timeout: 60000,
+            }
+        );
+
+        console.log("\n=== Seeding Summary ===");
+        console.log(`Created: ${createdCount}`);
+        console.log(`Skipped: ${skippedCount}`);
+        console.log(`Errors: ${errorCount}`);
+        console.log(`Total: ${reports.length}`);
+    } catch (error) {
+        console.error("\nTransaction failed, all changes rolled back:", error);
+        throw error;
+    }
+}
+

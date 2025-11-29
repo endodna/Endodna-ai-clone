@@ -470,10 +470,10 @@ class RAGHelper {
 
     private formatMedicalRecordChunks(chunks: RelevantChunk[]): string {
         if (!chunks || chunks.length === 0) {
-            return "MEDICAL RECORDS: No medical record content available.<br>";
+            return "MEDICAL RECORDS: No medical record content available.\n";
         }
 
-        let formatted = `MEDICAL RECORDS CONTENT (Most Relevant Chunks):<br>`;
+        let formatted = `MEDICAL RECORDS CONTENT (Most Relevant Chunks):\n`;
 
         const chunksByRecord = chunks.reduce((acc: any, chunk: RelevantChunk) => {
             const recordId = chunk.patientMedicalRecord.id;
@@ -494,7 +494,7 @@ class RAGHelper {
             if (record.createdAt) {
                 formatted += ` - Date: ${record.createdAt}`;
             }
-            formatted += ` ---<br><br>`;
+            formatted += ` ---\n\n`;
 
             record.chunks
                 .sort((a: RelevantChunk, b: RelevantChunk) => {
@@ -508,7 +508,7 @@ class RAGHelper {
                     if (chunk.similarity !== null && chunk.similarity !== undefined) {
                         formatted += ` [Relevance: ${(chunk.similarity * 100).toFixed(1)}%]`;
                     }
-                    formatted += `<br><br>`;
+                    formatted += `\n\n`;
                 });
         });
 
@@ -516,40 +516,93 @@ class RAGHelper {
     }
 
     private formatPatientData(patient: any): string {
-        let formatted = `PATIENT INFORMATION:<br>`;
-        formatted += `Name: ${patient.firstName} ${patient.middleName || ""} ${patient.lastName}<br>`;
+        let formatted = `PATIENT INFORMATION:\n`;
+        formatted += `Name: ${patient.firstName} ${patient.middleName || ""} ${patient.lastName}\n`;
         if (patient.dateOfBirth) {
-            formatted += `Date of Birth: ${patient.dateOfBirth}<br>`;
+            formatted += `Date of Birth: ${patient.dateOfBirth}\n`;
         }
         if (patient.gender) {
-            formatted += `Gender: ${patient.gender}<br>`;
+            formatted += `Gender: ${patient.gender}\n`;
         }
         if (patient.patientInfo) {
             if (patient.patientInfo.weight) {
-                formatted += `Weight: ${patient.patientInfo.weight} kg<br>`;
+                formatted += `Weight: ${patient.patientInfo.weight} kg\n`;
             }
             if (patient.patientInfo.height) {
-                formatted += `Height: ${patient.patientInfo.height} cm<br>`;
+                formatted += `Height: ${patient.patientInfo.height} cm\n`;
             }
             if (patient.patientInfo.bmi) {
-                formatted += `BMI: ${patient.patientInfo.bmi}<br>`;
+                formatted += `BMI: ${patient.patientInfo.bmi}\n`;
             }
             if (patient.patientInfo.bloodType) {
-                formatted += `Blood Type: ${patient.patientInfo.bloodType}<br>`;
+                formatted += `Blood Type: ${patient.patientInfo.bloodType}\n`;
             }
         }
-        formatted += `<br>`;
+        formatted += `\n`;
+
+        if (patient.patientInfo?.clinicalData) {
+            const clinical = patient.patientInfo.clinicalData;
+            const clinicalEntries: string[] = [];
+
+            Object.entries(clinical).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    clinicalEntries.push(`${key}: ${value}`);
+                }
+            });
+
+            if (clinicalEntries.length > 0) {
+                formatted += `CLINICAL DATA: ${clinicalEntries.join(', ')}\n\n`;
+            }
+        }
+
+        if (patient.patientInfo?.lifestyleData) {
+            const lifestyle = patient.patientInfo.lifestyleData;
+            const lifestyleEntries: string[] = [];
+
+            Object.entries(lifestyle).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        lifestyleEntries.push(`${key}: ${value.join(', ')}`);
+                    } else {
+                        lifestyleEntries.push(`${key}: ${value}`);
+                    }
+                }
+            });
+
+            if (lifestyleEntries.length > 0) {
+                formatted += `LIFESTYLE DATA: ${lifestyleEntries.join(', ')}\n\n`;
+            }
+        }
+
+        if (patient.patientInfo?.medicationsData) {
+            const medications = patient.patientInfo.medicationsData;
+            const medicationsEntries: string[] = [];
+
+            Object.entries(medications).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        medicationsEntries.push(`${key}: ${value.join(', ')}`);
+                    } else {
+                        medicationsEntries.push(`${key}: ${value}`);
+                    }
+                }
+            });
+
+            if (medicationsEntries.length > 0) {
+                formatted += `MEDICATIONS DATA: ${medicationsEntries.join(', ')}\n\n`;
+            }
+        }
 
         if (patient.patientAllergies && patient.patientAllergies.length > 0) {
-            formatted += `ALLERGIES:<br>`;
+            formatted += `ALLERGIES:\n`;
             patient.patientAllergies.forEach((allergy: any) => {
-                formatted += `- ${allergy.allergen} (Reaction: ${allergy.reactionType})<br>`;
+                formatted += `- ${allergy.allergen} (Reaction: ${allergy.reactionType})\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientActiveMedications && patient.patientActiveMedications.length > 0) {
-            formatted += `ACTIVE MEDICATIONS:<br>`;
+            formatted += `ACTIVE MEDICATIONS:\n`;
             patient.patientActiveMedications.forEach((med: any) => {
                 formatted += `- ${med.drugName} (${med.dosage}, ${med.frequency})`;
                 if (med.reason) {
@@ -558,45 +611,45 @@ class RAGHelper {
                 if (med.notes) {
                     formatted += ` - Notes: ${med.notes}`;
                 }
-                formatted += `<br>`;
+                formatted += `\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientProblemLists && patient.patientProblemLists.length > 0) {
-            formatted += `PROBLEM LIST:<br>`;
+            formatted += `PROBLEM LIST:\n`;
             patient.patientProblemLists.forEach((problem: any) => {
                 formatted += `- ${problem.problem} (Severity: ${problem.severity}, Status: ${problem.status})`;
                 if (problem.notes) {
                     formatted += ` - Notes: ${problem.notes}`;
                 }
-                formatted += `<br>`;
+                formatted += `\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientGoals && patient.patientGoals.length > 0) {
-            formatted += `GOALS:<br>`;
+            formatted += `GOALS:\n`;
             patient.patientGoals.forEach((goal: any) => {
                 formatted += `- ${goal.description} (Target Date: ${goal.targetDate}, Status: ${goal.status})`;
                 if (goal.notes) {
                     formatted += ` - Notes: ${goal.notes}`;
                 }
-                formatted += `<br>`;
+                formatted += `\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientTreatmentPlans && patient.patientTreatmentPlans.length > 0) {
-            formatted += `TREATMENT PLANS:<br>`;
+            formatted += `TREATMENT PLANS:\n`;
             patient.patientTreatmentPlans.forEach((plan: any) => {
-                formatted += `- ${plan.planName} (${plan.startDate} to ${plan.endDate}, Status: ${plan.status})<br>`;
+                formatted += `- ${plan.planName} (${plan.startDate} to ${plan.endDate}, Status: ${plan.status})\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientLabResults && patient.patientLabResults.length > 0) {
-            formatted += `LAB RESULTS:<br>`;
+            formatted += `LAB RESULTS:\n`;
             patient.patientLabResults.forEach((lab: any) => {
                 formatted += `- ${lab.bioMarkerName}: ${lab.value} ${lab.unit || ""}`;
                 if (lab.referenceRange) {
@@ -605,16 +658,16 @@ class RAGHelper {
                 if (lab.status) {
                     formatted += ` - Status: ${lab.status}`;
                 }
-                formatted += `<br>`;
+                formatted += `\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientChartNotes && patient.patientChartNotes.length > 0) {
-            formatted += `CHART NOTES:<br>`;
+            formatted += `CHART NOTES:\n`;
             patient.patientChartNotes.forEach((note: any) => {
                 if (note.title) {
-                    formatted += `<strong>${note.title}</strong><br>`;
+                    formatted += `<strong>${note.title}</strong>\n`;
                 }
                 formatted += `${note.content}`;
                 if (note.doctor) {
@@ -623,13 +676,13 @@ class RAGHelper {
                 if (note.updatedAt) {
                     formatted += ` - ${note.updatedAt}`;
                 }
-                formatted += `<br><br>`;
+                formatted += `\n\n`;
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         if (patient.patientReports && patient.patientReports.length > 0) {
-            formatted += `PATIENT REPORTS:<br>`;
+            formatted += `PATIENT REPORTS:\n`;
             patient.patientReports.forEach((patientReport: any) => {
                 if (patientReport.report) {
                     formatted += `- ${patientReport.report.code}: ${patientReport.report.title}`;
@@ -639,10 +692,10 @@ class RAGHelper {
                     if (patientReport.createdAt) {
                         formatted += ` - ${patientReport.createdAt}`;
                     }
-                    formatted += `<br>`;
+                    formatted += `\n`;
                 }
             });
-            formatted += `<br>`;
+            formatted += `\n`;
         }
 
         return formatted;
@@ -652,7 +705,7 @@ class RAGHelper {
         if (!text) {
             return text;
         }
-        return text.replace(/\n/g, '<br>');
+        return text.replace(/\n/g, '\n');
     }
 
     private parseSummaryWithFollowUps(fullText: string): { summary: string; followUpPrompts: string[] } {
@@ -741,7 +794,7 @@ class RAGHelper {
         8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
         9. Maintain privacy and confidentiality - this includes never including health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information.
         10. Do **not** include instructions or meta-comments in the output.
-        11. For line breaks in markdown: Use two spaces followed by a newline for line breaks within a paragraph, or use two newlines for paragraph breaks. Do NOT use literal <br> characters - use actual newlines.
+        11. For line breaks in markdown: Use two spaces followed by a newline for line breaks within a paragraph, or use two newlines for paragraph breaks. Do NOT use literal \n characters - use actual newlines.
         
         At the end of every summary, include this markdown disclaimer block:
         
@@ -829,15 +882,15 @@ class RAGHelper {
         - Do not estimate or approximate ages - calculate them accurately using the exact current date provided
         
         The output should include the following sections (using markdown headings):
-        ## Patient Overview  
-        ## Active Conditions  
-        ## Medications  
-        ## Allergies  
-        ## Treatment Plans  
-        ## Recent Labs and Key Findings  
-        ## Clinical Notes (include relevant information from chart notes and patient reports)
-        ## Medical History Summary  
-        ## Suggested Follow-up Questions
+        ### Patient Overview  
+        ### Active Conditions  
+        ### Medications  
+        ### Allergies  
+        ### Treatment Plans  
+        ### Recent Labs and Key Findings  
+        ### Clinical Notes (include relevant information from chart notes and patient reports)
+        ### Medical History Summary  
+        ### Suggested Follow-up Questions
         
         Each section should be clear and concise — use bullet points or short paragraphs as needed.  
         Combine information from the Patient Data section, Medical Records section, Chart Notes, and Patient Reports. If information appears in multiple sources, prioritize the most recent or most detailed source.
@@ -1006,6 +1059,9 @@ class RAGHelper {
                             bloodType: true,
                             bmi: true,
                             prefilledData: true,
+                            clinicalData: true,
+                            lifestyleData: true,
+                            medicationsData: true,
                         },
                     },
                     patientAllergies: {

@@ -90,6 +90,59 @@ class PatientChatHelper extends BaseChatHelper {
 
         formatted += `\n`;
 
+        if (patient.patientInfo?.clinicalData) {
+            const clinical = patient.patientInfo.clinicalData;
+            const clinicalEntries: string[] = [];
+
+            Object.entries(clinical).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    clinicalEntries.push(`${key}: ${value}`);
+                }
+            });
+
+            if (clinicalEntries.length > 0) {
+                formatted += `CLINICAL DATA: ${clinicalEntries.join(', ')}\n\n`;
+            }
+        }
+
+        if (patient.patientInfo?.lifestyleData) {
+            const lifestyle = patient.patientInfo.lifestyleData;
+            const lifestyleEntries: string[] = [];
+
+            Object.entries(lifestyle).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        lifestyleEntries.push(`${key}: ${value.join(', ')}`);
+                    } else {
+                        lifestyleEntries.push(`${key}: ${value}`);
+                    }
+                }
+            });
+
+            if (lifestyleEntries.length > 0) {
+                formatted += `LIFESTYLE DATA: ${lifestyleEntries.join(', ')}\n\n`;
+            }
+        }
+
+        if (patient.patientInfo?.medicationsData) {
+            const medications = patient.patientInfo.medicationsData;
+            const medicationsEntries: string[] = [];
+
+            Object.entries(medications).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        medicationsEntries.push(`${key}: ${value.join(', ')}`);
+                    } else {
+                        medicationsEntries.push(`${key}: ${value}`);
+                    }
+                }
+            });
+
+            if (medicationsEntries.length > 0) {
+                formatted += `MEDICATIONS DATA: ${medicationsEntries.join(', ')}\n\n`;
+            }
+        }
+
         if (patient.patientAllergies && patient.patientAllergies.length > 0) {
             formatted += `ALLERGIES:\n`;
             patient.patientAllergies.forEach((allergy: any) => {

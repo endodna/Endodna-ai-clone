@@ -1,6 +1,7 @@
 import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status } from "@prisma/client";
 import { z } from "zod";
 import { TempusActions } from "../types";
+import { PelletType, DosageTier } from "../helpers/dosing.helper";
 
 // Auth schemas
 export const loginSchema = z
@@ -430,13 +431,47 @@ export const reportIdParamsSchema = z.object({
 }).strict();
 export type ReportIdParamsSchema = z.infer<typeof reportIdParamsSchema>;
 
+const smokingStatusEnum = z.enum(["never", "former", "current"]);
+const exerciseLevelEnum = z.enum(["sedentary", "light", "moderate", "vigorous"]);
+
+const clinicalDataSchema = z.object({
+  shbgLevel: z.number().optional(),
+  baselineTotalTestosterone: z.number().optional(),
+  baselineFreeTestosterone: z.number().optional(),
+  postInsertionTotalTestosterone: z.number().optional(),
+  insertionDate: z.coerce.date().transform((val) => val.toISOString()).optional(),
+  baselineEstradiol: z.number().optional(),
+  postInsertionEstradiol: z.number().optional(),
+  vitaminDLevel: z.number().optional(),
+  hematocrit: z.number().optional(),
+  currentPSA: z.number().optional(),
+  previousPSA: z.number().optional(),
+  monthsBetweenPSA: z.number().optional(),
+  prostateSymptomsIpss: z.number().optional(),
+}).strict().optional();
+
+const lifestyleDataSchema = z.object({
+  smokingStatus: smokingStatusEnum.optional(),
+  exerciseLevel: exerciseLevelEnum.optional(),
+}).strict().optional();
+
+const medicationsDataSchema = z.object({
+  opiods: z.boolean().optional(),
+  opiodsList: z.array(z.string()).optional(),
+  adhdStimulants: z.boolean().optional(),
+  adhdStimulantsList: z.array(z.string()).optional(),
+  otherMedicationsList: z.array(z.string()).optional(),
+}).strict().optional();
+
 export const updatePatientInfoSchema = z.object({
   dateOfBirth: z.coerce.date().transform((val) => val.toISOString()).optional(),
   gender: z.string().optional(),
   bloodType: z.string().optional(),
-  weight: z.number().int().positive("Weight must be a positive integer").optional(),
-  height: z.number().int().positive("Height must be a positive integer").optional(),
-  bmi: z.number().int().positive("BMI must be a positive integer").optional(),
+  weight: z.number().positive("Weight must be a positive integer").optional(),
+  height: z.number().positive("Height must be a positive integer").optional(),
+  clinicalData: clinicalDataSchema,
+  lifestyleData: lifestyleDataSchema,
+  medicationsData: medicationsDataSchema,
 }).strict().refine(
   (data) => {
     return (
@@ -445,7 +480,9 @@ export const updatePatientInfoSchema = z.object({
       data.bloodType !== undefined ||
       data.weight !== undefined ||
       data.height !== undefined ||
-      data.bmi !== undefined
+      data.clinicalData !== undefined ||
+      data.lifestyleData !== undefined ||
+      data.medicationsData !== undefined
     );
   },
   {
@@ -484,3 +521,24 @@ export const updateReportSchema = z.object({
   }
 );
 export type UpdateReportSchema = z.infer<typeof updateReportSchema>;
+
+export const calculatePatientTestosteroneDosingSuggestionsSchema = z.object({
+  pelletType: z.nativeEnum(PelletType)
+}).strict();
+
+export type CalculatePatientTestosteroneDosingSuggestionsSchema = z.infer<typeof calculatePatientTestosteroneDosingSuggestionsSchema>;
+
+export const savePatientDosageSchema = z.object({
+  isOverridden: z.boolean().default(false),
+  T100: z.object({
+    tier: z.nativeEnum(DosageTier),
+  }).optional(),
+  T200: z.object({
+    tier: z.nativeEnum(DosageTier),
+  }).optional(),
+  ESTRADIOL: z.object({
+    tier: z.nativeEnum(DosageTier),
+  }).optional(),
+}).strict();
+
+export type SavePatientDosageSchema = z.infer<typeof savePatientDosageSchema>;
