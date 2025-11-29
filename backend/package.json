@@ -4,7 +4,7 @@
   "description": "BiosAI AI Backend API",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc && npm run build:shared-types",
+    "build": "tsc",
     "dev": "nodemon --ignore dist/ --ignore node_modules/ --ext ts --exec \"npm run compile\"",
     "compile": "tsc && node --expose-gc --max-old-space-size=4096 dist/server.js",
     "start": "node --expose-gc --max-old-space-size=4096 dist/server.js",
