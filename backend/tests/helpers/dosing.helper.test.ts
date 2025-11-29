@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import dosingHelper, {
     TestosteroneDosageParams,
-    TestosteroneDosageTier,
+    DosageTier,
     PelletType,
     Cyp3a4Status,
     Ugt2b17Status,
@@ -29,7 +29,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.CONSERVATIVE,
+                    selectedTier: DosageTier.CONSERVATIVE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -51,7 +51,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -71,7 +71,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.AGGRESSIVE,
+                    selectedTier: DosageTier.AGGRESSIVE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -91,7 +91,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.HIGH_PERFORMANCE,
+                    selectedTier: DosageTier.HIGH_PERFORMANCE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -117,7 +117,7 @@ describe("calculateT100Dosage", () => {
                     biologicalSex: Gender.FEMALE,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -138,7 +138,7 @@ describe("calculateT100Dosage", () => {
                     currentPSA: 4.5,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -160,7 +160,7 @@ describe("calculateT100Dosage", () => {
                     hematocrit: 55,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -184,7 +184,7 @@ describe("calculateT100Dosage", () => {
                 },
                 clinical: {},
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -210,7 +210,7 @@ describe("calculateT100Dosage", () => {
                     currentPSA: 2.5,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -233,7 +233,7 @@ describe("calculateT100Dosage", () => {
                     shbgLevel: 15, // Low SHBG
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -260,7 +260,7 @@ describe("calculateT100Dosage", () => {
                     shbgLevel: 80, // High SHBG
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -286,7 +286,7 @@ describe("calculateT100Dosage", () => {
                     height: 1.75,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -311,7 +311,7 @@ describe("calculateT100Dosage", () => {
                     opiodsList: ["Oxycodone"],
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -334,7 +334,7 @@ describe("calculateT100Dosage", () => {
                     adhdStimulantsList: ["Adderall"],
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -358,7 +358,7 @@ describe("calculateT100Dosage", () => {
                     cyp3a4Status: Cyp3a4Status.FAST,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -380,7 +380,7 @@ describe("calculateT100Dosage", () => {
                     ugt2b17Status: Ugt2b17Status.DELETION,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -412,7 +412,7 @@ describe("calculateT100Dosage", () => {
                     smokingStatus: "current" as any,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -445,7 +445,7 @@ describe("calculateT100Dosage", () => {
                     smokingStatus: "current" as any,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.CONSERVATIVE,
+                    selectedTier: DosageTier.CONSERVATIVE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -473,7 +473,7 @@ describe("calculateT100Dosage", () => {
                     cyp3a4Status: Cyp3a4Status.FAST,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.CONSERVATIVE,
+                    selectedTier: DosageTier.CONSERVATIVE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -496,7 +496,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -513,7 +513,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -533,7 +533,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -556,7 +556,7 @@ describe("calculateT100Dosage", () => {
                     weight: 200, // Very high weight
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.HIGH_PERFORMANCE,
+                    selectedTier: DosageTier.HIGH_PERFORMANCE,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -575,7 +575,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -596,7 +596,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -644,7 +644,7 @@ describe("calculateT100Dosage", () => {
                     exerciseLevel: "moderate" as any,
                 },
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -670,7 +670,7 @@ describe("calculateT100Dosage", () => {
                 geneticData: {},
                 lifeStyleFactors: {},
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
@@ -692,7 +692,7 @@ describe("calculateT100Dosage", () => {
             const params: TestosteroneDosageParams = {
                 ...baseParams,
                 tierSelection: {
-                    selectedTier: TestosteroneDosageTier.STANDARD,
+                    selectedTier: DosageTier.STANDARD,
                 },
                 protocolSelection: {
                     pelletType: PelletType.T100,
