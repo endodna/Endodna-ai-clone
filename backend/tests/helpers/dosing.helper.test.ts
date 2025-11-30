@@ -1,11 +1,12 @@
 import { describe, it, expect } from "@jest/globals";
-import dosingHelper, {
+import { testosteroneDosingHelper } from "../../src/helpers/dosing.helper";
+import {
     TestosteroneDosageParams,
     DosageTier,
     PelletType,
     Cyp3a4Status,
     Ugt2b17Status,
-} from "../../src/helpers/dosing.helper";
+} from "../../src/types";
 import { Gender } from "@prisma/client";
 
 describe("calculateT100Dosage", () => {
@@ -37,8 +38,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -59,8 +60,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -79,8 +80,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -99,8 +100,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -124,8 +125,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(false);
             expect(validation.errors).toContain("T100 Male protocol used for non-male patient.");
@@ -146,8 +147,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(false);
             expect(validation.errors).toContain("PSA >4.0 is contraindication - urological clearance requeired");
@@ -168,8 +169,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(false);
             expect(validation.errors).toContain("Hemtocrit >52% is contraindication to testosterone replacement therapy.");
@@ -192,8 +193,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(false);
             expect(validation.errors).toContain("PSA level not provided for patient over 40 years of age.");
@@ -218,8 +219,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.errors).not.toContain("PSA level not provided for patient over 40 years of age.");
         });
@@ -241,8 +242,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             // Low SHBG doesn't change multiplier but adds alerts
@@ -268,8 +269,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.shbgMultiplier).not.toBe(1);
@@ -294,8 +295,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.bmiMultiplier).not.toBe(1);
@@ -319,8 +320,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.medicationMultiplier).not.toBe(1);
@@ -342,8 +343,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.medicationMultiplier).not.toBe(1);
@@ -366,8 +367,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.geneticMultiplier).not.toBe(1);
@@ -388,8 +389,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.geneticMultiplier).not.toBe(1);
@@ -420,8 +421,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.warnings).toContain("Multiple fast-clearance factors present - T200 protocol recommended.");
         });
@@ -453,8 +454,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             if (result.durationPrediction?.finalExpectedDurationDays && result.durationPrediction.finalExpectedDurationDays < 60) {
                 expect(validation.warnings).toContain("Final expected duration <2 months - T200 protocol strongly recommended.");
@@ -481,8 +482,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             if (result.durationPrediction?.finalExpectedDurationDays && result.durationPrediction.finalExpectedDurationDays < 75) {
                 expect(validation.warnings).toContain("Final expected duration <2.5 months - consider T200 protocol.");
@@ -503,8 +504,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.warnings).toContain("T100 selected without documented clinical indication. T200 is standard for males.");
         });
@@ -521,8 +522,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.warnings).not.toContain("T100 selected without documented clinical indication. T200 is standard for males.");
         });
@@ -541,8 +542,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg % 100).toBe(0);
@@ -564,8 +565,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeLessThanOrEqual(1700);
@@ -583,8 +584,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.pelletCount).toBe(result.dosingCalculation.finalDoseMg / 100);
@@ -604,8 +605,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             if (result.dosingCalculation.t100Multiplier !== undefined) {
@@ -652,8 +653,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -678,8 +679,8 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
-            const validation = dosingHelper.validateT100MaleCalcuation(result, params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
+            const validation = testosteroneDosingHelper.validateT100MaleCalcuation(result, params);
 
             expect(validation.valid).toBe(true);
             expect(result.dosingCalculation.finalDoseMg).toBeGreaterThan(0);
@@ -700,7 +701,7 @@ describe("calculateT100Dosage", () => {
                 },
             };
 
-            const result = dosingHelper.calculateT100Dosage(params);
+            const result = testosteroneDosingHelper.calculateT100Dosage(params);
 
             expect(result).toHaveProperty("dosingCalculation");
             expect(result).toHaveProperty("clinicalRecommendations");
@@ -720,5 +721,3 @@ describe("calculateT100Dosage", () => {
         });
     });
 });
-
-
