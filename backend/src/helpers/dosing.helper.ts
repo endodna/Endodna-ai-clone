@@ -1,325 +1,50 @@
-import { DosageHistoryType, Gender } from "@prisma/client";
+import { Gender } from "@prisma/client";
 import moment from "moment";
+import {
+    TestosteroneDosageConfig,
+    DosageTier,
+    TestosteroneDosageParams,
+    DosageCalculationBreakdown,
+    DosageCalculationBreakdownStep,
+    DosageClinicalParams,
+    TestosteroneDosageLifeStyleFactorsParams,
+    TestosteroneDosageMedicationsParams,
+    TestosteroneDosageGeneticDataParams,
+    PatientDemographicsParams,
+    SmokingStatus,
+    Cyp19a1Status,
+    Cyp3a4Status,
+    Ugt2b17Status,
+    Srd5a2Status,
+    VdrStatus,
+    AntioxidantSnpsStatus,
+    PelletType,
+    TestosteroneDosageResult,
+    DosageCalculation,
+    TestosteroneDosageClinicalRecommendation,
+    Supplement,
+    MonitoringSchedule,
+    TestosteroneDosageFollowUpSchedule,
+    TestosteroneDosageProstateMonitoring,
+    TestosteroneDosageProtocolComparison,
+    TestosteroneDosageDurationPrediction,
+    RecommendPelletProtocolForMaleParams,
+    RecommendPelletProtocolForMaleResult,
+    RecommendationStrength,
+    ValidT100Indications,
+    EstradiolDosageParams,
+    EstradiolDosageResult,
+    EstradiolDosageConfig,
+} from "../types";
 
-enum SmokingStatus {
-    NEVER = "never",
-    FORMER = "former",
-    CURRENT = "current",
+class BaseDosingHelper {
+    public calculateBMI(weight: number, height: number): number {
+        height = height / 100;
+        return weight / (height * height);
+    }
 }
 
-enum ExerciseLevel {
-    SEDENTARY = "sedentary",
-    LIGHT = "light",
-    MODERATE = "moderate",
-    VIGOROUS = "vigorous",
-}
-
-interface TestosteroneDosagePatientDemographicsParams {
-    weight: number;
-    height: number;
-    age: number;
-    biologicalSex: Gender
-}
-
-export interface TestosteroneDosageClinicalParams {
-    shbgLevel?: number;
-    baselineTotalTestosterone?: number;
-    baselineFreeTestosterone?: number;
-    postInsertionTotalTestosterone?: number;
-    insertionDate?: Date;
-    baselineEstradiol?: number;
-    postInsertionEstradiol?: number;
-    vitaminDLevel?: number;
-    hematocrit?: number;
-    currentPSA?: number;
-    previousPSA?: number;
-    monthsBetweenPSA?: number;
-    prostateSymptomsIpss?: number;
-}
-
-export interface TestosteroneDosageLifeStyleFactorsParams {
-    smokingStatus?: SmokingStatus;
-    exerciseLevel?: ExerciseLevel;
-}
-
-export interface TestosteroneDosageMedicationsParams {
-    opiods?: boolean;
-    opiodsList?: string[];
-    adhdStimulants?: boolean;
-    adhdStimulantsList?: string[];
-    otherMedicationsList?: string[];
-}
-
-export enum Cyp19a1Status {
-    NORMAL = "normal",
-    HIGH_EXPRESSION = "high_expression",
-}
-
-export enum Cyp3a4Status {
-    NORMAL = "normal",
-    INTERMEDIATE = "intermediate",
-    FAST = "fast",
-    SLOW = "slow",
-}
-
-export enum Ugt2b17Status {
-    NORMAL = "normal",
-    INTERMEDIATE = "intermediate",
-    FAST = "fast",
-    DELETION = "deletion",
-}
-
-export enum Srd5a2Status {
-    NORMAL = "normal",
-    HIGH_ACTIVITY = "high_activity",
-    HIGH = "high",
-}
-
-export enum VdrStatus {
-    NORMAL = "normal",
-    LOW_FUNCTION = "low_function",
-}
-
-export enum AntioxidantSnpsStatus {
-    NORMAL = "normal",
-    POOR_FUNCTION = "poor_function",
-}
-
-interface TestosteroneDosageGeneticDataParams {
-    cyp19a1Status?: Cyp19a1Status;
-    cyp3a4Status?: Cyp3a4Status;
-    ugt2b17Status?: Ugt2b17Status;
-    srd5a2Status?: Srd5a2Status;
-    vdrStatus?: VdrStatus;
-    antioxidantSnps?: AntioxidantSnpsStatus;
-}
-
-export enum DosageTier {
-    CONSERVATIVE = "conservative",
-    STANDARD = "standard",
-    AGGRESSIVE = "aggressive",
-    HIGH_PERFORMANCE = "high_performance",
-}
-
-interface TestosteroneDosageTierSelectionParams {
-    selectedTier: DosageTier;
-    customMgKg?: number;
-}
-
-export enum PelletType {
-    T100 = "T100",
-    T200 = "T200",
-}
-
-interface TestosteroneDosageProtocolSelection {
-    pelletType: PelletType;
-    t100Indication?: string;
-    automaticT200Recommendation?: boolean;
-}
-
-export interface TestosteroneDosageParams {
-    patientDemographics: TestosteroneDosagePatientDemographicsParams;
-    clinical: TestosteroneDosageClinicalParams;
-    lifeStyleFactors: TestosteroneDosageLifeStyleFactorsParams;
-    medications: TestosteroneDosageMedicationsParams;
-    geneticData: TestosteroneDosageGeneticDataParams;
-    tierSelection: TestosteroneDosageTierSelectionParams;
-    protocolSelection: TestosteroneDosageProtocolSelection;
-}
-
-enum TestosteroneDosageCalculationBreakdownStep {
-    BASE_DOSE = "base_dose",
-    SHBG_MODIFIER = "shbg_modifier",
-    BMI_AROMATIZATION_MODIFIER = "bmi_aromatization_modifier",
-    MEDICATION_MODIFIER = "medication_modifier",
-    GENETIC_MODIFIER = "genetic_modifier",
-    VITAMIN_D_LEVEL_VDR_CONSIDERATIONS_MODIFIER = "vitamin_d_level_vdr_considerations_modifier",
-    ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER = "estradiol_monitoring_management_modifier",
-    PSA_PROSTATE_MONITORING_MODIFIER = "psa_prostate_monitoring_modifier",
-    FINAL_DOSE = "final_dose",
-}
-
-interface TestosteroneDosageCalculationBreakdown {
-    step: TestosteroneDosageCalculationBreakdownStep;
-    condition: string;
-    alerts?: string[];
-    criticalAlerts?: string[];
-    suggestions?: string[];
-    recommendations?: string[];
-    strongRecommendations?: string[];
-    contraindications?: string[];
-    notes?: string[];
-    holds?: string[];
-    considerations?: string[];
-    cautions?: string[];
-    treatments?: string[];
-    actions?: string[];
-    urgentActions?: string[];
-    prerequisites?: string[];
-    requirements?: string[];
-    supplements?: string[];
-    monitoring?: string[];
-    urgentMonitoring?: string[];
-    warnings?: string[];
-    previousValue: number;
-    multiplier: number;
-    adjustedValue: number;
-    previousDurationDays: number;
-    adjustedDurationDays: number;
-    additionalDurationDays: number;
-}
-
-interface TestosteroneDosageCalculation {
-    //T200
-    baseDoseMg: number;
-    shbgMultiplier: number;
-    bmiMultiplier: number;
-    medicationMultiplier: number;
-    geneticMultiplier: number;
-    preliminaryDoseMg: number;
-    finalDoseMg: number;
-    pelletCount: number;
-    basePelletCount: number;
-    calculationBreakdown: TestosteroneDosageCalculationBreakdown[]
-    //T100
-    t100Multiplier?: number;
-    doseAfterT100Factor?: number;
-}
-
-interface Supplement {
-    name: string;
-    dose: number;
-    unit?: string;
-    frequency?: string;
-    notes?: string;
-    timing?: string;
-    purpose?: string;
-}
-
-interface MonitoringSchedule {
-    name: string;
-    frequency: string;
-    days: number;
-}
-
-interface TestosteroneDosageClinicalRecommendation {
-    supplements: Supplement[];
-    monitoringSchedules: MonitoringSchedule[];
-    expectedDurationDays: number;
-    alerts: string[];
-    warnings: string[];
-    criticalAlerts: string[];
-    suggestions: string[];
-    recommendations: string[];
-}
-interface TestosteroneDosageFollowUpSchedule {
-    peakLabsDate?: Date;
-    midpointLabsDate?: Date;
-    troughLabsDate?: Date;
-    symptomCheckDate?: Date;
-    psaCheckDate?: Date;
-    nextInsertionEstimatedDate?: Date;
-}
-
-interface TestosteroneDosageProstateMonitoring {
-    baselinePSA?: number;
-    psaThroldAlert?: boolean;
-    psaVelocity?: number;
-    psaMonitoringFrequency?: string;
-    urologicalReferralNeeded?: boolean;
-}
-
-interface TestosteroneDosageProtocolComparison {
-    t100DurationEstimatedDays?: number;
-    t200DurationEstimatedDays?: number;
-    t100PelletCount?: number;
-    t200PelletCount?: number;
-    recommendSwitchtoT200?: boolean;
-    switchRationale?: string;
-}
-
-interface TestosteroneDosageDurationPrediction {
-    baseDurationDays?: number;
-    medicationAdjustmentDays?: number;
-    geneticAdjustmentDays?: number;
-    finalExpectedDurationDays?: number;
-    durationWarning?: boolean;
-    durationAlert?: string;
-    t200RecommendationTriggered?: boolean;
-}
-
-export interface TestosteroneDosageResult {
-    dosingCalculation: TestosteroneDosageCalculation;
-    clinicalRecommendations: TestosteroneDosageClinicalRecommendation;
-    followUpSchedule?: TestosteroneDosageFollowUpSchedule;
-    prostateMonitoring?: TestosteroneDosageProstateMonitoring;
-    protocolComparison?: TestosteroneDosageProtocolComparison;
-    durationPrediction?: TestosteroneDosageDurationPrediction;
-}
-
-enum ValidT100Indications {
-    FIRST_TIME_PELLET_TRIAL = "first_time_pellet_trial",
-    PREFER_SHORTER_DURATION = "prefer_shorter_duration",
-    ATHLETE_PRECISE_CONTROL = "athlete_precise_control",
-    FREQUENT_MONITORING_PREFERENCE = "frequent_monitoring_preference",
-    SPECIFIC_METABOLIC_PROFILE = "specific_metabolic_profile",
-}
-
-interface RecommendPelletProtocolForMaleParams {
-    lifeStyleFactors: TestosteroneDosageLifeStyleFactorsParams;
-    medications: TestosteroneDosageMedicationsParams;
-    geneticData: TestosteroneDosageGeneticDataParams;
-    protocolSelection: TestosteroneDosageProtocolSelection;
-}
-
-enum RecommendationStrength {
-    STRONGLY_RECOMMENDED = "strongly_recommended",
-    RECOMMENDED = "recommended",
-    ACCEPTABLE = "acceptable",
-    STANDARD = "standard",
-}
-
-interface RecommendPelletProtocolForMaleResult {
-    protocol: PelletType;
-    strength: RecommendationStrength;
-    rationale: string;
-    estimatedT100Duration: number;
-    estimatedT200Duration: number;
-    allowT100Override: boolean;
-    t200Alternative?: string;
-    t100Note?: string;
-}
-
-interface TestosteroneDosageConfig {
-    maxDoseMg: number;
-    maxPelletsCount: number;
-    t100Multiplier: number;
-    expectedDurationDays: number;
-    coreSupplements: Supplement[];
-    peakLabsDays: number;
-    troughAssessmentDays: number;
-    symptomCheckDays: number;
-    psaCheckDays: number;
-}
-
-interface PatientDosageHistoryData {
-    tier: DosageTier;
-    pelletsCount: number;
-    dosageMg: number;
-    data: Record<string, any>;
-}
-
-export interface PatientDosageHistory {
-    id: string;
-    data: Record<string, PatientDosageHistoryData>;
-    type: DosageHistoryType;
-    tier: DosageTier;
-    dosageMg: number;
-    pelletsCount: number;
-    isOverridden: boolean;
-}
-
-class DosingHelper {
+class TestosteroneDosingHelper extends BaseDosingHelper {
     private T100_Config: TestosteroneDosageConfig = {
         maxDoseMg: 1700,
         maxPelletsCount: 17,
@@ -332,11 +57,30 @@ class DosingHelper {
         coreSupplements: [
             {
                 name: "Vitamin D3",
-                dose: 5000,
+                dose: "5000",
                 unit: "IU",
                 frequency: "Daily",
                 purpose: "Optimize receptor function",
-                timing: "Start pre-treatment if <30ng/mL"
+                timing: "Start pre-treatment if <30ng/mL",
+                isCore: true,
+            },
+            {
+                name: "Vitamin K2 (MK-7)",
+                dose: "100 - 200",
+                unit: "mcg",
+                frequency: "Daily",
+                purpose: "Calcium metabolism, cardiovascular",
+                timing: "Pair with Vitamin D",
+                isCore: true,
+            },
+            {
+                name: "DIM",
+                dose: "200 - 300",
+                unit: "mg",
+                frequency: "Daily",
+                purpose: "Estrogen metabolism support",
+                timing: "Start with pellet insertion",
+                isCore: true,
             },
         ]
     }
@@ -345,19 +89,38 @@ class DosingHelper {
         maxDoseMg: 2800,
         maxPelletsCount: 14,
         t100Multiplier: 1,
-        expectedDurationDays: 105,
+        expectedDurationDays: 150,
         peakLabsDays: 42,
-        troughAssessmentDays: 70,
-        symptomCheckDays: 6,
-        psaCheckDays: 6,
+        troughAssessmentDays: 150,
+        symptomCheckDays: 90,
+        psaCheckDays: 42,
         coreSupplements: [
             {
                 name: "Vitamin D3",
-                dose: 5000,
+                dose: "5000",
                 unit: "IU",
                 frequency: "Daily",
                 purpose: "Optimize receptor function",
-                timing: "Start pre-treatment if <30ng/mL"
+                timing: "Start pre-treatment if <30ng/mL",
+                isCore: true,
+            },
+            {
+                name: "Vitamin K2 (MK-7)",
+                dose: "100 - 200",
+                unit: "mcg",
+                frequency: "Daily",
+                purpose: "Calcium metabolism, cardiovascular",
+                timing: "Pair with Vitamin D",
+                isCore: true,
+            },
+            {
+                name: "DIM",
+                dose: "200 - 300",
+                unit: "mg",
+                frequency: "Daily",
+                purpose: "Estrogen metabolism support",
+                timing: "Start with pellet insertion",
+                isCore: true,
             },
         ]
     }
@@ -376,14 +139,8 @@ class DosingHelper {
         [DosageTier.HIGH_PERFORMANCE]: 23,
     }
 
-    public calculateBMI(weight: number, height: number): number {
-        height = height / 100;
-        return weight / (height * height);
-    }
-
     private calculateT200PelletCountEstimate(
         params: TestosteroneDosageParams,
-        t100BaseDoseMg: number,
         shbgMultiplier: number,
         bmiMultiplier: number,
         medicationMultiplier: number,
@@ -419,13 +176,13 @@ class DosingHelper {
     private calculateBaseT100Dose(
         weight: number,
         tier: DosageTier,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[]
+        calculationBreakdown: DosageCalculationBreakdown[]
     ): { baseDoseMg: number; baseDurationDays: number } {
         const baseDoseMg = weight * this.t100DosageTiersMapping[tier] * this.T100_Config.t100Multiplier!;
         const baseDurationDays = this.T100_Config.expectedDurationDays;
 
         calculationBreakdown.push({
-            step: TestosteroneDosageCalculationBreakdownStep.BASE_DOSE,
+            step: DosageCalculationBreakdownStep.BASE_DOSE,
             condition: "Base dose calculation",
             previousValue: 0,
             multiplier: 1,
@@ -441,13 +198,13 @@ class DosingHelper {
     private calculateBaseT200Dose(
         weight: number,
         tier: DosageTier,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[]
+        calculationBreakdown: DosageCalculationBreakdown[]
     ): { baseDoseMg: number; baseDurationDays: number } {
         const baseDoseMg = weight * this.t200DosageTiersMapping[tier];
         const baseDurationDays = this.T200_Config.expectedDurationDays;
 
         calculationBreakdown.push({
-            step: TestosteroneDosageCalculationBreakdownStep.BASE_DOSE,
+            step: DosageCalculationBreakdownStep.BASE_DOSE,
             condition: "Base dose calculation",
             previousValue: 0,
             multiplier: 1,
@@ -464,7 +221,7 @@ class DosingHelper {
         shbgLevel: number | undefined,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): { multiplier: number; adjustedDoseMg: number } {
         let shbgMultiplier = 1;
@@ -473,7 +230,7 @@ class DosingHelper {
             shbgMultiplier = 1.1;
             const dose = adjustedDoseMg * shbgMultiplier;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.SHBG_MODIFIER,
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
                 condition: "SHBG level is greater than 50",
                 previousValue: adjustedDoseMg,
                 multiplier: shbgMultiplier,
@@ -486,7 +243,7 @@ class DosingHelper {
             return { multiplier: shbgMultiplier, adjustedDoseMg: dose };
         } else if (shbgLevel && shbgLevel < 20) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.SHBG_MODIFIER,
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
                 condition: "SHBG level is less than 20",
                 previousValue: adjustedDoseMg,
                 multiplier: shbgMultiplier,
@@ -499,7 +256,7 @@ class DosingHelper {
             });
         } else {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.SHBG_MODIFIER,
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
                 condition: "SHBG level is within normal range",
                 previousValue: adjustedDoseMg,
                 multiplier: shbgMultiplier,
@@ -517,7 +274,7 @@ class DosingHelper {
         bmi: number,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): { multiplier: number; adjustedDoseMg: number } {
         let bmiMultiplier = 1;
@@ -526,7 +283,7 @@ class DosingHelper {
             bmiMultiplier = 1.075;
             const dose = adjustedDoseMg * bmiMultiplier;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
                 condition: "BMI is greater than 30 and less than 35",
                 previousValue: adjustedDoseMg,
                 multiplier: bmiMultiplier,
@@ -548,7 +305,7 @@ class DosingHelper {
             bmiMultiplier = 1.15;
             const dose = adjustedDoseMg * bmiMultiplier;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
                 condition: "BMI is greater than 35",
                 previousValue: adjustedDoseMg,
                 multiplier: bmiMultiplier,
@@ -578,7 +335,7 @@ class DosingHelper {
         lifeStyleFactors: TestosteroneDosageLifeStyleFactorsParams,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         durationAlert: string[],
         isT200: boolean
     ): {
@@ -598,7 +355,7 @@ class DosingHelper {
             medicationMultiplier = 1.15;
             const dose = currentDose * medicationMultiplier;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.MEDICATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.MEDICATION_MODIFIER,
                 condition: "Patient on opiods",
                 previousValue: currentDose,
                 multiplier: medicationMultiplier,
@@ -619,7 +376,7 @@ class DosingHelper {
             const additionalDuration = -30;
             const adjustedDuration = currentDuration + additionalDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.MEDICATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.MEDICATION_MODIFIER,
                 condition: "Patient on adhd stimulants",
                 previousValue: currentDose,
                 multiplier: medicationMultiplier,
@@ -644,7 +401,7 @@ class DosingHelper {
             const additionalDuration = -30;
             const adjustedDuration = currentDuration + additionalDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.MEDICATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.MEDICATION_MODIFIER,
                 condition: "Patient is a smoker",
                 previousValue: currentDose,
                 multiplier: medicationMultiplier,
@@ -668,7 +425,7 @@ class DosingHelper {
             const adjustedDuration = Math.min(currentDuration, 75);
             const additionalDuration = adjustedDuration - currentDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.MEDICATION_MODIFIER,
+                step: DosageCalculationBreakdownStep.MEDICATION_MODIFIER,
                 condition: "Patient on other medications",
                 previousValue: currentDose,
                 multiplier: medicationMultiplier,
@@ -699,7 +456,7 @@ class DosingHelper {
         geneticData: TestosteroneDosageGeneticDataParams,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         durationAlert: string[],
         isT200: boolean
     ): {
@@ -717,7 +474,7 @@ class DosingHelper {
 
         if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "CYP19A1 high expression",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -740,7 +497,7 @@ class DosingHelper {
             const additionalDuration = -14;
             const adjustedDuration = currentDuration + additionalDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "CYP3A4 fast metabolizer",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -764,7 +521,7 @@ class DosingHelper {
             const additionalDuration = -14;
             const adjustedDuration = currentDuration + additionalDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "UGT2B17 fast metabolizer",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -789,7 +546,7 @@ class DosingHelper {
             const newDuration = 70;
             const additionalDuration = Math.min(newDuration, currentDuration);
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "CYP3A4 and UGT2B17 fast metabolizers",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -813,7 +570,7 @@ class DosingHelper {
             const additionalDuration = -14;
             const adjustedDuration = currentDuration + additionalDuration;
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "CYP3A4 or UGT2B17 fast metabolizer",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -829,7 +586,7 @@ class DosingHelper {
 
         if (!isT200 && geneticData.cyp3a4Status && geneticData.cyp3a4Status === Cyp3a4Status.SLOW && geneticData.ugt2b17Status && geneticData.ugt2b17Status === Ugt2b17Status.NORMAL) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "CYP3A4 slow metabolizer and UGT2B17 normal metabolizer",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -845,7 +602,7 @@ class DosingHelper {
 
         if (geneticData.srd5a2Status && geneticData.srd5a2Status === Srd5a2Status.HIGH) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "SRD5A2 high activity",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -869,7 +626,7 @@ class DosingHelper {
 
         if (geneticData.vdrStatus && geneticData.vdrStatus === VdrStatus.LOW_FUNCTION) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "VDR low function",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -885,7 +642,7 @@ class DosingHelper {
 
         if (geneticData.antioxidantSnps && geneticData.antioxidantSnps === AntioxidantSnpsStatus.POOR_FUNCTION) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
                 condition: "Antioxidant SNPs poor function",
                 previousValue: currentDose,
                 multiplier: geneticMultiplier,
@@ -914,12 +671,12 @@ class DosingHelper {
     }
 
     private applyVitaminDAndVDRModifiers(
-        clinical: TestosteroneDosageClinicalParams,
+        clinical: DosageClinicalParams,
         geneticData: TestosteroneDosageGeneticDataParams,
         adjustedDoseMg: number,
         expectedDuration: number,
         geneticMultiplier: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): void {
         if (clinical.vitaminDLevel && clinical.vitaminDLevel < 30) {
@@ -947,7 +704,7 @@ class DosingHelper {
             }
 
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.VITAMIN_D_LEVEL_VDR_CONSIDERATIONS_MODIFIER,
+                step: DosageCalculationBreakdownStep.VITAMIN_D_LEVEL_VDR_CONSIDERATIONS_MODIFIER,
                 condition: "Vitamin D level is less than 30",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -966,7 +723,7 @@ class DosingHelper {
 
         if (geneticData.vdrStatus && geneticData.vdrStatus === VdrStatus.LOW_FUNCTION) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.VITAMIN_D_LEVEL_VDR_CONSIDERATIONS_MODIFIER,
+                step: DosageCalculationBreakdownStep.VITAMIN_D_LEVEL_VDR_CONSIDERATIONS_MODIFIER,
                 condition: "VDR low function",
                 previousValue: adjustedDoseMg,
                 multiplier: geneticMultiplier,
@@ -985,11 +742,11 @@ class DosingHelper {
     }
 
     private applyEstradiolModifiers(
-        clinical: TestosteroneDosageClinicalParams,
+        clinical: DosageClinicalParams,
         bmi: number,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): void {
         if (clinical.baselineEstradiol && clinical.baselineEstradiol >= 40) {
@@ -1004,7 +761,7 @@ class DosingHelper {
                 strongRecommendations.push("Consider aromatase inhibitor due to obesity + elevated E2");
             }
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
+                step: DosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
                 condition: "Baseline Estradiol is greater than 40",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1044,7 +801,7 @@ class DosingHelper {
             }
 
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
+                step: DosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
                 condition: "Post-insertion Estradiol is greater than 60",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1067,7 +824,7 @@ class DosingHelper {
             const actions: string[] = ["Reduce or discontinue AI if currently using"];
 
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
+                step: DosageCalculationBreakdownStep.ESTRADIOL_MONITORING_MANAGEMENT_MODIFIER,
                 condition: "Post-insertion Estradiol is less than 15",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1083,15 +840,15 @@ class DosingHelper {
     }
 
     private applyPSAAndProstateModifiers(
-        patientDemographics: TestosteroneDosagePatientDemographicsParams,
-        clinical: TestosteroneDosageClinicalParams,
+        patientDemographics: PatientDemographicsParams,
+        clinical: DosageClinicalParams,
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
     ): number | undefined {
         if (patientDemographics.age >= 40 && !clinical.currentPSA) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
+                step: DosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
                 condition: "Patient is 40 years or older and has not had a PSA test in the last year",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1105,7 +862,7 @@ class DosingHelper {
 
         if (clinical.currentPSA && clinical.currentPSA > 4) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
+                step: DosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
                 condition: "PSA is greater than 4",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1121,7 +878,7 @@ class DosingHelper {
 
         if (clinical.currentPSA && clinical.currentPSA >= 2.5 && clinical.currentPSA <= 4) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
+                step: DosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
                 condition: "PSA is between 2.5 and 4",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1142,7 +899,7 @@ class DosingHelper {
 
         if (psaVelocity && psaVelocity > 1.5) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
+                step: DosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
                 condition: "PSA velocity is greater than 1.5",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1156,7 +913,7 @@ class DosingHelper {
             });
         } else if (psaVelocity && psaVelocity > 0.75) {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
+                step: DosageCalculationBreakdownStep.PSA_PROSTATE_MONITORING_MODIFIER,
                 condition: "PSA velocity is greater than 0.75",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1173,16 +930,93 @@ class DosingHelper {
         return psaVelocity;
     }
 
+    private getMonitoringSchedule(
+        clinical: DosageClinicalParams,
+        isT200: boolean
+    ): MonitoringSchedule[] {
+        const monitoringSchedule: MonitoringSchedule[] = [];
+
+        const insertionDate = clinical.insertionDate || null;
+
+        if (!isT200) {
+            const peakLabsDate = insertionDate ? moment(insertionDate).add(this.T100_Config.peakLabsDays, 'days').toDate() : undefined
+            const symptomCheckDate = insertionDate ? moment(insertionDate).add(this.T100_Config.symptomCheckDays, 'days').toDate() : undefined
+
+            monitoringSchedule.push(...[
+                {
+                    timepoint: "Baseline (pre-insertion)",
+                    testsRequired: "Total T, Free T, SHBG, Estradiol, CBC, CMP, PSA",
+                    purpose: "Establish baseline, rule out contraindications",
+                    notes: "PSA mandatory for males > 40"
+                },
+                {
+                    timepoint: "6 weeks (peak)",
+                    idealDate: peakLabsDate,
+                    testsRequired: "Total T, Free T, Estradiol, Hematocrit",
+                    purpose: "Assess peak levels, detect aromatization",
+                    notes: "Peak occurs earlier than T200"
+                },
+                {
+                    timepoint: "10 - 12 weeks (mid-point)",
+                    idealDate: symptomCheckDate,
+                    testsRequired: "Total T, Free T, Estradiol, PSA,CBC",
+                    purpose: "Determin if through is approaching",
+                    notes: "Critical for T100 due to shorter duration"
+                },
+                {
+                    timepoint: "As needed",
+                    testsRequired: "Based on symptoms",
+                    purpose: "Early trough detection",
+                    notes: "T100 patients may need labs earlier if symptoms return"
+                },
+            ])
+        }
+        else {
+            const peakLabsDate = insertionDate ? moment(insertionDate).add(this.T200_Config.peakLabsDays, 'days').toDate() : undefined
+            const troughLabsDate = insertionDate ? moment(insertionDate).add(this.T200_Config.troughAssessmentDays, 'days').toDate() : undefined
+            const symptomCheckDate = insertionDate ? moment(insertionDate).add(this.T200_Config.symptomCheckDays, 'days').toDate() : undefined
+
+            monitoringSchedule.push(...[
+                {
+                    timepoint: "Baseline pre-insertion",
+                    testsRequired: "Total T, Free T, SHBG, Estradiol, CBC, CMP, PSA (males > 40)",
+                    purpose: "Establish baseline, identify risk factors"
+                },
+                {
+                    timepoint: "4 - 6 weeks (peak)",
+                    idealDate: peakLabsDate,
+                    testsRequired: "Total T, Free T, Estradiol, Hematocrit",
+                    purpose: "Assess peak levels, detect excessive aromatization"
+                },
+                {
+                    timepoint: "12 - 14 weeks (mid-point)",
+                    idealDate: symptomCheckDate,
+                    testsRequired: "Total T, Free T, Estradiol, CBC",
+                    purpose: "Monitor maintenance level"
+                },
+                {
+                    timepoint: "20 - 30 weeks (trough)",
+                    idealDate: troughLabsDate,
+                    testsRequired: "Total T, Free T, Estradiol, CBC, CMP",
+                    purpose: "Determin re-pellet timing, assess response"
+                },
+            ])
+        }
+
+
+        return monitoringSchedule;
+    }
+
     private calculateFinalDose(
         adjustedDoseMg: number,
         expectedDuration: number,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): { preliminaryDoseMg: number; finalDoseMg: number; pelletCount: number; newExpectedDuration: number } {
         if (!isT200) {
             const newExpectedDuration = Math.max(expectedDuration, 60);
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.FINAL_DOSE,
+                step: DosageCalculationBreakdownStep.FINAL_DOSE,
                 condition: "Final dose calculation",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1210,7 +1044,7 @@ class DosingHelper {
         }
         else {
             calculationBreakdown.push({
-                step: TestosteroneDosageCalculationBreakdownStep.FINAL_DOSE,
+                step: DosageCalculationBreakdownStep.FINAL_DOSE,
                 condition: "Final dose calculation",
                 previousValue: adjustedDoseMg,
                 multiplier: 1,
@@ -1251,13 +1085,14 @@ class DosingHelper {
         durationWarning: boolean,
         durationAlert: string[],
         t200RecommendationTriggered: boolean,
-        calculationBreakdown: TestosteroneDosageCalculationBreakdown[],
+        calculationBreakdown: DosageCalculationBreakdown[],
         psaVelocity: number | undefined,
-        clinical: TestosteroneDosageClinicalParams,
+        clinical: DosageClinicalParams,
+        monitoringSchedules: MonitoringSchedule[],
     ): TestosteroneDosageResult {
         const isT100 = params.protocolSelection.pelletType === PelletType.T100;
 
-        const dosingCalculation: TestosteroneDosageCalculation = {
+        const dosingCalculation: DosageCalculation = {
             baseDoseMg,
             shbgMultiplier,
             bmiMultiplier,
@@ -1278,13 +1113,13 @@ class DosingHelper {
 
         const clinicalRecommendations: TestosteroneDosageClinicalRecommendation = {
             supplements,
-            monitoringSchedules: [],
+            monitoringSchedules,
             expectedDurationDays: newExpectedDuration,
             alerts: calculationBreakdown.map(step => step.alerts || []).flat().filter(Boolean) as string[],
             warnings: calculationBreakdown.map(step => [...step.warnings || [], ...step.cautions || []]).flat().filter(Boolean) as string[],
-            criticalAlerts: calculationBreakdown.map(step => step.criticalAlerts || []).flat().filter(Boolean) as string[],
-            suggestions: calculationBreakdown.map(step => [...step.suggestions || [], ...step.considerations || [], ...step.strongRecommendations || []]).flat().filter(Boolean) as string[],
-            recommendations: calculationBreakdown.map(step => step.recommendations || []).flat().filter(Boolean) as string[],
+            criticalAlerts: calculationBreakdown.map(step => [...step.criticalAlerts || [], ...step.contraindications || []]).flat().filter(Boolean) as string[],
+            suggestions: calculationBreakdown.map(step => [...step.suggestions || [], ...step.considerations || []]).flat().filter(Boolean) as string[],
+            recommendations: calculationBreakdown.map(step => [...step.recommendations || [], ...step.strongRecommendations || [], ...step.prerequisites || []]).flat().filter(Boolean) as string[],
         };
 
         const insertionDate = params.clinical.insertionDate || null;
@@ -1316,7 +1151,7 @@ class DosingHelper {
         let protocolComparison: TestosteroneDosageProtocolComparison | undefined;
         let durationPrediction: TestosteroneDosageDurationPrediction | undefined;
         if (isT100) {
-            const t200PelletCount = this.calculateT200PelletCountEstimate(params, baseDoseMg, shbgMultiplier, bmiMultiplier, medicationMultiplier, geneticMultiplier);
+            const t200PelletCount = this.calculateT200PelletCountEstimate(params, shbgMultiplier, bmiMultiplier, medicationMultiplier, geneticMultiplier);
             protocolComparison = {
                 t100DurationEstimatedDays: estimatedT100Duration,
                 t200DurationEstimatedDays: estimatedT200Duration,
@@ -1330,10 +1165,10 @@ class DosingHelper {
             let geneticAdjustmentDays = 0;
 
             calculationBreakdown.forEach(step => {
-                if (step.step === TestosteroneDosageCalculationBreakdownStep.MEDICATION_MODIFIER) {
+                if (step.step === DosageCalculationBreakdownStep.MEDICATION_MODIFIER) {
                     medicationAdjustmentDays += step.additionalDurationDays;
                 }
-                if (step.step === TestosteroneDosageCalculationBreakdownStep.GENETIC_MODIFIER) {
+                if (step.step === DosageCalculationBreakdownStep.GENETIC_MODIFIER) {
                     geneticAdjustmentDays += step.additionalDurationDays;
                 }
             });
@@ -1349,7 +1184,6 @@ class DosingHelper {
             };
         }
 
-
         return {
             dosingCalculation,
             clinicalRecommendations,
@@ -1363,7 +1197,7 @@ class DosingHelper {
     public calculateT100Dosage(params: TestosteroneDosageParams): TestosteroneDosageResult {
         const { patientDemographics, clinical, lifeStyleFactors, medications, geneticData, tierSelection } = params;
 
-        const calculationBreakdown: TestosteroneDosageCalculationBreakdown[] = [];
+        const calculationBreakdown: DosageCalculationBreakdown[] = [];
         const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
 
         const { baseDoseMg, baseDurationDays } = this.calculateBaseT100Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown);
@@ -1421,6 +1255,9 @@ class DosingHelper {
 
         const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
         const basePelletCount = Math.ceil(finalBaseDose / 100);
+
+        const monitoringSchedules = this.getMonitoringSchedule(clinical, false);
+
         return this.buildDosingResult(
             params,
             finalBaseDose,
@@ -1440,14 +1277,15 @@ class DosingHelper {
             t200RecommendationTriggered,
             calculationBreakdown,
             psaVelocity,
-            clinical
+            clinical,
+            monitoringSchedules
         );
     }
 
     public calculateT200Dosage(params: TestosteroneDosageParams): TestosteroneDosageResult {
         const { patientDemographics, clinical, lifeStyleFactors, medications, geneticData, tierSelection } = params;
 
-        const calculationBreakdown: TestosteroneDosageCalculationBreakdown[] = [];
+        const calculationBreakdown: DosageCalculationBreakdown[] = [];
         const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
 
         const { baseDoseMg, baseDurationDays } = this.calculateBaseT200Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown);
@@ -1496,6 +1334,8 @@ class DosingHelper {
 
         const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
         const basePelletCount = Math.ceil(finalBaseDose / 100);
+
+        const monitoringSchedules = this.getMonitoringSchedule(clinical, true);
         return this.buildDosingResult(
             params,
             finalBaseDose,
@@ -1515,11 +1355,10 @@ class DosingHelper {
             false,
             calculationBreakdown,
             0,
-            clinical
+            clinical,
+            monitoringSchedules
         );
     }
-
-    public calculateEstradiolDosage() { }
 
     public recommendPelletProtocolForMale(params: RecommendPelletProtocolForMaleParams): RecommendPelletProtocolForMaleResult {
         const { lifeStyleFactors, medications, geneticData, protocolSelection } = params;
@@ -1706,5 +1545,46 @@ class DosingHelper {
     }
 }
 
-export const dosingHelper = new DosingHelper();
-export default dosingHelper;
+class EstradiolDosingHelper extends BaseDosingHelper {
+    private Estradiol_Config: EstradiolDosageConfig = {
+        incrementMg: 6.25,
+    }
+
+    private estradiolDosageTiersMapping: Record<DosageTier, number> = {
+        [DosageTier.CONSERVATIVE]: 0.1,
+        [DosageTier.STANDARD]: 0.15,
+        [DosageTier.AGGRESSIVE]: 0.20,
+        [DosageTier.HIGH_PERFORMANCE]: 0.25,
+    }
+
+    public calculateEstradiolDosage(_params: EstradiolDosageParams): EstradiolDosageResult {
+        // const { patientDemographics, clinical } = params;
+
+        return {
+            dosingCalculation: {
+                baseDoseMg: 22,
+                shbgMultiplier: 1,
+                bmiMultiplier: 1,
+                medicationMultiplier: 1,
+                geneticMultiplier: 1,
+                preliminaryDoseMg: 1,
+                finalDoseMg: 1,
+                pelletCount: 1,
+                basePelletCount: 1,
+                calculationBreakdown: [],
+                ageMultiplier: 1,
+                pelletConfiguration: "2 x 16mg",
+                confidence: "high",
+                alternativeDoses: []
+            }
+        }
+    }
+}
+
+export const estradiolDosingHelper = new EstradiolDosingHelper();
+export const testosteroneDosingHelper = new TestosteroneDosingHelper();
+
+export default {
+    testosteroneDosingHelper,
+    estradiolDosingHelper,
+}

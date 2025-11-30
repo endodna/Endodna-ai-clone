@@ -1,7 +1,7 @@
 import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status } from "@prisma/client";
 import { z } from "zod";
 import { TempusActions } from "../types";
-import { PelletType, DosageTier } from "../helpers/dosing.helper";
+import { PelletType, DosageTier } from "../types";
 
 // Auth schemas
 export const loginSchema = z
@@ -448,6 +448,8 @@ const clinicalDataSchema = z.object({
   previousPSA: z.number().optional(),
   monthsBetweenPSA: z.number().optional(),
   prostateSymptomsIpss: z.number().optional(),
+  fshLevel: z.number().optional(),
+  symptomSeverity: z.number().optional(),
 }).strict().optional();
 
 const lifestyleDataSchema = z.object({

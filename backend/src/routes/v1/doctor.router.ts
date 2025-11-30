@@ -294,6 +294,11 @@ doctorRouter.post(
   validate(calculatePatientTestosteroneDosingSuggestionsSchema),
   DoctorController.calculatePatientTestosteroneDosingSuggestions,
 );
+doctorRouter.post(
+  "/patients/:patientId/dosing/estradiol",
+  validateParams(patientIdParamsSchema),
+  DoctorController.calculatePatientEstradiolDosingSuggestions,
+);
 
 doctorRouter.post(
   "/patients/:patientId/dosing",

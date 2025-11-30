@@ -67,9 +67,10 @@ import tempusService from "../services/tempus.service";
 import emailHelper from "../helpers/email.helper";
 import { TempusActions } from "../types";
 import { markPatientInfoOutdated } from "../helpers/patient-info.helper";
-import dosingHelper, { PelletType, TestosteroneDosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams, TestosteroneDosageParams, DosageTier } from "../helpers/dosing.helper";
+import { testosteroneDosingHelper } from "../helpers/dosing.helper";
+import { PelletType, DosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams, TestosteroneDosageParams, DosageTier } from "../types";
 import moment from "moment";
-import { getTestosteroneDosingSuggestions } from "../services/dosing.service";
+import { getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -510,7 +511,7 @@ class DoctorController {
       let bmi: number | undefined;
       if (weight !== undefined) patientInfoUpdateData.weight = weight;
       if (height !== undefined) patientInfoUpdateData.height = height;
-      if (weight !== undefined && height !== undefined) bmi = dosingHelper.calculateBMI(weight, height);
+      if (weight !== undefined && height !== undefined) bmi = testosteroneDosingHelper.calculateBMI(weight, height);
       patientInfoUpdateData.bmi = bmi;
       if (bloodType !== undefined) patientInfoUpdateData.bloodType = bloodType;
       if (clinicalData !== undefined) {
@@ -4233,7 +4234,7 @@ The BiosAI Team`,
 
       const age = moment(user.dateOfBirth).diff(moment(), 'years');
 
-      const clinicalData = patientInfo.clinicalData as TestosteroneDosageClinicalParams;
+      const clinicalData = patientInfo.clinicalData as DosageClinicalParams;
 
       const lifeStyleFactors = patientInfo.lifestyleData as TestosteroneDosageLifeStyleFactorsParams;
       const medicationsData = patientInfo.medicationsData as TestosteroneDosageMedicationsParams;
@@ -4280,6 +4281,95 @@ The BiosAI Team`,
         protocolSelection: {
           pelletType,
         },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: dosingSuggestions,
+        message: "Dosing suggestions retrieved successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient dosing suggestions failed", {
+        traceId: req.traceId,
+        method: "getPatientDosingSuggestions.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to fetch dosing suggestions",
+      }, req);
+    }
+  }
+
+  public static async calculatePatientEstradiolDosingSuggestions(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          gender: true,
+          dateOfBirth: true,
+          patientInfo: true
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const patientInfo = user.patientInfo;
+      if (!user.gender || !patientInfo?.weight || !patientInfo?.height) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient info is incomplete. Please update the patient height, weight, date of birth, and gender",
+        });
+      }
+
+      if (user.gender !== Gender.FEMALE) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Estradiol protocol used only for female patients.",
+        });
+      }
+
+      const age = moment(user.dateOfBirth).diff(moment(), 'years');
+
+      const clinicalData = patientInfo.clinicalData as DosageClinicalParams;
+
+      const dosingSuggestions = getEstradiolDosingSuggestions({
+        patientDemographics: {
+          weight: patientInfo.weight,
+          height: patientInfo.height,
+          age,
+          biologicalSex: user.gender as Gender,
+        },
+        clinical: {
+          shbgLevel: clinicalData.shbgLevel,
+          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
+          insertionDate: clinicalData.insertionDate,
+          baselineEstradiol: clinicalData.baselineEstradiol,
+          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
+          vitaminDLevel: clinicalData.vitaminDLevel,
+          hematocrit: clinicalData.hematocrit,
+          currentPSA: clinicalData.currentPSA,
+          previousPSA: clinicalData.previousPSA,
+          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+        }
       });
 
       sendResponse(res, {
@@ -4378,7 +4468,7 @@ The BiosAI Team`,
 
       const age = moment(user.dateOfBirth).diff(moment(), 'years');
 
-      const clinicalData = patientInfo.clinicalData as TestosteroneDosageClinicalParams;
+      const clinicalData = patientInfo.clinicalData as DosageClinicalParams;
 
       const lifeStyleFactors = patientInfo.lifestyleData as TestosteroneDosageLifeStyleFactorsParams;
       const medicationsData = patientInfo.medicationsData as TestosteroneDosageMedicationsParams;
@@ -4502,20 +4592,35 @@ The BiosAI Team`,
             organizationId: organizationId!,
           },
         }),
-        prisma.patientActiveMedication.create({
-          data: {
-            patientId: patientId,
-            organizationId: organizationId!,
-            dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
-            frequency: "",
-            startDate: new Date(),
-            endDate: null,
-            reason: "",
-            notes: "",
-            drugName: `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`,
-            patientDosageHistoryId: patientDosageHistory.id,
-            doctorId: userId!,
-          },
+        prisma.patientActiveMedication.createMany({
+          data: [
+            {
+              patientId: patientId,
+              organizationId: organizationId!,
+              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
+              frequency: "",
+              startDate: new Date(),
+              endDate: null,
+              reason: "",
+              notes: "",
+              drugName: `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            },
+            ...supplements.filter(supplement => supplement.isCore).map(supplement => ({
+              patientId: patientId,
+              organizationId: organizationId!,
+              dosage: supplement.dose || "",
+              frequency: supplement.frequency || "",
+              startDate: new Date(),
+              endDate: null,
+              reason: supplement.purpose || "",
+              notes: supplement.timing || "",
+              drugName: supplement.name,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            })),
+          ],
         }),
         UserService.createUserAuditLog({
           userId: userId!,

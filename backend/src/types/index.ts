@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { TestosteroneDosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams } from "../helpers/dosing.helper";
+export * from "./dosing";
 
 export enum UserType {
   PATIENT = "PATIENT",
@@ -118,7 +118,3 @@ export interface ResponseOptions {
   data?: object | boolean | null;
   message?: string;
 }
-
-export type PatientInfoClinicalData = TestosteroneDosageClinicalParams;
-export type PatientInfoLifeStyleFactors = TestosteroneDosageLifeStyleFactorsParams;
-export type PatientInfoMedications = TestosteroneDosageMedicationsParams;
