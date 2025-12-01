@@ -54,6 +54,7 @@ export interface TestosteroneDosageMedicationsParams {
 export enum Cyp19a1Status {
     NORMAL = "normal",
     HIGH_EXPRESSION = "high_expression",
+    LOW_EXPRESSION = "low_expression"
 }
 
 export enum Cyp3a4Status {
@@ -86,7 +87,7 @@ export enum AntioxidantSnpsStatus {
     POOR_FUNCTION = "poor_function",
 }
 
-export interface TestosteroneDosageGeneticDataParams {
+export interface DosageGeneticDataParams {
     cyp19a1Status?: Cyp19a1Status;
     cyp3a4Status?: Cyp3a4Status;
     ugt2b17Status?: Ugt2b17Status;
@@ -123,7 +124,7 @@ export interface TestosteroneDosageParams {
     clinical: DosageClinicalParams;
     lifeStyleFactors: TestosteroneDosageLifeStyleFactorsParams;
     medications: TestosteroneDosageMedicationsParams;
-    geneticData: TestosteroneDosageGeneticDataParams;
+    geneticData: DosageGeneticDataParams;
     tierSelection: TestosteroneDosageTierSelectionParams;
     protocolSelection: TestosteroneDosageProtocolSelection;
 }
@@ -131,6 +132,7 @@ export interface TestosteroneDosageParams {
 export enum DosageCalculationBreakdownStep {
     BASE_DOSE = "base_dose",
     SHBG_MODIFIER = "shbg_modifier",
+    AGE_MODIFIER = "age_modifier",
     BMI_AROMATIZATION_MODIFIER = "bmi_aromatization_modifier",
     MEDICATION_MODIFIER = "medication_modifier",
     GENETIC_MODIFIER = "genetic_modifier",
@@ -282,7 +284,7 @@ export enum ValidT100Indications {
 export interface RecommendPelletProtocolForMaleParams {
     lifeStyleFactors: TestosteroneDosageLifeStyleFactorsParams;
     medications: TestosteroneDosageMedicationsParams;
-    geneticData: TestosteroneDosageGeneticDataParams;
+    geneticData: DosageGeneticDataParams;
     protocolSelection: TestosteroneDosageProtocolSelection;
 }
 
@@ -336,10 +338,13 @@ export interface PatientDosageHistory {
 export interface EstradiolDosageParams {
     patientDemographics: PatientDemographicsParams;
     clinical: DosageClinicalParams;
+    tier: DosageTier
+    geneticData: DosageGeneticDataParams
 }
 
 export interface EstradiolDosageResult {
     dosingCalculation: DosageCalculation;
+    clinicalRecommendations: TestosteroneDosageClinicalRecommendation;
 }
 
 export interface EstradiolDosageConfig {

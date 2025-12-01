@@ -9,7 +9,7 @@ import {
     DosageClinicalParams,
     TestosteroneDosageLifeStyleFactorsParams,
     TestosteroneDosageMedicationsParams,
-    TestosteroneDosageGeneticDataParams,
+    DosageGeneticDataParams,
     PatientDemographicsParams,
     SmokingStatus,
     Cyp19a1Status,
@@ -453,7 +453,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
     }
 
     private applyGeneticModifiers(
-        geneticData: TestosteroneDosageGeneticDataParams,
+        geneticData: DosageGeneticDataParams,
         adjustedDoseMg: number,
         expectedDuration: number,
         calculationBreakdown: DosageCalculationBreakdown[],
@@ -672,7 +672,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
 
     private applyVitaminDAndVDRModifiers(
         clinical: DosageClinicalParams,
-        geneticData: TestosteroneDosageGeneticDataParams,
+        geneticData: DosageGeneticDataParams,
         adjustedDoseMg: number,
         expectedDuration: number,
         geneticMultiplier: number,
@@ -1007,6 +1007,140 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         return monitoringSchedule;
     }
 
+    private getConditionalSupplements(
+        patientDemographics: PatientDemographicsParams,
+        clinical: DosageClinicalParams,
+        geneticData: DosageGeneticDataParams,
+        isT200: boolean
+    ): Supplement[] {
+        const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
+
+        const supplements: Supplement[] = [
+            ...(!isT200 ? this.T100_Config.coreSupplements : this.T200_Config.coreSupplements)
+        ];
+
+        if (!isT200) {
+            if (bmi >= 35) {
+                supplements.push({
+                    name: "Anastrozole + DIM",
+                    dose: "0.5mg 2x/week + 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Aromatase inhibition",
+                })
+            }
+            else if (bmi >= 30) {
+                supplements.push({
+                    name: "DIM",
+                    dose: "300",
+                    unit: "mg",
+                    frequency: "Daily",
+                    purpose: "Enhanced estrogen metabolism"
+                })
+            }
+
+            if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
+                supplements.push({
+                    name: "Anastrozole or DIM",
+                    dose: "0.5mg 2x/week OR 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Prevent excessive E2"
+                })
+            }
+
+            if (geneticData.srd5a2Status && geneticData.srd5a2Status === Srd5a2Status.HIGH) {
+                supplements.push({
+                    name: "Zinc + Saw Palmetto + DIM",
+                    dose: "30mg + 320mg + 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "DHT management"
+                })
+            }
+
+            if (geneticData.antioxidantSnps && geneticData.antioxidantSnps === AntioxidantSnpsStatus.POOR_FUNCTION) {
+                supplements.push({
+                    name: "NAC + Zinc",
+                    dose: "600mg + 30mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Oxidative stress protection"
+                })
+            }
+            if (clinical.postInsertionEstradiol && clinical.postInsertionEstradiol > 60) {
+                supplements.push({
+                    name: "Anastrozole",
+                    dose: "0.5mg",
+                    unit: "mg",
+                    frequency: "2x/week",
+                    purpose: "Active E2 reduction"
+                })
+            }
+        }
+        else {
+            if (bmi >= 35) {
+                supplements.push({
+                    name: "Anastrozole + DIM",
+                    dose: "0.5mg 2x/week + 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Aromatase inhibition"
+                })
+            }
+            else if (bmi >= 30) {
+                supplements.push({
+                    name: "DIM",
+                    dose: "300",
+                    unit: "mg",
+                    frequency: "Daily",
+                    purpose: "Enhanced estrogen metabolism"
+                })
+            }
+
+            if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
+                supplements.push({
+                    name: "Anastrozole or DIM",
+                    dose: "0.5mg 2x/week OR 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Prevent excessive E2"
+                })
+            }
+
+            if (geneticData.srd5a2Status && geneticData.srd5a2Status === Srd5a2Status.HIGH) {
+                supplements.push({
+                    name: "Zinc + Saw Palmetto + DIM",
+                    dose: "30mg + 320mg + 300mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "DHT management"
+                })
+            }
+
+            if (geneticData.antioxidantSnps && geneticData.antioxidantSnps === AntioxidantSnpsStatus.POOR_FUNCTION) {
+                supplements.push({
+                    name: "NAC + Zinc",
+                    dose: "600mg + 30mg daily",
+                    unit: "",
+                    frequency: "",
+                    purpose: "Oxidative stress protection"
+                })
+            }
+            if (clinical.postInsertionEstradiol && clinical.postInsertionEstradiol > 60) {
+                supplements.push({
+                    name: "Anastrozole",
+                    dose: "0.5mg",
+                    unit: "mg",
+                    frequency: "2x/week",
+                    purpose: "Active E2 reduction"
+                })
+            }
+        }
+
+        return supplements;
+    }
+
     private calculateFinalDose(
         adjustedDoseMg: number,
         expectedDuration: number,
@@ -1089,6 +1223,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         psaVelocity: number | undefined,
         clinical: DosageClinicalParams,
         monitoringSchedules: MonitoringSchedule[],
+        supplements: Supplement[]
     ): TestosteroneDosageResult {
         const isT100 = params.protocolSelection.pelletType === PelletType.T100;
 
@@ -1109,8 +1244,6 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             } : {}
         };
 
-        const supplements: Supplement[] = [...this.T100_Config.coreSupplements];
-
         const clinicalRecommendations: TestosteroneDosageClinicalRecommendation = {
             supplements,
             monitoringSchedules,
@@ -1118,7 +1251,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             alerts: calculationBreakdown.map(step => step.alerts || []).flat().filter(Boolean) as string[],
             warnings: calculationBreakdown.map(step => [...step.warnings || [], ...step.cautions || []]).flat().filter(Boolean) as string[],
             criticalAlerts: calculationBreakdown.map(step => [...step.criticalAlerts || [], ...step.contraindications || []]).flat().filter(Boolean) as string[],
-            suggestions: calculationBreakdown.map(step => [...step.suggestions || [], ...step.considerations || []]).flat().filter(Boolean) as string[],
+            suggestions: calculationBreakdown.map(step => [...step.suggestions || [], ...step.considerations || [], ...step.notes || []]).flat().filter(Boolean) as string[],
             recommendations: calculationBreakdown.map(step => [...step.recommendations || [], ...step.strongRecommendations || [], ...step.prerequisites || []]).flat().filter(Boolean) as string[],
         };
 
@@ -1257,6 +1390,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         const basePelletCount = Math.ceil(finalBaseDose / 100);
 
         const monitoringSchedules = this.getMonitoringSchedule(clinical, false);
+        const supplements = this.getConditionalSupplements(patientDemographics, clinical, geneticData, false);
 
         return this.buildDosingResult(
             params,
@@ -1278,7 +1412,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             calculationBreakdown,
             psaVelocity,
             clinical,
-            monitoringSchedules
+            monitoringSchedules,
+            supplements
         );
     }
 
@@ -1336,6 +1471,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         const basePelletCount = Math.ceil(finalBaseDose / 100);
 
         const monitoringSchedules = this.getMonitoringSchedule(clinical, true);
+        const supplements = this.getConditionalSupplements(patientDemographics, clinical, geneticData, true);
+
         return this.buildDosingResult(
             params,
             finalBaseDose,
@@ -1356,7 +1493,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             calculationBreakdown,
             0,
             clinical,
-            monitoringSchedules
+            monitoringSchedules,
+            supplements
         );
     }
 
@@ -1557,25 +1695,283 @@ class EstradiolDosingHelper extends BaseDosingHelper {
         [DosageTier.HIGH_PERFORMANCE]: 0.25,
     }
 
-    public calculateEstradiolDosage(_params: EstradiolDosageParams): EstradiolDosageResult {
-        // const { patientDemographics, clinical } = params;
+    public calculateEstradiolDosage(params: EstradiolDosageParams): EstradiolDosageResult {
+        const { patientDemographics, clinical, tier, geneticData } = params;
+
+        const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
+        const calculationBreakdown: DosageCalculationBreakdown[] = []
+        const baseDoseMg = patientDemographics.weight * this.estradiolDosageTiersMapping[tier];
+
+        calculationBreakdown.push({
+            step: DosageCalculationBreakdownStep.BASE_DOSE,
+            condition: "Base dose calculation",
+            previousValue: 0,
+            multiplier: 1,
+            adjustedValue: baseDoseMg,
+            previousDurationDays: 0,
+            adjustedDurationDays: 0,
+            additionalDurationDays: 0,
+        });
+
+        let adjustedDosage = baseDoseMg;
+
+        let shbgMultiplier = 1;
+
+        if (clinical.shbgLevel && clinical.shbgLevel < 20) {
+            shbgMultiplier = 0.9
+            const dose = adjustedDosage * shbgMultiplier;
+
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
+                condition: "SHBG level is lower than 20",
+                previousValue: adjustedDosage,
+                multiplier: shbgMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["More free estradiol available, need less dose"]
+            });
+            adjustedDosage = dose;
+        }
+        else if (clinical.shbgLevel && clinical.shbgLevel >= 20 && clinical.shbgLevel < 80) {
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
+                condition: "SHBG level is greater than 20 but less than 80",
+                previousValue: adjustedDosage,
+                multiplier: shbgMultiplier,
+                adjustedValue: adjustedDosage,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Standard bioavailability"]
+            });
+        }
+        else if (clinical.shbgLevel && clinical.shbgLevel >= 80) {
+            shbgMultiplier = 1.1;
+            const dose = adjustedDosage * shbgMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
+                condition: "SHBG level is greater than 80",
+                previousValue: adjustedDosage,
+                multiplier: shbgMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["More binding, less free estradiol, need higher dose"]
+            });
+            adjustedDosage = dose;
+        }
+
+        let bmiMultiplier = 1;
+
+        if (bmi >= 18.5 && bmi <= 24.9) {
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is greater than 18.4 and less than 15",
+                previousValue: adjustedDosage,
+                multiplier: bmiMultiplier,
+                adjustedValue: adjustedDosage,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Standard absorption"]
+            });
+        }
+        else if (bmi >= 25 && bmi <= 29.9) {
+            bmiMultiplier = 1.1
+            const dose = adjustedDosage * bmiMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is between 25 and 30",
+                previousValue: adjustedDosage,
+                multiplier: bmiMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Increased adipose tissue, slightly more needed"]
+            });
+            adjustedDosage = dose
+        }
+        else if (bmi >= 30 && bmi <= 34.9) {
+            bmiMultiplier = 1.15
+            const dose = adjustedDosage * bmiMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is between 30 and 35",
+                previousValue: adjustedDosage,
+                multiplier: bmiMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Increased binding in adipose tissue"]
+            });
+            adjustedDosage = dose
+        }
+        else if (bmi >= 35) {
+            bmiMultiplier = 1.2
+            const dose = adjustedDosage * bmiMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is 35 or greater than 35",
+                previousValue: adjustedDosage,
+                multiplier: bmiMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Increased adipose tissue, slightly more needed"]
+            });
+            adjustedDosage = dose
+        }
+
+        let geneticMultiplier = 1;
+        if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
+            geneticMultiplier = 0.9
+            const dose = adjustedDosage * geneticMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                condition: "CY191A1 high activity variant present",
+                previousValue: adjustedDosage,
+                multiplier: geneticMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["More endogenous conversion, less exogenous needed"]
+            });
+            adjustedDosage = dose
+        }
+        if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.NORMAL) {
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                condition: "CY191A1 normal",
+                previousValue: adjustedDosage,
+                multiplier: geneticMultiplier,
+                adjustedValue: adjustedDosage,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Standard dosing"]
+            });
+        }
+        if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.LOW_EXPRESSION) {
+            geneticMultiplier = 1.1
+            const dose = adjustedDosage * geneticMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.GENETIC_MODIFIER,
+                condition: "CY191A1 low activity variant",
+                previousValue: adjustedDosage,
+                multiplier: geneticMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Less endogenous conversion, more exogenous needed"]
+            });
+            adjustedDosage = dose
+        }
+
+        let ageMultiplier = 1;
+        if (patientDemographics.age >= 45 && patientDemographics.age <= 55) {
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.AGE_MODIFIER,
+                condition: "Patient age is between 45 and 55",
+                previousValue: adjustedDosage,
+                multiplier: ageMultiplier,
+                adjustedValue: adjustedDosage,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Standard perimenopausal/early menopause"]
+            });
+        }
+        if (patientDemographics.age >= 56 && patientDemographics.age <= 65) {
+            ageMultiplier = 1.05
+            const dose = adjustedDosage * ageMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.AGE_MODIFIER,
+                condition: "Patient age is between 56 and 65",
+                previousValue: adjustedDosage,
+                multiplier: ageMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["May need slightly more due to decreased absorption"]
+            });
+            adjustedDosage = dose
+        }
+        if (patientDemographics.age >= 66) {
+            ageMultiplier = 1.1
+            const dose = adjustedDosage * ageMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.AGE_MODIFIER,
+                condition: "Patient age is over 65",
+                previousValue: adjustedDosage,
+                multiplier: ageMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["Age-related metabolic change"]
+            });
+            adjustedDosage = dose
+        }
+
+        const monitoringSchedules: MonitoringSchedule[] = [
+            {
+                timepoint: "Pre-treatment",
+                testsRequired: "Estradiol, FSH, SHBG",
+                purpose: "Establish baseline, determine menopause status"
+            },
+            {
+                timepoint: "6 weeks (Peak)",
+                testsRequired: "Estradiol, FSH",
+                purpose: "Measure peak levels, calculate metabolism rate"
+            },
+            {
+                timepoint: "12 weeks (Through)",
+                testsRequired: "Estradiol, FSH",
+                purpose: "Measure through levels, determine re-pellet timing"
+            }
+        ]
+
+        const baseDoseNormalized = Math.ceil(baseDoseMg / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
+        const basePelletCount = baseDoseNormalized / this.Estradiol_Config.incrementMg
+
+        const finalDoseMg = Math.ceil(adjustedDosage / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
+        const pelletCount = finalDoseMg / this.Estradiol_Config.incrementMg
 
         return {
             dosingCalculation: {
-                baseDoseMg: 22,
-                shbgMultiplier: 1,
-                bmiMultiplier: 1,
+                baseDoseMg,
+                shbgMultiplier,
+                bmiMultiplier,
+                geneticMultiplier,
+                ageMultiplier,
                 medicationMultiplier: 1,
-                geneticMultiplier: 1,
-                preliminaryDoseMg: 1,
-                finalDoseMg: 1,
-                pelletCount: 1,
-                basePelletCount: 1,
-                calculationBreakdown: [],
-                ageMultiplier: 1,
-                pelletConfiguration: "2 x 16mg",
+                preliminaryDoseMg: adjustedDosage,
+                finalDoseMg,
+                pelletCount,
+                basePelletCount,
+                calculationBreakdown,
+                pelletConfiguration: `${pelletCount} x 6.25mg`,
                 confidence: "high",
                 alternativeDoses: []
+            },
+            clinicalRecommendations: {
+                monitoringSchedules,
+                supplements: [],
+                expectedDurationDays: 0,
+                alerts: [],
+                warnings: [],
+                criticalAlerts: [],
+                suggestions: calculationBreakdown.map(step => [...step.suggestions || [], ...step.considerations || [], ...step.notes || []]).flat().filter(Boolean) as string[],
+                recommendations: [],
             }
         }
     }
