@@ -70,7 +70,7 @@ import { markPatientInfoOutdated } from "../helpers/patient-info.helper";
 import { testosteroneDosingHelper } from "../helpers/dosing.helper";
 import { PelletType, DosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams, TestosteroneDosageParams, DosageTier } from "../types";
 import moment from "moment";
-import { getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
+import { EstradiolDosingSuggestionsResponse, getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -4369,6 +4369,10 @@ The BiosAI Team`,
           previousPSA: clinicalData.previousPSA,
           monthsBetweenPSA: clinicalData.monthsBetweenPSA,
           prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+        },
+        tier: DosageTier.STANDARD,
+        geneticData: {
+
         }
       });
 
@@ -4517,6 +4521,7 @@ The BiosAI Team`,
         },
       }
 
+      const testosteroneTier = (T100?.tier ? T100.tier : T200?.tier) as DosageTier;
       const testosteroneDosingSuggestions = getTestosteroneDosingSuggestions({
         ...dosingData,
         protocolSelection: {
@@ -4524,7 +4529,19 @@ The BiosAI Team`,
         },
       });
 
-      const testosteroneTier = (T100?.tier ? T100.tier : T200?.tier) as DosageTier;
+
+      const estradiolTier = ESTRADIOL?.tier ? ESTRADIOL?.tier : null;
+      let estradiolDosingSuggestions: EstradiolDosingSuggestionsResponse | undefined;
+
+      if (estradiolTier) {
+        estradiolDosingSuggestions = getEstradiolDosingSuggestions({
+          ...dosingData,
+          tier: estradiolTier
+        });
+      }
+
+
+
       const patientDosageHistory = await prisma.patientDosageHistory.create({
         data: {
           data: JSON.stringify({
@@ -4534,6 +4551,12 @@ The BiosAI Team`,
               pelletsCount: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.pelletCount,
               dosingSuggestions: testosteroneDosingSuggestions
             },
+            ...estradiolTier ? {
+              tier: estradiolTier,
+              dosageMg: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.finalDoseMg,
+              pelletsCount: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.pelletCount,
+              dosingSuggestions: estradiolDosingSuggestions
+            } : {}
           }),
           isOverridden: isOverridden,
           type: T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200,
@@ -4551,6 +4574,10 @@ The BiosAI Team`,
       const supplements = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.supplements || [];
       const monitoringSchedules = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.monitoringSchedules || [];
       const expectedDurationDays = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.expectedDurationDays;
+
+      if (estradiolTier && estradiolDosingSuggestions?.aggressive) {
+        suggestions.push(...estradiolDosingSuggestions[estradiolTier].clinicalRecommendations.suggestions)
+      }
 
       let chartNoteContent = ""
       if (alerts.length > 0) {
