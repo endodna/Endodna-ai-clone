@@ -29,6 +29,7 @@ const navItems = [
   { title: "Labs", url: "/dashboard/labs" },
   { title: "Automation", url: "/dashboard/automation" },
   { title: "Manage Clinic", url: "/dashboard/manage-clinic" },
+  { title: "Treatment Plan Templates", url: "/dashboard/treatment-plan-template" },
 ];
 
 export function TopNavigation() {

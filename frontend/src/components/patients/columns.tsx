@@ -8,6 +8,12 @@ import {
   ArrowUpDown,
   EllipsisVertical,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "../ui/badge";
 import { AlertIcon } from "./AlertIcon";
 
@@ -278,10 +284,36 @@ export const getPatientColumns = (
       id: "actions",
       header: "",
       cell: () => (
-        <div className="text-right last:rounded-r-xl" onClick={(e) => e.stopPropagation()}>
-          <button className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-200">
-            <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
-          </button>
+        <div className="flex items-center justify-end last:rounded-r-xl">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 bg-primary-foreground hover:bg-neutral-200"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-primary-foreground border border-muted-foreground"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <DropdownMenuItem
+                className="cursor-pointer typo-body-3 text-foreground"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer typo-body-3 text-destructive"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
       meta: {
