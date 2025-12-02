@@ -1,117 +1,33 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useGetPatientById } from "@/hooks/useDoctor";
-import { cn } from "@/lib/utils";
-import { formatDate, calculateAge } from "@/utils/date.utils";
-import { Calendar, ChevronDown, ChevronUp, Mail, Phone, User } from "lucide-react";
-import { useMemo, useState, type ComponentType } from "react";
 import { ChatsHistory } from "@/components/sidebar/ChatsHistory";
+import { useGetPatientById, useUpdatePatientInfo } from "@/hooks/useDoctor";
+import { queryKeys } from "@/components/constants/QueryKeys";
+import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+// Components
+import { EmptyStateCard } from "./PatientHeader/components/EmptyStateCard";
+import { ErrorState } from "./PatientHeader/components/ErrorState";
+import { PatientHeaderSkeleton } from "./PatientHeader/components/PatientHeaderSkeleton";
+import { AlertsAndAllergiesSection } from "./PatientHeader/sections/AlertsAndAllergiesSection";
+import { HealthGoalsSection } from "./PatientHeader/sections/HealthGoalsSection";
+import { PatientInfoSection } from "./PatientHeader/sections/PatientInfoSection";
+import { PhysicalMeasurementsSection } from "./PatientHeader/sections/PhysicalMeasurementsSection";
+
+// Dialogs
+import { GoalEditDialog } from "./PatientHeader/dialogs/GoalEditDialog";
+import { HeightEditDialog } from "./PatientHeader/dialogs/HeightEditDialog";
+import { WeightEditDialog } from "./PatientHeader/dialogs/WeightEditDialog";
 
 interface PatientHeaderProps {
     readonly patientId?: string;
     readonly className?: string;
 }
 
-interface InfoRowProps {
-    readonly icon: ComponentType<{ className?: string }>;
-    readonly label: string;
-    readonly value?: string | null;
-}
-
-function PatientHeaderSkeleton() {
-    const skeletonBg = "bg-muted-foreground/10";
-    const skeletonHighlight = "bg-muted-foreground/20";
-
-    return (
-        <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
-            {/* Info block */}
-            <div className="space-y-6 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <div className="flex items-center gap-4">
-                    <Skeleton className={`h-16 w-16 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
-                    <div className="flex-1 space-y-2">
-                        <Skeleton className={`h-6 w-40 ${skeletonBg} ${skeletonHighlight}`} />
-                        <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                    </div>
-                </div>
-                <div className="space-y-4 pt-4">
-                    {[0, 1, 2].map((index) => (
-                        <div key={`info-${index}`} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Skeleton className={`h-6 w-6 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
-                                <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                            </div>
-                            <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Alerts */}
-            <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <div className="flex items-center justify-between">
-                    <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                    <Skeleton className={`h-4 w-12 ${skeletonBg} ${skeletonHighlight}`} />
-                </div>
-                <div className="space-y-2">
-                    {[0, 1].map((index) => (
-                        <Skeleton key={`alert-${index}`} className={`h-4 w-full ${skeletonBg} ${skeletonHighlight}`} />
-                    ))}
-                </div>
-            </div>
-
-            {/* Allergies */}
-            <div className="space-y-2 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                <Skeleton className={`h-4 w-32 ${skeletonBg} ${skeletonHighlight}`} />
-            </div>
-        </div>
-    );
-}
-
-function InfoRow({ icon: Icon, label, value }: Readonly<InfoRowProps>) {
-    return (
-        <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
-            <div className="flex items-center gap-2 md:gap-4">
-                <span className="flex items-center justify-center rounded-full text-primary">
-                    <Icon className="h-4 w-4 md:h-6 md:w-6" />
-                </span>
-                <span>{label}</span>
-            </div>
-            <span>{value ?? '-'}</span>
-        </div>
-    );
-}
-
-function EmptyStateCard({ message }: { readonly message: string }) {
-    return (
-        <div className="rounded-3xl border border-dashed border-muted-foreground bg-primary-foreground p-5 text-center typo-body-2 text-foreground">
-            {message}
-        </div>
-    );
-}
-
-function ErrorState({
-    message,
-    onRetry,
-}: {
-    readonly message: string;
-    readonly onRetry: () => void;
-}) {
-    return (
-        <div className="rounded-3xl border border-destructive bg-primary-foreground p-5 text-center">
-            <p className="typo-body-2 text-destructive">{message}</p>
-            <Button size="sm" className="mt-4" onClick={onRetry}>
-                <span className="text-primary-foreground">Try again</span>
-            </Button>
-        </div>
-    );
-}
-
-
 export function PatientHeader({ patientId, className }: Readonly<PatientHeaderProps>) {
     const enabled = Boolean(patientId);
+    const queryClient = useQueryClient();
     const {
         data,
         isLoading,
@@ -125,12 +41,13 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
     const responseError = data?.error ? data.message : null;
     const patient = data?.data ?? null;
     const shouldShowSkeleton = isLoading || (isFetching && !patient);
+
+    // Derived patient details
     const derivedDetails = useMemo(() => {
         if (!patient) {
             return {
                 fullName: "",
                 initials: "",
-                dobDisplay: "",
             };
         }
         const fullName = `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim();
@@ -141,152 +58,153 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
             .toUpperCase()
             .slice(0, 2);
 
-        const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : "";
-        const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
-        // Format: DOB: MM/DD/YYYY (age years)
-        let dobDisplay: string | null = null;
-        if (dob && age !== null) {
-            const ageText = age === 1 ? 'year' : 'years';
-            dobDisplay = `${dob} (${age} ${ageText})`;
-        } else if (dob) {
-            dobDisplay = dob;
-        }
-        return { fullName, initials, dobDisplay };
+        return { fullName, initials };
     }, [patient]);
 
+    // UI State
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [heightDialogOpen, setHeightDialogOpen] = useState(false);
+    const [weightDialogOpen, setWeightDialogOpen] = useState(false);
+    const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+    const [editingGoal, setEditingGoal] = useState<{ uuid: string; description: string } | null>(null);
+
+    // Patient info data
+    const patientInfo = patient?.patientInfo;
+    const heightCm = patientInfo?.height ?? null;
+    const weightKg = patientInfo?.weight ?? null;
+    const bmi = patientInfo?.bmi ?? null;
+
+    // Mutations
+    const updatePatientInfoMutation = useUpdatePatientInfo({
+        onSuccess: (response, variables) => {
+            if (response.error) {
+                toast.error(response.message || "Failed to update patient info");
+                return;
+            }
+            toast.success("Patient info updated successfully");
+            setHeightDialogOpen(false);
+            setWeightDialogOpen(false);
+            
+            // Invalidate and refetch patient data to update UI immediately
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+            });
+        },
+    });
+
+    // Handlers
+    const handleSaveHeight = async (heightCmValue: number) => {
+        if (!patientId) return;
+        updatePatientInfoMutation.mutate({
+            patientId,
+            data: { height: heightCmValue },
+        });
+    };
+
+    const handleSaveWeight = async (weightKgValue: number) => {
+        if (!patientId) return;
+        updatePatientInfoMutation.mutate({
+            patientId,
+            data: { weight: weightKgValue },
+        });
+    };
+
+    const handleOpenGoalDialog = (goal?: { uuid: string; description: string }) => {
+        setEditingGoal(goal ?? null);
+        setGoalDialogOpen(true);
+    };
+
+    const handleSaveGoal = () => {
+        setGoalDialogOpen(false);
+        setEditingGoal(null);
+    };
+
     return (
         <div className={cn("w-full max-w-[378px]", className)}>
+            {/* Empty State */}
             {!enabled && <EmptyStateCard message="Select a patient to view details." />}
+
+            {/* Loading State */}
             {enabled && shouldShowSkeleton && <PatientHeaderSkeleton />}
+
+            {/* Error State */}
             {enabled && !shouldShowSkeleton && (error || responseError) && (
                 <ErrorState
                     message={responseError || error?.message || "Unable to load patient."}
                     onRetry={() => refetch()}
                 />
             )}
+
+            {/* Patient Content */}
             {enabled && !shouldShowSkeleton && !error && !responseError && patient && (
                 <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
-                    {/* Patient Info */}
-                    <div className="space-y-4 px-4 pb-4 pt-4 md:px-6 md:pt-6 md:pb-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 md:gap-4">
-                                <Avatar className="h-12 w-12 rounded-full md:h-16 md:w-16">
-                                    <AvatarImage src={patient.photo ?? undefined} className="rounded-full" alt={derivedDetails.fullName} />
-                                    <AvatarFallback className="rounded-full bg-muted-foreground/30 typo-h4 text-foreground">
-                                        {derivedDetails.initials || "P"}
-                                    </AvatarFallback>
-                                </Avatar>
-
-                                <div>
-                                    <h2 className="text-foreground">
-                                        {derivedDetails.fullName ?? "Unnamed patient"}
-                                    </h2>
-                                </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={isCollapsed ? "Show patient details" : "Hide patient details"}
-                                className="rounded-full p-2"
-                                onClick={() => setIsCollapsed((prev) => !prev)}
-                            >
-                                {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                            </Button>
-                        </div>
-
-                        {!isCollapsed && (
-                            <div className="space-y-4">
-                                <InfoRow icon={Calendar} label="DOB:" value={derivedDetails.dobDisplay} />
-                                <InfoRow
-                                    icon={User}
-                                    label="Gender:"
-                                    value={patient.gender
-                                        ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase()
-                                        : null
-                                    }
-                                />
-                                <InfoRow icon={Phone} label="Phone:" value={patient.phoneNumber} />
-                                <InfoRow icon={Mail} label="Email:" value={patient.email} />
-                            </div>
-                        )}
-                    </div>
+                    <PatientInfoSection
+                        fullName={derivedDetails.fullName}
+                        initials={derivedDetails.initials}
+                        photo={patient.photo}
+                        dateOfBirth={patient.dateOfBirth}
+                        gender={patient.gender}
+                        phoneNumber={patient.phoneNumber}
+                        email={patient.email}
+                        isCollapsed={isCollapsed}
+                        onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+                    />
 
                     {!isCollapsed && (
-                        <Collapsible>
-                            <CollapsibleTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="flex w-full items-center justify-between rounded-b-3xl bg-primary-brand-teal-2/5 px-4 py-4 text-left typo-body-2 text-bg-teal-gradient transition data-[state=open]:hidden P-4 md:p-6 hover:text-primary-brand-teal-1"
-                                >
-                                    <span>Alerts &amp; Allergies</span>
-                                    <span>Show</span>
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="divide-y divide-muted-foreground/40">
-                                {/* Patient Alerts */}
-                                <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-primary-brand-teal-1">Alerts</h4>
-                                        <CollapsibleTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-auto p-0 typo-body-3  text-primary-brand-teal-1"
-                                            >
-                                                Hide
-                                            </Button>
-                                        </CollapsibleTrigger>
-                                    </div>
-                                    {patient.patientAlerts?.length ? (
-                                        <div className="space-y-2">
-                                            {patient.patientAlerts.map((alert) => (
-                                                <p
-                                                    key={alert.uuid || alert.id}
-                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
-                                                >
-                                                    {alert.description}
-                                                </p>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="typo-body-2 text-foreground">No alerts</p>
-                                    )}
-                                </div>
+                        <>
+                            <PhysicalMeasurementsSection
+                                heightCm={heightCm}
+                                weightKg={weightKg}
+                                bmi={bmi}
+                                onEditHeight={() => setHeightDialogOpen(true)}
+                                onEditWeight={() => setWeightDialogOpen(true)}
+                            />
 
-                                {/* Patient Allergies */}
-                                <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-primary-brand-teal-1">
-                                            Allergies
-                                        </h4>
-                                    </div>
+                            <HealthGoalsSection
+                                goals={patient.patientGoals}
+                                onAddGoal={() => handleOpenGoalDialog()}
+                                onEditGoal={handleOpenGoalDialog}
+                            />
 
-                                    {patient.patientAllergies?.length ? (
-                                        <div className="space-y-2">
-                                            {patient.patientAllergies.map((allergy) => (
-                                                <p
-                                                    key={allergy.uuid || allergy.id}
-                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
-                                                >
-                                                    {allergy.allergen}
-                                                </p>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="typo-body-2 text-foreground">No Allergies</p>
-                                    )}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
+                            <AlertsAndAllergiesSection
+                                alerts={patient.patientAlerts}
+                                allergies={patient.patientAllergies}
+                            />
+                        </>
                     )}
                 </div>
             )}
+
+            {/* Chats History */}
             {enabled && (
                 <div className="mt-4">
                     <ChatsHistory patientId={patientId} />
                 </div>
             )}
+
+            {/* Dialogs */}
+            <HeightEditDialog
+                open={heightDialogOpen}
+                onOpenChange={setHeightDialogOpen}
+                initialHeightCm={heightCm}
+                onSave={handleSaveHeight}
+                isSaving={updatePatientInfoMutation.isPending}
+            />
+
+            <WeightEditDialog
+                open={weightDialogOpen}
+                onOpenChange={setWeightDialogOpen}
+                initialWeightKg={weightKg}
+                onSave={handleSaveWeight}
+                isSaving={updatePatientInfoMutation.isPending}
+            />
+
+            <GoalEditDialog
+                open={goalDialogOpen}
+                onOpenChange={setGoalDialogOpen}
+                goal={editingGoal}
+                onSave={handleSaveGoal}
+            />
         </div>
     );
 }
