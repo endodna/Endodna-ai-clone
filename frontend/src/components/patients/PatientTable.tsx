@@ -36,6 +36,7 @@ interface PatientTableProps {
    */
   onPageChange?: (page: number) => void;
   onInvitePatient?: (patient: PatientRow) => void;
+  onEditPatient?: (patient: PatientRow) => void;
 }
 
 /**
@@ -50,11 +51,12 @@ export function PatientTable({
   pagination,
   onPageChange,
   onInvitePatient,
+  onEditPatient,
 }: Readonly<PatientTableProps>) {
   const navigate = useNavigate();
   const columns = useMemo(
-    () => getPatientColumns(onInvitePatient),
-    [onInvitePatient],
+    () => getPatientColumns(onInvitePatient, onEditPatient),
+    [onInvitePatient, onEditPatient],
   );
 
   const handleRowClick = (patient: PatientRow) => {

@@ -15,7 +15,7 @@ export function InfoRow({ icon: Icon, label, value, onEdit, showEdit }: Readonly
         <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
             <div className="flex items-center gap-2 md:gap-4">
                 <span className="flex items-center justify-center rounded-full text-primary">
-                    <Icon className="h-4 w-4 md:h-6 md:w-6" />
+                    <Icon className="h-4 w-4 md:h-5 md:w-5" />
                 </span>
                 <span>{label}</span>
             </div>

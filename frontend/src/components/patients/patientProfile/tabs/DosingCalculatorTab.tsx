@@ -96,14 +96,6 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
 
     // Mutations
     const updatePatientInfoMutation = useUpdatePatientInfo({
-        onSuccess: async (response) => {
-            if (response.error) {
-                toast.error(response.message || "Failed to update patient info");
-                return;
-            }
-            // After updating patient info, calculate dosing
-            await calculateDosing();
-        },
         onError: (error: any) => {
             toast.error(error?.message || "Failed to update patient info");
         },
@@ -224,14 +216,25 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
         }
 
         // Update patient info first
-        updatePatientInfoMutation.mutate({
-            patientId,
-            data: {
-                lifestyleData: Object.keys(lifestyleData).length > 0 ? lifestyleData : undefined,
-                medicationsData: Object.keys(medicationsData).length > 0 ? medicationsData : undefined,
-                clinicalData: data.clinicalData,
-            },
-        });
+        try {
+            const response = await updatePatientInfoMutation.mutateAsync({
+                patientId,
+                data: {
+                    lifestyleData: Object.keys(lifestyleData).length > 0 ? lifestyleData : undefined,
+                    medicationsData: Object.keys(medicationsData).length > 0 ? medicationsData : undefined,
+                    clinicalData: data.clinicalData,
+                },
+            });
+            
+            if (response.error) {
+                toast.error(response.message || "Failed to update patient info");
+                return;
+            }
+            // After updating patient info, calculate dosing
+            await calculateDosing();
+        } catch {
+            // Error is already handled by onError callback
+        }
     };
 
     const handleSaveDosing = () => {

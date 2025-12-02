@@ -1,9 +1,7 @@
 import { ChatsHistory } from "@/components/sidebar/ChatsHistory";
 import { useGetPatientById, useUpdatePatientInfo } from "@/hooks/useDoctor";
-import { queryKeys } from "@/components/constants/QueryKeys";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 // Components
@@ -27,7 +25,6 @@ interface PatientHeaderProps {
 
 export function PatientHeader({ patientId, className }: Readonly<PatientHeaderProps>) {
     const enabled = Boolean(patientId);
-    const queryClient = useQueryClient();
     const {
         data,
         isLoading,
@@ -76,37 +73,48 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
 
     // Mutations
     const updatePatientInfoMutation = useUpdatePatientInfo({
-        onSuccess: (response, variables) => {
-            if (response.error) {
-                toast.error(response.message || "Failed to update patient info");
-                return;
-            }
-            toast.success("Patient info updated successfully");
-            setHeightDialogOpen(false);
-            setWeightDialogOpen(false);
-            
-            // Invalidate and refetch patient data to update UI immediately
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.doctor.patients.detail(variables.patientId),
-            });
+        onError: (error) => {
+            toast.error(error.message || "Failed to update patient info");
         },
     });
 
     // Handlers
     const handleSaveHeight = async (heightCmValue: number) => {
         if (!patientId) return;
-        updatePatientInfoMutation.mutate({
-            patientId,
-            data: { height: heightCmValue },
-        });
+        try {
+            const response = await updatePatientInfoMutation.mutateAsync({
+                patientId,
+                data: { height: heightCmValue },
+            });
+            
+            if (response.error) {
+                toast.error(response.message || "Failed to update patient info");
+            } else {
+                toast.success("Patient info updated successfully");
+                setHeightDialogOpen(false);
+            }
+        } catch {
+            // Error is already handled by onError callback
+        }
     };
 
     const handleSaveWeight = async (weightKgValue: number) => {
         if (!patientId) return;
-        updatePatientInfoMutation.mutate({
-            patientId,
-            data: { weight: weightKgValue },
-        });
+        try {
+            const response = await updatePatientInfoMutation.mutateAsync({
+                patientId,
+                data: { weight: weightKgValue },
+            });
+            
+            if (response.error) {
+                toast.error(response.message || "Failed to update patient info");
+            } else {
+                toast.success("Patient info updated successfully");
+                setWeightDialogOpen(false);
+            }
+        } catch {
+            // Error is already handled by onError callback
+        }
     };
 
     const handleOpenGoalDialog = (goal?: { uuid: string; description: string }) => {
