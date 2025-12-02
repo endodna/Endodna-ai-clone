@@ -406,6 +406,107 @@ export const useGetReports = (
     });
 };
 
+// Dosing Calculator Hooks
+export const useUpdatePatientInfo = (
+    options?: Omit<
+        UseMutationOptions<ApiResponse, Error, { patientId: string; data: any }>,
+        "mutationFn"
+    >
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<ApiResponse, Error, { patientId: string; data: any }>({
+        mutationFn: ({ patientId, data }) => doctorsApi.updatePatientInfo(patientId, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+            });
+        },
+        ...options,
+    });
+};
+
+export const useCalculateTestosteroneDosing = (
+    options?: Omit<
+        UseMutationOptions<ApiResponse, Error, { patientId: string; pelletType: "T100" | "T200" }>,
+        "mutationFn"
+    >
+) => {
+    return useMutation<ApiResponse, Error, { patientId: string; pelletType: "T100" | "T200" }>({
+        mutationFn: ({ patientId, pelletType }) =>
+            doctorsApi.calculateTestosteroneDosing(patientId, pelletType),
+        ...options,
+    });
+};
+
+export const useCalculateEstradiolDosing = (
+    options?: Omit<UseMutationOptions<ApiResponse, Error, string>, "mutationFn">
+) => {
+    return useMutation<ApiResponse, Error, string>({
+        mutationFn: (patientId) => doctorsApi.calculateEstradiolDosing(patientId),
+        ...options,
+    });
+};
+
+export const useSaveDosingCalculation = (
+    options?: Omit<
+        UseMutationOptions<
+            ApiResponse,
+            Error,
+            {
+                patientId: string;
+                data: {
+                    isOverridden?: boolean;
+                    T100?: { tier: string };
+                    T200?: { tier: string };
+                    ESTRADIOL?: { tier: string };
+                };
+            }
+        >,
+        "mutationFn"
+    >
+) => {
+    const queryClient = useQueryClient();
+    return useMutation<
+        ApiResponse,
+        Error,
+        {
+            patientId: string;
+            data: {
+                isOverridden?: boolean;
+                T100?: { tier: string };
+                T200?: { tier: string };
+                ESTRADIOL?: { tier: string };
+            };
+        }
+    >({
+        mutationFn: ({ patientId, data }) => doctorsApi.saveDosingCalculation(patientId, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.dosing.history(variables.patientId),
+            });
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.patients.medications(variables.patientId),
+            });
+        },
+        ...options,
+    });
+};
+
+export const useGetDosingHistory = (
+    patientId: string,
+    options?: Omit<UseQueryOptions<ApiResponse, Error>, "queryKey" | "queryFn">
+) => {
+    return useQuery<ApiResponse, Error>({
+        queryKey: queryKeys.doctor.dosing.history(patientId),
+        queryFn: () => doctorsApi.getDosingHistory(patientId),
+        enabled: Boolean(patientId),
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        ...options,
+    });
+};
+
 export const useOrderDNAKit = (
     options?: Omit<UseMutationOptions<ApiResponse<OrderDNAKitResponseData>, Error, OrderDNAKitVariables>, "mutationFn">
 ) => {

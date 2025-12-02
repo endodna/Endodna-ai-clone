@@ -40,6 +40,10 @@ export const queryKeys = {
         [...queryKeys.doctor.dna.all(), "reports", gender ?? "ALL"] as const,
       addresses: (patientId: string) => [...queryKeys.doctor.dna.all(), "addresses", patientId] as const,
     },
+    dosing: {
+      all: () => [...queryKeys.doctor.all, "dosing"] as const,
+      history: (patientId: string) => [...queryKeys.doctor.dosing.all(), "history", patientId] as const,
+    },
   },
   misc: {
     all: ["misc"] as const,
