@@ -47,6 +47,13 @@ export const API_ENDPOINTS = {
         DETAIL: (patientId: string, medicationId: string) =>
           `/doctor/patients/${patientId}/medications/${medicationId}`,
       },
+      UPDATE_INFO: (id: string) => `/doctor/patients/${id}`,
+      DOSING: {
+        CALCULATE_TESTOSTERONE: (id: string) => `/doctor/patients/${id}/dosing/testosterone`,
+        CALCULATE_ESTRADIOL: (id: string) => `/doctor/patients/${id}/dosing/estradiol`,
+        SAVE: (id: string) => `/doctor/patients/${id}/dosing`,
+        GET_HISTORY: (id: string) => `/doctor/patients/${id}/dosing`,
+      },
     },
     REPORTS: {
       LIST: "/doctor/reports",

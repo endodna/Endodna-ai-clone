@@ -923,6 +923,124 @@ export const doctorsApi = {
       };
     }
   },
+
+  // Patient Info Update
+  updatePatientInfo: async (
+    patientId: string,
+    data: {
+      weight?: number;
+      height?: number;
+      dateOfBirth?: string;
+      gender?: string;
+      bloodType?: string;
+      clinicalData?: Record<string, any>;
+      lifestyleData?: Record<string, any>;
+      medicationsData?: Record<string, any>;
+    }
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.UPDATE_INFO, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to update patient info"),
+      };
+    }
+  },
+
+  // Dosing Calculation APIs
+  calculateTestosteroneDosing: async (
+    patientId: string,
+    pelletType: "T100" | "T200"
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE, patientId),
+        { pelletType }
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to calculate testosterone dosing"),
+      };
+    }
+  },
+
+  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to calculate estradiol dosing"),
+      };
+    }
+  },
+
+  saveDosingCalculation: async (
+    patientId: string,
+    data: {
+      isOverridden?: boolean;
+      T100?: { tier: string };
+      T200?: { tier: string };
+      ESTRADIOL?: { tier: string };
+    }
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.SAVE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to save dosing calculation"),
+      };
+    }
+  },
+
+  getDosingHistory: async (patientId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.GET_HISTORY, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch dosing history"),
+      };
+    }
+  },
 };
 
 export const api = {
