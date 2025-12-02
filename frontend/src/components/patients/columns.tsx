@@ -18,9 +18,11 @@ import { Badge } from "../ui/badge";
 import { AlertIcon } from "./AlertIcon";
 
 type InviteHandler = (patient: PatientRow) => void;
+type EditHandler = (patient: PatientRow) => void;
 
 export const getPatientColumns = (
   onInvite?: InviteHandler,
+  onEdit?: EditHandler,
 ): ColumnDef<PatientRow>[] => [
     {
       id: "alert",
@@ -283,16 +285,16 @@ export const getPatientColumns = (
     {
       id: "actions",
       header: "",
-      cell: () => (
+      cell: ({ row }) => (
         <div className="flex items-center justify-end last:rounded-r-xl">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-neutral-200 bg-primary-foreground hover:bg-neutral-200"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-muted-foreground bg-primary-foreground hover:bg-muted-foreground/30"
                 onClick={(event) => event.stopPropagation()}
               >
-                <EllipsisVertical className="h-5 w-5 text-neutral-500-old" />
+                <EllipsisVertical className="h-5 w-5 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -302,7 +304,12 @@ export const getPatientColumns = (
             >
               <DropdownMenuItem
                 className="cursor-pointer typo-body-3 text-foreground"
-                onClick={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (onEdit) {
+                    onEdit(row.original);
+                  }
+                }}
               >
                 Edit
               </DropdownMenuItem>

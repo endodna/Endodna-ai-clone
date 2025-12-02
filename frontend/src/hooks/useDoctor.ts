@@ -410,15 +410,20 @@ export const useGetReports = (
 export const useUpdatePatientInfo = (
     options?: Omit<
         UseMutationOptions<ApiResponse, Error, { patientId: string; data: any }>,
-        "mutationFn"
+        "mutationFn" | "onSuccess"
     >
 ) => {
     const queryClient = useQueryClient();
     return useMutation<ApiResponse, Error, { patientId: string; data: any }>({
         mutationFn: ({ patientId, data }) => doctorsApi.updatePatientInfo(patientId, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (_response, variables) => {
+            // Invalidate patient detail query to update the patient profile page
             queryClient.invalidateQueries({
                 queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+            });
+            // Invalidate all patient list queries to update the patient table immediately
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.doctor.patients.lists(),
             });
         },
         ...options,
