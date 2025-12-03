@@ -352,7 +352,7 @@ model PatientGoal {
   patientId      String
   patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   description    String
-  targetDate     DateTime
+  targetDate     DateTime?
   allergies      Int[]
   medications    Int[]
   problems       Int[]

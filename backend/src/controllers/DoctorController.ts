@@ -38,6 +38,9 @@ import {
   UpdatePatientInfoSchema,
   CalculatePatientTestosteroneDosingSuggestionsSchema,
   SavePatientDosageSchema,
+  CreatePatientGoalSchema,
+  UpdatePatientGoalSchema,
+  GoalIdParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -4753,6 +4756,383 @@ The BiosAI Team`,
         error: err,
         message: "Failed to retrieve dosage history",
       }, req);
+    }
+  }
+
+  public static async getPatientGoals(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goals = await prisma.patientGoal.findMany({
+        where: {
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          uuid: true,
+          id: true,
+          description: true,
+          allergies: true,
+          medications: true,
+          problems: true,
+          treatments: true,
+          status: true,
+          notes: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: goals.map((goal) => ({
+          ...goal,
+          id: goal.uuid,
+        })),
+        message: "Patient goals fetched successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient goals failed", {
+        traceId: req.traceId,
+        method: "getPatientGoals.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch patient goals",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createPatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+      const body = req.body as CreatePatientGoalSchema;
+      const { description, allergies, medications, problems, treatments, status, notes } = body;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientGoal.create({
+          data: {
+            description: description as string,
+            allergies: (allergies || []) as number[],
+            medications: (medications || []) as number[],
+            problems: (problems || []) as number[],
+            treatments: (treatments || []) as number[],
+            status: (status || Status.PENDING) as Status,
+            notes: (notes || "") as string,
+            patientId,
+            organizationId: organizationId!,
+          },
+          select: {
+            uuid: true,
+            id: true,
+            description: true,
+            targetDate: true,
+            allergies: true,
+            medications: true,
+            problems: true,
+            treatments: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal created: ${description}`,
+          metadata: {
+            patientId,
+            action: "create",
+            description,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient goal created successfully",
+      });
+    } catch (err) {
+      logger.error("Create patient goal failed", {
+        traceId: req.traceId,
+        method: "createPatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create patient goal",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, goalId } = req.params as unknown as GoalIdParamsSchema;
+      const { description, allergies, medications, problems, treatments, status, notes } = req.body as UpdatePatientGoalSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goal = await prisma.patientGoal.findFirst({
+        where: {
+          uuid: goalId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!goal) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient goal not found",
+        });
+      }
+
+      const updateData: Prisma.PatientGoalUpdateInput = {};
+      if (description !== undefined) updateData.description = description;
+      if (allergies !== undefined) updateData.allergies = allergies;
+      if (medications !== undefined) updateData.medications = medications;
+      if (problems !== undefined) updateData.problems = problems;
+      if (treatments !== undefined) updateData.treatments = treatments;
+      if (status !== undefined) updateData.status = status;
+      if (notes !== undefined) updateData.notes = notes;
+
+      const [result] = await Promise.all([
+        prisma.patientGoal.update({
+          where: {
+            uuid: goalId,
+          },
+          data: updateData,
+          select: {
+            uuid: true,
+            id: true,
+            description: true,
+            targetDate: true,
+            allergies: true,
+            medications: true,
+            problems: true,
+            treatments: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal updated: ${description || goal.description}`,
+          metadata: {
+            patientId,
+            goalId: goalId,
+            action: "update",
+            description: description || goal.description,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient goal updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update patient goal failed", {
+        traceId: req.traceId,
+        method: "updatePatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient goal",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deletePatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, goalId } = req.params as unknown as GoalIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goal = await prisma.patientGoal.findFirst({
+        where: {
+          uuid: goalId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!goal) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient goal not found",
+        });
+      }
+
+      await Promise.all([
+        prisma.patientGoal.update({
+          where: {
+            uuid: goalId,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal deleted: ${goal.description}`,
+          metadata: {
+            patientId,
+            goalId: goalId,
+            action: "delete",
+            description: goal.description,
+          },
+          priority: Priority.HIGH,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient goal deleted successfully",
+      });
+    } catch (err) {
+      logger.error("Delete patient goal failed", {
+        traceId: req.traceId,
+        method: "deletePatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patient goal",
+        },
+        req,
+      );
     }
   }
 }
