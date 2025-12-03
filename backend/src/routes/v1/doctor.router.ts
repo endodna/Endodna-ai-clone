@@ -36,6 +36,9 @@ import {
   reportIdParamsSchema,
   calculatePatientTestosteroneDosingSuggestionsSchema,
   savePatientDosageSchema,
+  createPatientGoalSchema,
+  updatePatientGoalSchema,
+  goalIdParamsSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -313,4 +316,27 @@ doctorRouter.get(
   DoctorController.getPatientDosageHistory,
 );
 
+// Patient Goal Routes
+doctorRouter.get(
+  "/patients/:patientId/goals",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientGoals,
+);
+doctorRouter.post(
+  "/patients/:patientId/goals",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientGoalSchema),
+  DoctorController.createPatientGoal,
+);
+doctorRouter.delete(
+  "/patients/:patientId/goals/:goalId",
+  validateParams(goalIdParamsSchema),
+  DoctorController.deletePatientGoal,
+);
+doctorRouter.put(
+  "/patients/:patientId/goals/:goalId",
+  validateParams(goalIdParamsSchema),
+  validate(updatePatientGoalSchema),
+  DoctorController.updatePatientGoal,
+);
 export default doctorRouter;

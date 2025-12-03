@@ -544,3 +544,33 @@ export const savePatientDosageSchema = z.object({
 }).strict();
 
 export type SavePatientDosageSchema = z.infer<typeof savePatientDosageSchema>;
+
+export const goalIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  goalId: z.string().uuid("Invalid goal ID")
+}).strict();
+export type GoalIdParamsSchema = z.infer<typeof goalIdParamsSchema>;
+
+export const createPatientGoalSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  allergies: z.array(z.number().int()).optional().default([]),
+  medications: z.array(z.number().int()).optional().default([]),
+  problems: z.array(z.number().int()).optional().default([]),
+  treatments: z.array(z.number().int()).optional().default([]),
+  status: z.nativeEnum(Status).optional().default(Status.PENDING),
+  notes: z.string().optional().default(""),
+}).strict();
+export type CreatePatientGoalSchema = z.infer<typeof createPatientGoalSchema>;
+
+export const updatePatientGoalSchema = z.object({
+  description: z.string().min(1, "Description is required").optional(),
+  allergies: z.array(z.number().int()).optional(),
+  medications: z.array(z.number().int()).optional(),
+  problems: z.array(z.number().int()).optional(),
+  treatments: z.array(z.number().int()).optional(),
+  status: z.nativeEnum(Status).optional(),
+  notes: z.string().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: "At least one field must be provided for update",
+});
+export type UpdatePatientGoalSchema = z.infer<typeof updatePatientGoalSchema>;
