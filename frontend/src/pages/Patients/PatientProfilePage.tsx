@@ -5,7 +5,6 @@ import { DnaResultsTab } from "@/components/patients/patientProfile/tabs/DnaResu
 import { MedicationsTab } from "@/components/patients/patientProfile/tabs/MedicationsTab";
 import { NotesTab } from "@/components/patients/patientProfile/tabs/NotesTab";
 import { SummaryTab } from "@/components/patients/patientProfile/tabs/SummaryTab";
-import { TreatmentPlanTab } from "@/components/patients/patientProfile/tabs/TreatmentPlanTab";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useGetPatientById } from "@/hooks/useDoctor";
 import { DosingCalculatorTab } from "@/components/patients/patientProfile/tabs/DosingCalculatorTab";
@@ -20,7 +19,6 @@ const TABS: TabConfig<TabProps>[] = [
   { id: "dna-results", label: "DNA Results", Content: DnaResultsTab },
   { id: "medications", label: "Medications", Content: MedicationsTab },
   { id: "dosing-calculator", label: "Dosing Calculator", Content: DosingCalculatorTab },
-  { id: "treatment-plan", label: "Treatment Plan", Content: TreatmentPlanTab },
   { id: "notes", label: "Notes", Content: NotesTab },
 ];
 
