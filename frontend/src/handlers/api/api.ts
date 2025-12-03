@@ -1024,14 +1024,14 @@ export const doctorsApi = {
     }
   },
 
-  getDosingHistory: async (patientId: string): Promise<ApiResponse> => {
+  getDosingHistory: async (patientId: string): Promise<ApiResponse<DosingHistoryResponse>> => {
     try {
       const response = await apiClient.get(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.GET_HISTORY, patientId)
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<DosingHistoryResponse>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {
