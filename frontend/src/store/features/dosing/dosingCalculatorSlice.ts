@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface SelectedDose {
     hormoneType: "testosterone" | "estradiol";
     tier: string;
+    tierType: "base" | "modified";
     dosageMg: number;
     pelletsCount: number;
 }
