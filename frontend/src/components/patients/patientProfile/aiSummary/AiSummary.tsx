@@ -418,7 +418,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                                 className={cn(
                                                     "flex h-7 w-7 items-center justify-center rounded-full border typo-body-3 transition",
                                                     isActive
-                                                        ? "bg-primary-foreground shadow-[0_4px_12px_rgba(109,62,245,0.25)]"
+                                                        ? "bg-primary-foreground shadow-sm"
                                                         : "border-transparent bg-transparent typo-body-3 text-muted-foreground hover:border-muted-foreground",
                                                 )}
                                                 aria-label={option.label}

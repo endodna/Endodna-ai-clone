@@ -1,13 +1,15 @@
-import { useEffect, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { GENDER } from "@/components/constants/patient";
 import { setInsertionDate } from "@/store/features/dosing";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatDate } from "@/utils/date.utils";
+import { useEffect, useMemo } from "react";
 
 interface KineticSlopeProps {
     historyData?: PatientDosageHistoryEntry[] | null;
+    patient?: PatientDetail | null;
 }
 
-export function KineticSlope({ historyData }: Readonly<KineticSlopeProps>) {
+export function KineticSlope({ historyData, patient }: Readonly<KineticSlopeProps>) {
     const dispatch = useAppDispatch();
     const { selectedDose, insertionDate } = useAppSelector(
         (state) => state.dosingCalculator
@@ -22,23 +24,42 @@ export function KineticSlope({ historyData }: Readonly<KineticSlopeProps>) {
     }, [historyData, insertionDate, dispatch]);
 
     // Calculate estimated dates
-    const { estimatedPeakDate, estimatedRePelletDate } = useMemo(() => {
+    const { estimatedPeakDate, estimatedRePelletDate, rePelletDurationText } = useMemo(() => {
         if (!insertionDate) {
-            return { estimatedPeakDate: null, estimatedRePelletDate: null };
+            return { estimatedPeakDate: null, estimatedRePelletDate: null, rePelletDurationText: "85 days" };
         }
 
         const insertion = new Date(insertionDate);
         const peakDate = new Date(insertion);
         peakDate.setDate(peakDate.getDate() + 45);
 
+        // Calculate re-pellet date based on patient gender
         const rePelletDate = new Date(insertion);
-        rePelletDate.setDate(rePelletDate.getDate() + 85);
+        const patientGender = patient?.gender?.toUpperCase();
+
+        let durationText: string;
+        if (patientGender === GENDER.MALE) {
+            // 5.5 months = 5 months + 15 days
+            rePelletDate.setMonth(rePelletDate.getMonth() + 5);
+            rePelletDate.setDate(rePelletDate.getDate() + 15);
+            durationText = "5.5 months";
+        } else if (patientGender === GENDER.FEMALE) {
+            // 3.5 months = 3 months + 15 days
+            rePelletDate.setMonth(rePelletDate.getMonth() + 3);
+            rePelletDate.setDate(rePelletDate.getDate() + 15);
+            durationText = "3.5 months";
+        } else {
+            // Default to 85 days if gender is not available
+            rePelletDate.setDate(rePelletDate.getDate() + 85);
+            durationText = "85 days";
+        }
 
         return {
             estimatedPeakDate: peakDate,
             estimatedRePelletDate: rePelletDate,
+            rePelletDurationText: durationText,
         };
-    }, [insertionDate]);
+    }, [insertionDate, patient?.gender]);
 
     return (
         <div className="max-w-[362px] w-full space-y-4 md:space-y-8 ">
@@ -100,11 +121,11 @@ export function KineticSlope({ historyData }: Readonly<KineticSlopeProps>) {
                     </p>
                     {estimatedRePelletDate ? (
                         <p className="typo-body-2 typo-body-2-regular text-foreground">
-                            85 days – {formatDate(estimatedRePelletDate, "DD / MM / YYYY")}
+                            {rePelletDurationText} – {formatDate(estimatedRePelletDate, "DD / MM / YYYY")}
                         </p>
                     ) : (
                         <p className="typo-body-2 typo-body-2-regular text-foreground">
-                            85 days – dd / mm / aaaa
+                            {rePelletDurationText} – dd / mm / aaaa
                         </p>
                     )}
                 </div>
