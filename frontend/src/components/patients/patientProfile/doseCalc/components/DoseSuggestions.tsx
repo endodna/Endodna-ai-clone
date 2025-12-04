@@ -13,6 +13,11 @@ interface TierData {
     pelletsCount: number;
 }
 
+interface HormoneSuggestions {
+    base: Record<string, TierData> | null;
+    modified: Record<string, TierData> | null;
+}
+
 // Runtime constants matching DosageTier enum values
 const DOSAGE_TIER = {
     CONSERVATIVE: "conservative",
@@ -40,13 +45,15 @@ interface TierCardProps {
     dosageMg: number;
     pelletsCount: number;
     hormoneType: "testosterone" | "estradiol";
+    tierType: "base" | "modified";
     isSelected?: boolean;
 }
 
-interface HormoneSectionProps {
+interface TierSectionProps {
     title: string;
     suggestions: Record<string, TierData> | null;
     hormoneType: "testosterone" | "estradiol";
+    tierType: "base" | "modified";
 }
 
 function TierCard({
@@ -54,6 +61,7 @@ function TierCard({
     dosageMg,
     pelletsCount,
     hormoneType,
+    tierType,
     isSelected,
 }: Readonly<TierCardProps>) {
     const dispatch = useAppDispatch();
@@ -63,6 +71,7 @@ function TierCard({
             setSelectedDose({
                 hormoneType,
                 tier,
+                tierType,
                 dosageMg,
                 pelletsCount,
             })
@@ -97,12 +106,12 @@ function TierCard({
     );
 }
 
-
-function HormoneSection({
+function TierSection({
     title,
     suggestions,
     hormoneType,
-}: Readonly<HormoneSectionProps>) {
+    tierType,
+}: Readonly<TierSectionProps>) {
     const { selectedDose } = useAppSelector((state) => state.dosingCalculator);
 
     if (!suggestions || Object.keys(suggestions).length === 0) {
@@ -111,27 +120,70 @@ function HormoneSection({
 
     return (
         <div className="space-y-4">
+            <h5 className="typo-body-2-regular text-muted-foreground">{title}</h5>
+            <div className="flex flex-wrap gap-4 md:gap-6 justify-center">
+                {TIER_ORDER.map((tier) => {
+                    const tierData = suggestions[tier];
+                    if (!tierData) return null;
+                    const isSelected =
+                        selectedDose?.hormoneType === hormoneType &&
+                        selectedDose?.tier === tier &&
+                        selectedDose?.tierType === tierType;
+                    return (
+                        <TierCard
+                            key={tier}
+                            tier={tier}
+                            dosageMg={tierData.dosageMg}
+                            pelletsCount={tierData.pelletsCount}
+                            hormoneType={hormoneType}
+                            tierType={tierType}
+                            isSelected={isSelected}
+                        />
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+interface HormoneSectionProps {
+    title: string;
+    suggestions: HormoneSuggestions;
+    hormoneType: "testosterone" | "estradiol";
+}
+
+function HormoneSection({
+    title,
+    suggestions,
+    hormoneType,
+}: Readonly<HormoneSectionProps>) {
+    const hasBaseTiers = suggestions.base && Object.keys(suggestions.base).length > 0;
+    const hasModifiedTiers = suggestions.modified && Object.keys(suggestions.modified).length > 0;
+
+    if (!hasBaseTiers && !hasModifiedTiers) {
+        return null;
+    }
+
+    return (
+        <div className="space-y-6">
             <h4 className="typo-body-2-regular text-muted-foreground">{title}</h4>
-        <div>
-                <div className="flex flex-wrap gap-4 md:gap-6 justify-center">
-                    {TIER_ORDER.map((tier) => {
-                        const tierData = suggestions[tier];
-                        if (!tierData) return null;
-                        const isSelected =
-                            selectedDose?.hormoneType === hormoneType &&
-                            selectedDose?.tier === tier;
-                        return (
-                            <TierCard
-                                key={tier}
-                                tier={tier}
-                                dosageMg={tierData.dosageMg}
-                                pelletsCount={tierData.pelletsCount}
-                                hormoneType={hormoneType}
-                                isSelected={isSelected}
-                            />
-                        );
-                    })}
-                </div>
+            <div className="space-y-6">
+                {hasBaseTiers && (
+                    <TierSection
+                        title="Base tiers"
+                        suggestions={suggestions.base}
+                        hormoneType={hormoneType}
+                        tierType="base"
+                    />
+                )}
+                {hasModifiedTiers && (
+                    <TierSection
+                        title="Modified tiers"
+                        suggestions={suggestions.modified}
+                        hormoneType={hormoneType}
+                        tierType="modified"
+                    />
+                )}
             </div>
         </div>
     );
@@ -150,35 +202,59 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
         const mostRecentEntry = historyData[0];
         const { data: entryData } = mostRecentEntry;
 
-        // Helper function to extract suggestions from dosingSuggestions object
+        // Helper function to extract base and modified suggestions from dosingSuggestions object
         const extractSuggestions = (
             dosingSuggestions: Record<string, unknown> | undefined
-        ): Record<string, TierData> | null => {
-            if (!dosingSuggestions) return null;
+        ): HormoneSuggestions => {
+            if (!dosingSuggestions) {
+                return { base: null, modified: null };
+            }
 
-            const result: Record<string, TierData> = {};
+            const baseResult: Record<string, TierData> = {};
+            const modifiedResult: Record<string, TierData> = {};
 
             for (const tier of TIER_ORDER) {
                 const tierData = dosingSuggestions[tier] as
-                    | { dosingCalculation: { finalDoseMg: number; pelletCount: number } }
+                    | {
+                          dosingCalculation: {
+                              baseDoseMg: number;
+                              basePelletCount: number;
+                              finalDoseMg: number;
+                              pelletCount: number;
+                          };
+                      }
                     | undefined;
 
                 if (tierData?.dosingCalculation) {
-                    result[tier] = {
-                        dosageMg: tierData.dosingCalculation.finalDoseMg,
-                        pelletsCount: tierData.dosingCalculation.pelletCount,
-                    };
+                    const { baseDoseMg, basePelletCount, finalDoseMg, pelletCount } =
+                        tierData.dosingCalculation;
+
+                    // Base tiers
+                    if (baseDoseMg !== undefined && basePelletCount !== undefined) {
+                        baseResult[tier] = {
+                            dosageMg: baseDoseMg,
+                            pelletsCount: basePelletCount,
+                        };
+                    }
+
+                    // Modified tiers
+                    if (finalDoseMg !== undefined && pelletCount !== undefined) {
+                        modifiedResult[tier] = {
+                            dosageMg: finalDoseMg,
+                            pelletsCount: pelletCount,
+                        };
+                    }
                 }
             }
 
-            // Return null if no valid tiers found
-            if (Object.keys(result).length === 0) return null;
-
-            return result;
+            return {
+                base: Object.keys(baseResult).length > 0 ? baseResult : null,
+                modified: Object.keys(modifiedResult).length > 0 ? modifiedResult : null,
+            };
         };
 
         // Extract testosterone suggestions (T100 or T200)
-        let testosteroneSuggestions: Record<string, TierData> | null = null;
+        let testosteroneSuggestions: HormoneSuggestions | null = null;
         if (entryData.T100?.dosingSuggestions) {
             testosteroneSuggestions = extractSuggestions(entryData.T100.dosingSuggestions);
         } else if (entryData.T200?.dosingSuggestions) {
@@ -186,7 +262,7 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
         }
 
         // Extract estradiol suggestions
-        let estradiolSuggestions: Record<string, TierData> | null = null;
+        let estradiolSuggestions: HormoneSuggestions | null = null;
         if (entryData.ESTRADIOL?.dosingSuggestions) {
             estradiolSuggestions = extractSuggestions(entryData.ESTRADIOL.dosingSuggestions);
         }
@@ -194,33 +270,54 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
         return { testosteroneSuggestions, estradiolSuggestions };
     }, [historyData]);
 
-    // Set default selected dose (first tier from first available hormone)
+    // Set default selected dose or clear if no suggestions available
     useEffect(() => {
+        const firstAvailableSuggestions = testosteroneSuggestions || estradiolSuggestions;
+        
+        // Clear selected dose if no suggestions available
+        if (!firstAvailableSuggestions || 
+            (!firstAvailableSuggestions.base && !firstAvailableSuggestions.modified)) {
+            if (selectedDose) {
+                dispatch(setSelectedDose(null));
+            }
+            return;
+        }
+
+        // Set default if no selection exists
         if (!selectedDose) {
-            const firstAvailableSuggestions = testosteroneSuggestions || estradiolSuggestions;
             const hormoneType: "testosterone" | "estradiol" = testosteroneSuggestions
                 ? "testosterone"
                 : "estradiol";
 
-            if (firstAvailableSuggestions) {
-                const firstTier = TIER_ORDER.find(
-                    (tier) => firstAvailableSuggestions[tier]
+            // Prefer base tiers (default to conservative tier from base tiers)
+            const suggestionsToUse =
+                firstAvailableSuggestions.base || firstAvailableSuggestions.modified;
+            if (!suggestionsToUse) return;
+
+            const tierType: "base" | "modified" = firstAvailableSuggestions.base
+                ? "base"
+                : "modified";
+
+            // Default to conservative tier (first in TIER_ORDER)
+            const conservativeTier = TIER_ORDER.find((tier) => suggestionsToUse[tier]);
+            if (conservativeTier && suggestionsToUse[conservativeTier]) {
+                dispatch(
+                    setSelectedDose({
+                        hormoneType,
+                        tier: conservativeTier,
+                        tierType,
+                        dosageMg: suggestionsToUse[conservativeTier].dosageMg,
+                        pelletsCount: suggestionsToUse[conservativeTier].pelletsCount,
+                    })
                 );
-                if (firstTier && firstAvailableSuggestions[firstTier]) {
-                    dispatch(
-                        setSelectedDose({
-                            hormoneType,
-                            tier: firstTier,
-                            dosageMg: firstAvailableSuggestions[firstTier].dosageMg,
-                            pelletsCount: firstAvailableSuggestions[firstTier].pelletsCount,
-                        })
-                    );
-                }
             }
         }
     }, [testosteroneSuggestions, estradiolSuggestions, selectedDose, dispatch]);
 
-    const hasSuggestions = testosteroneSuggestions || estradiolSuggestions;
+    const hasSuggestions =
+        (testosteroneSuggestions &&
+            (testosteroneSuggestions.base || testosteroneSuggestions.modified)) ||
+        (estradiolSuggestions && (estradiolSuggestions.base || estradiolSuggestions.modified));
 
     return (
         <div className="space-y-8">
@@ -250,22 +347,24 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
             )}
 
             {/* Testosterone Section */}
-            {testosteroneSuggestions && (
-                <HormoneSection
-                    title="Testosterone"
-                    suggestions={testosteroneSuggestions}
-                    hormoneType="testosterone"
-                />
-            )}
+            {testosteroneSuggestions &&
+                (testosteroneSuggestions.base || testosteroneSuggestions.modified) && (
+                    <HormoneSection
+                        title="Testosterone"
+                        suggestions={testosteroneSuggestions}
+                        hormoneType="testosterone"
+                    />
+                )}
 
             {/* Estradiol Section */}
-            {estradiolSuggestions && (
-                <HormoneSection
-                    title="Estradiol"
-                    suggestions={estradiolSuggestions}
-                    hormoneType="estradiol"
-                />
-            )}
+            {estradiolSuggestions &&
+                (estradiolSuggestions.base || estradiolSuggestions.modified) && (
+                    <HormoneSection
+                        title="Estradiol"
+                        suggestions={estradiolSuggestions}
+                        hormoneType="estradiol"
+                    />
+                )}
         </div>
     );
 }

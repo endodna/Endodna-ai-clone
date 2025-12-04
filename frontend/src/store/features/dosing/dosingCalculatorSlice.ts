@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface SelectedDose {
     hormoneType: "testosterone" | "estradiol";
     tier: string;
+    tierType: "base" | "modified";
     dosageMg: number;
     pelletsCount: number;
 }
@@ -21,7 +22,7 @@ const dosingCalculatorSlice = createSlice({
     name: "dosingCalculator",
     initialState,
     reducers: {
-        setSelectedDose: (state, action: PayloadAction<SelectedDose>) => {
+        setSelectedDose: (state, action: PayloadAction<SelectedDose | null>) => {
             state.selectedDose = action.payload;
         },
         setInsertionDate: (state, action: PayloadAction<string | null>) => {

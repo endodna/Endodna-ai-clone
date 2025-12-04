@@ -1,14 +1,19 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useGetDosingHistory } from "@/hooks/useDoctor";
 import { AlertCircle } from "lucide-react";
+import { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { resetDosingCalculator } from "@/store/features/dosing";
 import { DoseSuggestions } from "../doseCalc/components/DoseSuggestions";
 import { Calculator } from "../doseCalc/components/Calculator";
 
 interface DosingCalculatorTabProps {
     readonly patientId?: string;
+    readonly patient?: PatientDetail | null;
 }
 
-export function DosingCalculatorTab({ patientId }: Readonly<DosingCalculatorTabProps>) {
+export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalculatorTabProps>) {
+    const dispatch = useAppDispatch();
     const {
         data: historyResponse,
         isLoading,
@@ -17,6 +22,11 @@ export function DosingCalculatorTab({ patientId }: Readonly<DosingCalculatorTabP
     } = useGetDosingHistory(patientId ?? "", {
         enabled: Boolean(patientId),
     });
+
+    // Reset state when patient changes
+    useEffect(() => {
+        dispatch(resetDosingCalculator());
+    }, [patientId, dispatch]);
 
     if (isLoading) {
         return (
@@ -48,7 +58,7 @@ export function DosingCalculatorTab({ patientId }: Readonly<DosingCalculatorTabP
 
     return (
         <div className="rounded-lg bg-primary-foreground p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-            <Calculator historyData={historyResponse?.data ?? null} />
+            <Calculator historyData={historyResponse?.data ?? null} patient={patient} />
             <DoseSuggestions historyData={historyResponse?.data ?? null} />
         </div>
     );
