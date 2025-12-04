@@ -289,24 +289,25 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
                 ? "testosterone"
                 : "estradiol";
 
-            // Prefer modified tiers, fallback to base tiers
+            // Prefer base tiers (default to conservative tier from base tiers)
             const suggestionsToUse =
-                firstAvailableSuggestions.modified || firstAvailableSuggestions.base;
+                firstAvailableSuggestions.base || firstAvailableSuggestions.modified;
             if (!suggestionsToUse) return;
 
-            const tierType: "base" | "modified" = firstAvailableSuggestions.modified
+            const tierType: "base" | "modified" = firstAvailableSuggestions.base
                 ? "base"
                 : "modified";
 
-            const firstTier = TIER_ORDER.find((tier) => suggestionsToUse[tier]);
-            if (firstTier && suggestionsToUse[firstTier]) {
+            // Default to conservative tier (first in TIER_ORDER)
+            const conservativeTier = TIER_ORDER.find((tier) => suggestionsToUse[tier]);
+            if (conservativeTier && suggestionsToUse[conservativeTier]) {
                 dispatch(
                     setSelectedDose({
                         hormoneType,
-                        tier: firstTier,
+                        tier: conservativeTier,
                         tierType,
-                        dosageMg: suggestionsToUse[firstTier].dosageMg,
-                        pelletsCount: suggestionsToUse[firstTier].pelletsCount,
+                        dosageMg: suggestionsToUse[conservativeTier].dosageMg,
+                        pelletsCount: suggestionsToUse[conservativeTier].pelletsCount,
                     })
                 );
             }
