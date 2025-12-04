@@ -15,13 +15,17 @@ export function KineticSlope({ historyData, patient }: Readonly<KineticSlopeProp
         (state) => state.dosingCalculator
     );
 
-    // Set insertion date from most recent history entry (only once, doesn't change)
+    // Set or clear insertion date based on history data
     useEffect(() => {
-        if (historyData && historyData.length > 0 && !insertionDate) {
+        if (historyData && historyData.length > 0) {
+            // Set insertion date from most recent history entry
             const mostRecentEntry = historyData[0];
             dispatch(setInsertionDate(mostRecentEntry.createdAt));
+        } else {
+            // Clear insertion date if no history data available
+            dispatch(setInsertionDate(null));
         }
-    }, [historyData, insertionDate, dispatch]);
+    }, [historyData, dispatch]);
 
     // Calculate estimated dates
     const { estimatedPeakDate, estimatedRePelletDate, rePelletDurationText } = useMemo(() => {

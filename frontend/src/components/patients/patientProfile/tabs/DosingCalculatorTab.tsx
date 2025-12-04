@@ -1,6 +1,9 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useGetDosingHistory } from "@/hooks/useDoctor";
 import { AlertCircle } from "lucide-react";
+import { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { resetDosingCalculator } from "@/store/features/dosing";
 import { DoseSuggestions } from "../doseCalc/components/DoseSuggestions";
 import { Calculator } from "../doseCalc/components/Calculator";
 
@@ -10,6 +13,7 @@ interface DosingCalculatorTabProps {
 }
 
 export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalculatorTabProps>) {
+    const dispatch = useAppDispatch();
     const {
         data: historyResponse,
         isLoading,
@@ -18,6 +22,11 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
     } = useGetDosingHistory(patientId ?? "", {
         enabled: Boolean(patientId),
     });
+
+    // Reset state when patient changes
+    useEffect(() => {
+        dispatch(resetDosingCalculator());
+    }, [patientId, dispatch]);
 
     if (isLoading) {
         return (

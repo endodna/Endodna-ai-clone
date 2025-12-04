@@ -270,37 +270,46 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
         return { testosteroneSuggestions, estradiolSuggestions };
     }, [historyData]);
 
-    // Set default selected dose (first tier from first available hormone, preferring modified over base)
+    // Set default selected dose or clear if no suggestions available
     useEffect(() => {
-        if (selectedDose) return;
-
         const firstAvailableSuggestions = testosteroneSuggestions || estradiolSuggestions;
-        if (!firstAvailableSuggestions) return;
+        
+        // Clear selected dose if no suggestions available
+        if (!firstAvailableSuggestions || 
+            (!firstAvailableSuggestions.base && !firstAvailableSuggestions.modified)) {
+            if (selectedDose) {
+                dispatch(setSelectedDose(null));
+            }
+            return;
+        }
 
-        const hormoneType: "testosterone" | "estradiol" = testosteroneSuggestions
-            ? "testosterone"
-            : "estradiol";
+        // Set default if no selection exists
+        if (!selectedDose) {
+            const hormoneType: "testosterone" | "estradiol" = testosteroneSuggestions
+                ? "testosterone"
+                : "estradiol";
 
-        // Prefer modified tiers, fallback to base tiers
-        const suggestionsToUse =
-            firstAvailableSuggestions.modified || firstAvailableSuggestions.base;
-        if (!suggestionsToUse) return;
+            // Prefer modified tiers, fallback to base tiers
+            const suggestionsToUse =
+                firstAvailableSuggestions.modified || firstAvailableSuggestions.base;
+            if (!suggestionsToUse) return;
 
-        const tierType: "base" | "modified" = firstAvailableSuggestions.modified
-            ? "base"
-            : "modified";
+            const tierType: "base" | "modified" = firstAvailableSuggestions.modified
+                ? "base"
+                : "modified";
 
-        const firstTier = TIER_ORDER.find((tier) => suggestionsToUse[tier]);
-        if (firstTier && suggestionsToUse[firstTier]) {
-            dispatch(
-                setSelectedDose({
-                    hormoneType,
-                    tier: firstTier,
-                    tierType,
-                    dosageMg: suggestionsToUse[firstTier].dosageMg,
-                    pelletsCount: suggestionsToUse[firstTier].pelletsCount,
-                })
-            );
+            const firstTier = TIER_ORDER.find((tier) => suggestionsToUse[tier]);
+            if (firstTier && suggestionsToUse[firstTier]) {
+                dispatch(
+                    setSelectedDose({
+                        hormoneType,
+                        tier: firstTier,
+                        tierType,
+                        dosageMg: suggestionsToUse[firstTier].dosageMg,
+                        pelletsCount: suggestionsToUse[firstTier].pelletsCount,
+                    })
+                );
+            }
         }
     }, [testosteroneSuggestions, estradiolSuggestions, selectedDose, dispatch]);
 
