@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedDose } from "@/store/features/dosing";
@@ -81,11 +80,10 @@ function TierCard({
     return (
         <Card
             onClick={handleSelect}
-            className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
-                isSelected
+            className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
                     ? "border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
                     : "border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70"
-            }`}
+                }`}
         >
             <CardHeader className="py-2 px-2 md:px-4">
                 <CardTitle className="typo-body-2 text-foreground text-base">
@@ -216,13 +214,13 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
             for (const tier of TIER_ORDER) {
                 const tierData = dosingSuggestions[tier] as
                     | {
-                          dosingCalculation: {
-                              baseDoseMg: number;
-                              basePelletCount: number;
-                              finalDoseMg: number;
-                              pelletCount: number;
-                          };
-                      }
+                        dosingCalculation: {
+                            baseDoseMg: number;
+                            basePelletCount: number;
+                            finalDoseMg: number;
+                            pelletCount: number;
+                        };
+                    }
                     | undefined;
 
                 if (tierData?.dosingCalculation) {
@@ -273,9 +271,9 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
     // Set default selected dose or clear if no suggestions available
     useEffect(() => {
         const firstAvailableSuggestions = testosteroneSuggestions || estradiolSuggestions;
-        
+
         // Clear selected dose if no suggestions available
-        if (!firstAvailableSuggestions || 
+        if (!firstAvailableSuggestions ||
             (!firstAvailableSuggestions.base && !firstAvailableSuggestions.modified)) {
             if (selectedDose) {
                 dispatch(setSelectedDose(null));
@@ -322,20 +320,7 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="space-y-2">
-                <h4 className="typo-h3 text-foreground">Dosing Suggestions</h4>
-                <div className="flex items-start rounded-lg border border-muted-foreground/20 p-2 md:p-4 gap-3 md:gap-4">
-                    <AlertTriangle className="h-4 w-4 text-foreground flex-shrink-0" />
-                    <div>
-                        <p className="typo-body-2 text-foreground">
-                            Suggestion Criteria
-                        </p>
-                        <p className="typo-body-2 text-muted-foreground">
-                            The remaining treatment plan components will be enabled after the hormones have been selected.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <h4 className="typo-h3 text-foreground">Dosing Suggestions</h4>
 
             {/* Empty State */}
             {!hasSuggestions && (
