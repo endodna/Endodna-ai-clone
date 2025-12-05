@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { useGetPatientGoals } from "@/hooks/useDoctor";
 import { Pencil } from "lucide-react";
+import { useMemo } from "react";
 
 interface PatientGoal {
     readonly uuid: string;
@@ -8,16 +10,22 @@ interface PatientGoal {
 }
 
 interface HealthGoalsSectionProps {
-    readonly goals: PatientGoal[] | null | undefined;
     readonly onAddGoal: () => void;
     readonly onEditGoal: (goal: { uuid: string; description: string }) => void;
+    readonly patientId?: string;
 }
 
+
 export function HealthGoalsSection({
-    goals,
     onAddGoal,
     onEditGoal,
+    patientId,
 }: Readonly<HealthGoalsSectionProps>) {
+    const { data: healthGoals, isLoading } = useGetPatientGoals(patientId);
+    const goals = useMemo(() => healthGoals?.data, [healthGoals]);
+
+    if (isLoading) return null;
+
     return (
         <div className="space-y-3 px-4 pb-4 pt-4 md:px-6 md:pt-6 md:pb-4">
             <div className="flex items-center justify-between">
@@ -31,9 +39,9 @@ export function HealthGoalsSection({
                     Add Goal
                 </Button>
             </div>
-            {goals && goals.length > 0 ? (
+            {Array.isArray(goals) && goals.length > 0 ? (
                 <div className="space-y-2">
-                    {goals.map((goal) => (
+                    {goals.map((goal: PatientGoal) => (
                         <div key={goal.uuid || goal.id} className="flex items-center justify-between">
                             <p className="typo-body-1 typo-body-1-regular text-foreground">
                                 {goal.description}
