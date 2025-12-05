@@ -541,6 +541,14 @@ export const savePatientDosageSchema = z.object({
   ESTRADIOL: z.object({
     tier: z.nativeEnum(DosageTier),
   }).optional(),
+  supplements: z.array(z.object({
+    drugName: z.string().min(1, "Name is required"),
+    dosage: z.string().min(1, "Dose is required"),
+    unit: z.string().min(1, "Unit is required"),
+    frequency: z.string().min(1, "Frequency is required"),
+    purpose: z.string().min(1, "Purpose is required"),
+    isSuggested: z.boolean().optional().default(false),
+  })).optional()
 }).strict();
 
 export type SavePatientDosageSchema = z.infer<typeof savePatientDosageSchema>;
