@@ -4402,7 +4402,7 @@ The BiosAI Team`,
     try {
       const { patientId } = req.params as unknown as PatientIdParamsSchema;
       const { organizationId, userId } = req.user!;
-      const { T100, T200, ESTRADIOL, isOverridden } = req.body as SavePatientDosageSchema;
+      const { T100, T200, ESTRADIOL, isOverridden, supplements } = req.body as SavePatientDosageSchema;
 
       if (!T100 && !T200 && !ESTRADIOL) {
         return sendResponse(res, {
@@ -4543,8 +4543,6 @@ The BiosAI Team`,
         });
       }
 
-
-
       const patientDosageHistory = await prisma.patientDosageHistory.create({
         data: {
           data: JSON.stringify({
@@ -4574,7 +4572,7 @@ The BiosAI Team`,
       const criticalAlerts = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.criticalAlerts || [];
       const suggestions = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.suggestions || [];
       const recommendations = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.recommendations || [];
-      const supplements = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.supplements || [];
+      const suggestedSupplements = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.supplements || [];
       const monitoringSchedules = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.monitoringSchedules || [];
       const expectedDurationDays = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.expectedDurationDays;
 
@@ -4598,8 +4596,8 @@ The BiosAI Team`,
       if (recommendations.length > 0) {
         chartNoteContent += `Recommendations: ${recommendations.join(", ")}\n`;
       }
-      if (supplements.length > 0) {
-        chartNoteContent += `Supplements: ${supplements.join(", ")}\n`;
+      if (suggestedSupplements.length > 0) {
+        chartNoteContent += `Supplements: ${suggestedSupplements.join(", ")}\n`;
       }
       if (monitoringSchedules.length > 0) {
         chartNoteContent += `Monitoring Schedules: ${monitoringSchedules.join(", ")}\n`;
@@ -4637,19 +4635,19 @@ The BiosAI Team`,
               patientDosageHistoryId: patientDosageHistory.id,
               doctorId: userId!,
             },
-            ...supplements.filter(supplement => supplement.isCore).map(supplement => ({
+            ...supplements?.length ? supplements.map(supplement => ({
               patientId: patientId,
               organizationId: organizationId!,
-              dosage: supplement.dose || "",
+              dosage: supplement.dosage || "",
               frequency: supplement.frequency || "",
               startDate: new Date(),
               endDate: null,
               reason: supplement.purpose || "",
-              notes: supplement.timing || "",
-              drugName: supplement.name,
+              notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
+              drugName: supplement.drugName,
               patientDosageHistoryId: patientDosageHistory.id,
               doctorId: userId!,
-            })),
+            })) : [],
           ],
         }),
         UserService.createUserAuditLog({
@@ -4663,6 +4661,7 @@ The BiosAI Team`,
           },
           priority: Priority.MEDIUM,
         }),
+        ragHelper.invalidatePatientSummaryCache(organizationId!, patientId, req.traceId),
       ])
 
       sendResponse(res, {
