@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { kgToLbs, lbsToKg } from "@/utils/patient.utils";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 
@@ -21,29 +20,25 @@ export function WeightEditDialog({
     onSave,
     isSaving = false,
 }: Readonly<WeightEditDialogProps>) {
-    const [weightLbs, setWeightLbs] = useState<string>("");
+    const [weightKg, setWeightKg] = useState<string>("");
 
     useEffect(() => {
         if (open && initialWeightKg) {
-            const lbs = kgToLbs(initialWeightKg);
-            if (lbs !== null) {
-                setWeightLbs(lbs.toString());
-            }
+            setWeightKg(initialWeightKg.toString());
         } else if (open) {
-            setWeightLbs("");
+            setWeightKg("");
         }
     }, [open, initialWeightKg]);
 
     const handleSave = async () => {
-        const lbs = Number.parseFloat(weightLbs);
+        const kg = Number.parseFloat(weightKg);
         
-        if (Number.isNaN(lbs) || lbs <= 0) {
+        if (Number.isNaN(kg) || kg <= 0) {
             toast.error("Please enter a valid weight");
             return;
         }
         
-        const weightKgValue = lbsToKg(lbs);
-        await onSave(weightKgValue);
+        await onSave(kg);
     };
 
     return (
@@ -54,17 +49,17 @@ export function WeightEditDialog({
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <label htmlFor="weight-lbs" className="typo-body-2 text-foreground">
-                            Weight (lbs)
+                        <label htmlFor="weight-kg" className="typo-body-2 text-foreground">
+                            Weight (kg)
                         </label>
                         <Input
-                            id="weight-lbs"
+                            id="weight-kg"
                             type="number"
                             min="0"
                             step="0.1"
-                            value={weightLbs}
-                            onChange={(e) => setWeightLbs(e.target.value)}
-                            placeholder="170.8"
+                            value={weightKg}
+                            onChange={(e) => setWeightKg(e.target.value)}
+                            placeholder="77.5"
                         />
                     </div>
                 </div>

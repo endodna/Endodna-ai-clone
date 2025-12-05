@@ -268,6 +268,25 @@ interface PatientDetail {
         bmi?: number | null;
         age?: number | null;
         prefilledData?: Record<string, any> | null;
+        clinicalData?: {
+            shbgLevel?: number;
+            baselineTotalTestosterone?: number;
+            baselineFreeTestosterone?: number;
+            postInsertionTotalTestosterone?: number;
+            insertionDate?: string;
+            baselineEstradiol?: number;
+            postInsertionEstradiol?: number;
+            vitaminDLevel?: number;
+            hematocrit?: number;
+            currentPSA?: number;
+            previousPSA?: number;
+            monthsBetweenPSA?: number;
+            prostateSymptomsIpss?: number;
+            fshLevel?: number;
+            symptomSeverity?: number;
+        } | null;
+        lifestyleData?: Record<string, any> | null;
+        medicationsData?: Record<string, any> | null;
     } | null;
     patientDNAResults: Array<{
         uuid: string;

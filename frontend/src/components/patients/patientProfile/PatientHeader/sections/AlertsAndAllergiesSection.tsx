@@ -27,7 +27,7 @@ export function AlertsAndAllergiesSection({
             <CollapsibleTrigger asChild>
                 <Button
                     variant="ghost"
-                    className="flex w-full items-center justify-between rounded-b-3xl bg-primary-brand-teal-2/5 px-4 py-4 text-left typo-body-2 text-bg-teal-gradient transition data-[state=open]:hidden P-4 md:p-6 hover:text-primary-brand-teal-1"
+                    className="flex w-full items-center justify-between rounded-b-3xl bg-amber/10 px-4 py-4 text-left typo-body-2 text-amber transition data-[state=open]:hidden P-4 md:p-6 hover:text-primary-brand-teal-1"
                 >
                     <span>Alerts &amp; Allergies</span>
                     <span>Show</span>
@@ -53,7 +53,7 @@ export function AlertsAndAllergiesSection({
                             {alerts.map((alert) => (
                                 <p
                                     key={alert.uuid || alert.id}
-                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
+                                    className="pb-1 typo-body-1 typo-body-1-regular text-amber md:pb-2"
                                 >
                                     {alert.description}
                                 </p>

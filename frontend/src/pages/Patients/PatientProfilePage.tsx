@@ -8,6 +8,9 @@ import { SummaryTab } from "@/components/patients/patientProfile/tabs/SummaryTab
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useGetPatientById } from "@/hooks/useDoctor";
 import { DosingCalculatorTab } from "@/components/patients/patientProfile/tabs/DosingCalculatorTab";
+import { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { resetDosingCalculator } from "@/store/features/dosing";
 
 interface TabProps {
   patientId?: string;
@@ -26,10 +29,18 @@ export default function PatientProfilePage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
   const { data: patientResponse } = useGetPatientById(patientId ?? "", {
     enabled: Boolean(patientId),
   });
   const patient = patientResponse?.data ?? null;
+
+  // Reset dosing calculator when patient ID changes
+  useEffect(() => {
+    if (patientId) {
+      dispatch(resetDosingCalculator());
+    }
+  }, [patientId, dispatch]);
 
   const defaultTabId = TABS[0]?.id ?? "summary";
   const tabFromUrl = searchParams.get("tab");
