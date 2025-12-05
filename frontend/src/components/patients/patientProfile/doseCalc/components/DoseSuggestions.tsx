@@ -81,8 +81,8 @@ function TierCard({
         <Card
             onClick={handleSelect}
             className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
-                    ? "border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-                    : "border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70"
+                ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+                : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
                 }`}
         >
             <CardHeader className="py-2 px-2 md:px-4">

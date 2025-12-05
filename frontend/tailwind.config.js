@@ -46,6 +46,7 @@ export default {
         "primary-brand-teal-1": "hsl(var(--primary-brand-teal-1))",
         "primary-brand-teal-2": "hsl(var(--primary-brand-teal-2))",
         "secondary-background": "hsl(var(--secondary-background))",
+        amber: "hsl(var(--amber))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
