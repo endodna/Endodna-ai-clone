@@ -547,6 +547,7 @@ export const savePatientDosageSchema = z.object({
     unit: z.string().min(1, "Unit is required"),
     frequency: z.string().min(1, "Frequency is required"),
     purpose: z.string().min(1, "Purpose is required"),
+    isSuggested: z.boolean().optional().default(false),
   })).optional()
 }).strict();
 

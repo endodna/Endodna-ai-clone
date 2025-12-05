@@ -4532,7 +4532,6 @@ The BiosAI Team`,
         },
       });
 
-
       const estradiolTier = ESTRADIOL?.tier ? ESTRADIOL?.tier : null;
       let estradiolDosingSuggestions: EstradiolDosingSuggestionsResponse | undefined;
 
@@ -4557,7 +4556,8 @@ The BiosAI Team`,
               dosageMg: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.finalDoseMg,
               pelletsCount: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.pelletCount,
               dosingSuggestions: estradiolDosingSuggestions
-            } : {}
+            } : {},
+            supplements: supplements?.length ? supplements : []
           }),
           isOverridden: isOverridden,
           type: T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200,
