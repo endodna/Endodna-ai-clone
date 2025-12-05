@@ -432,11 +432,19 @@ export const useUpdatePatientInfo = (
 
 export const useCalculateTestosteroneDosing = (
     options?: Omit<
-        UseMutationOptions<ApiResponse, Error, { patientId: string; pelletType: "T100" | "T200" }>,
+        UseMutationOptions<
+            ApiResponse<TestosteroneDosingSuggestionsResponse>,
+            Error,
+            { patientId: string; pelletType: "T100" | "T200" }
+        >,
         "mutationFn"
     >
 ) => {
-    return useMutation<ApiResponse, Error, { patientId: string; pelletType: "T100" | "T200" }>({
+    return useMutation<
+        ApiResponse<TestosteroneDosingSuggestionsResponse>,
+        Error,
+        { patientId: string; pelletType: "T100" | "T200" }
+    >({
         mutationFn: ({ patientId, pelletType }) =>
             doctorsApi.calculateTestosteroneDosing(patientId, pelletType),
         ...options,
@@ -444,9 +452,12 @@ export const useCalculateTestosteroneDosing = (
 };
 
 export const useCalculateEstradiolDosing = (
-    options?: Omit<UseMutationOptions<ApiResponse, Error, string>, "mutationFn">
+    options?: Omit<
+        UseMutationOptions<ApiResponse<EstradiolDosingSuggestionsResponse>, Error, string>,
+        "mutationFn"
+    >
 ) => {
-    return useMutation<ApiResponse, Error, string>({
+    return useMutation<ApiResponse<EstradiolDosingSuggestionsResponse>, Error, string>({
         mutationFn: (patientId) => doctorsApi.calculateEstradiolDosing(patientId),
         ...options,
     });
@@ -455,16 +466,11 @@ export const useCalculateEstradiolDosing = (
 export const useSaveDosingCalculation = (
     options?: Omit<
         UseMutationOptions<
-            ApiResponse,
+            ApiResponse<boolean>,
             Error,
             {
                 patientId: string;
-                data: {
-                    isOverridden?: boolean;
-                    T100?: { tier: string };
-                    T200?: { tier: string };
-                    ESTRADIOL?: { tier: string };
-                };
+                data: SaveDosingCalculationRequest;
             }
         >,
         "mutationFn"
@@ -472,20 +478,16 @@ export const useSaveDosingCalculation = (
 ) => {
     const queryClient = useQueryClient();
     return useMutation<
-        ApiResponse,
+        ApiResponse<boolean>,
         Error,
         {
             patientId: string;
-            data: {
-                isOverridden?: boolean;
-                T100?: { tier: string };
-                T200?: { tier: string };
-                ESTRADIOL?: { tier: string };
-            };
+            data: SaveDosingCalculationRequest;
         }
     >({
         mutationFn: ({ patientId, data }) => doctorsApi.saveDosingCalculation(patientId, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (_response, variables) => {
+            // Invalidate queries on successful save
             queryClient.invalidateQueries({
                 queryKey: queryKeys.doctor.dosing.history(variables.patientId),
             });

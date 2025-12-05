@@ -86,7 +86,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                 patientId,
                 data: { height: heightCmValue },
             });
-            
+
             if (response.error) {
                 toast.error(response.message || "Failed to update patient info");
             } else {
@@ -105,7 +105,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                 patientId,
                 data: { weight: weightKgValue },
             });
-            
+
             if (response.error) {
                 toast.error(response.message || "Failed to update patient info");
             } else {

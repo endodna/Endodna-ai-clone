@@ -4,9 +4,14 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatDate } from "@/utils/date.utils";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { useUpdatePatientInfo } from "@/hooks/useDoctor";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface KineticSlopeProps {
-    historyData?: PatientDosageHistoryEntry[] | null;
     patient?: PatientDetail | null;
 }
 
@@ -15,9 +20,49 @@ interface KineticSlopeContentProps {
 }
 
 function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
-    const { selectedDose, insertionDate } = useAppSelector(
+    const { selectedDose, insertionDate: insertionDateFromRedux } = useAppSelector(
         (state) => state.dosingCalculator
     );
+    const dispatch = useAppDispatch();
+    const updatePatientInfo = useUpdatePatientInfo();
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Get insertion date from patient clinicalData or Redux
+    const insertionDateFromPatient = patient?.patientInfo?.clinicalData?.insertionDate;
+    const insertionDate = insertionDateFromPatient || insertionDateFromRedux;
+    const selectedDate = insertionDate ? new Date(insertionDate) : undefined;
+
+    // Sync patient data to Redux when it changes
+    useEffect(() => {
+        if (insertionDateFromPatient) {
+            dispatch(setInsertionDate(insertionDateFromPatient));
+        }
+    }, [insertionDateFromPatient, dispatch]);
+
+    // Handle date selection
+    const handleDateSelect = async (date: Date | undefined) => {
+        if (!date || !patient?.id) return;
+
+        setIsOpen(false);
+        const dateISO = date.toISOString();
+        dispatch(setInsertionDate(dateISO));
+
+        // Save insertion date
+        try {
+            await updatePatientInfo.mutateAsync({
+                patientId: patient.id,
+                data: {
+                    clinicalData: {
+                        insertionDate: dateISO,
+                    },
+                },
+            });
+        } catch (error) {
+            console.error("Failed to save insertion date:", error);
+            // Revert on error
+            dispatch(setInsertionDate(insertionDateFromPatient || null));
+        }
+    };
 
     // Calculate estimated dates
     const {
@@ -100,15 +145,38 @@ function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
                 <p className="typo-body-2 typo-body-2-regular text-foreground">
                     Insertion date:
                 </p>
-                {insertionDate ? (
-                    <p className="typo-body-2 typo-body-2-regular text-foreground">
-                        {formatDate(insertionDate, "DD / MM / YYYY")}
-                    </p>
-                ) : (
-                    <p className="typo-body-2 typo-body-2-regular text-muted-foreground">
-                        dd / mm / aaaa
-                    </p>
-                )}
+                <Popover open={isOpen} onOpenChange={setIsOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                                "h-auto p-0 hover:bg-transparent",
+                                !insertionDate && "text-muted-foreground"
+                            )}
+                        >
+                            <div className="flex items-center gap-1.5">
+                                {insertionDate ? (
+                                    <p className="typo-body-2 typo-body-2-regular text-foreground">
+                                        {formatDate(insertionDate, "DD / MM / YYYY")}
+                                    </p>
+                                ) : (
+                                    <p className="typo-body-2 typo-body-2-regular text-muted-foreground">
+                                        dd / mm / aaaa
+                                    </p>
+                                )}
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
 
             {/* 6 Week Lab Draw */}
@@ -178,20 +246,7 @@ function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
     );
 }
 
-export function KineticSlope({ historyData, patient }: Readonly<KineticSlopeProps>) {
-    const dispatch = useAppDispatch();
-
-    // Set or clear insertion date based on history data
-    useEffect(() => {
-        if (historyData && historyData.length > 0) {
-            // Set insertion date from most recent history entry
-            const mostRecentEntry = historyData[0];
-            dispatch(setInsertionDate(mostRecentEntry.createdAt));
-        } else {
-            // Clear insertion date if no history data available
-            dispatch(setInsertionDate(null));
-        }
-    }, [historyData, dispatch]);
+export function KineticSlope({ patient }: Readonly<KineticSlopeProps>) {
 
     // Determine tabs based on patient gender
     const tabs = useMemo(() => {

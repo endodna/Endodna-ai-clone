@@ -313,10 +313,10 @@ export function OldDosingCalculatorTab({ patientId, patient }: Readonly<DosingCa
         }
 
         console.log("Saving dosing with payload:", payload, "for patient:", patient?.gender);
-        saveDosingMutation.mutate({
-            patientId,
-            data: payload,
-        });
+        // saveDosingMutation.mutate({
+        //     patientId,
+        //     data: payload,
+        // });
     };
 
     // Transform history data to match HistoryEntry format

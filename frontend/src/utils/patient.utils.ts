@@ -28,15 +28,14 @@ export function cmToFeetInches(heightCm: number | null | undefined): { feet: num
 }
 
 /**
- * Formats height as "X ft Y.Y in"
+ * Formats height as "X cm"
  * @param heightCm - Height in centimeters
  * @returns Formatted string or null
  */
 export function formatHeight(heightCm: number | null | undefined): string | null {
-  const converted = cmToFeetInches(heightCm);
-  if (!converted) return null;
+  if (!heightCm || heightCm <= 0) return null;
 
-  return `${converted.feet} ft ${converted.inches} in`;
+  return `${heightCm} cm`;
 }
 
 /**
@@ -63,15 +62,14 @@ export function kgToLbs(weightKg: number | null | undefined): number | null {
 }
 
 /**
- * Formats weight as "X.X lbs"
+ * Formats weight as "X.X kg"
  * @param weightKg - Weight in kilograms
  * @returns Formatted string or null
  */
 export function formatWeight(weightKg: number | null | undefined): string | null {
-  const lbs = kgToLbs(weightKg);
-  if (lbs === null) return null;
+  if (!weightKg || weightKg <= 0) return null;
 
-  return `${lbs} lbs`;
+  return `${weightKg} kg`;
 }
 
 /**

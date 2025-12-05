@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedDose } from "@/store/features/dosing";
 
@@ -15,6 +17,43 @@ interface TierData {
 interface HormoneSuggestions {
     base: Record<string, TierData> | null;
     modified: Record<string, TierData> | null;
+}
+
+
+interface TierCardProps {
+    tier: string;
+    dosageMg: number;
+    pelletsCount: number;
+    hormoneType: "testosterone" | "estradiol";
+    tierType: "base" | "modified";
+    isSelected?: boolean;
+}
+
+interface TierSectionProps {
+    title: string;
+    suggestions: Record<string, TierData> | null;
+    hormoneType: "testosterone" | "estradiol";
+    tierType: "base" | "modified";
+}
+
+interface HormoneSectionProps {
+    title: string;
+    suggestions: HormoneSuggestions;
+    hormoneType: "testosterone" | "estradiol";
+    isEditMode: boolean;
+    onToggleEditMode: () => void;
+    onSelectTier: () => void;
+}
+
+interface HormoneSummaryRowProps {
+    hormoneType: "testosterone" | "estradiol";
+    selectedDose: {
+        tier: string;
+        tierType: "base" | "modified";
+        dosageMg: number;
+        pelletsCount: number;
+    };
+    onEdit: () => void;
 }
 
 // Runtime constants matching DosageTier enum values
@@ -39,22 +78,6 @@ const TIER_ORDER: string[] = [
     DOSAGE_TIER.HIGH_PERFORMANCE,
 ];
 
-interface TierCardProps {
-    tier: string;
-    dosageMg: number;
-    pelletsCount: number;
-    hormoneType: "testosterone" | "estradiol";
-    tierType: "base" | "modified";
-    isSelected?: boolean;
-}
-
-interface TierSectionProps {
-    title: string;
-    suggestions: Record<string, TierData> | null;
-    hormoneType: "testosterone" | "estradiol";
-    tierType: "base" | "modified";
-}
-
 function TierCard({
     tier,
     dosageMg,
@@ -62,7 +85,8 @@ function TierCard({
     hormoneType,
     tierType,
     isSelected,
-}: Readonly<TierCardProps>) {
+    onSelect,
+}: Readonly<TierCardProps & { onSelect?: () => void }>) {
     const dispatch = useAppDispatch();
 
     const handleSelect = () => {
@@ -75,14 +99,15 @@ function TierCard({
                 pelletsCount,
             })
         );
+        onSelect?.();
     };
 
     return (
         <Card
             onClick={handleSelect}
             className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
-                    ? "border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-                    : "border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70"
+                ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+                : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
                 }`}
         >
             <CardHeader className="py-2 px-2 md:px-4">
@@ -109,7 +134,8 @@ function TierSection({
     suggestions,
     hormoneType,
     tierType,
-}: Readonly<TierSectionProps>) {
+    onSelect,
+}: Readonly<TierSectionProps & { onSelect?: () => void }>) {
     const { selectedDose } = useAppSelector((state) => state.dosingCalculator);
 
     if (!suggestions || Object.keys(suggestions).length === 0) {
@@ -136,6 +162,7 @@ function TierSection({
                             hormoneType={hormoneType}
                             tierType={tierType}
                             isSelected={isSelected}
+                            onSelect={onSelect}
                         />
                     );
                 })}
@@ -144,17 +171,46 @@ function TierSection({
     );
 }
 
-interface HormoneSectionProps {
-    title: string;
-    suggestions: HormoneSuggestions;
-    hormoneType: "testosterone" | "estradiol";
+function HormoneSummaryRow({
+    hormoneType,
+    selectedDose,
+    onEdit,
+}: Readonly<HormoneSummaryRowProps>) {
+    const tierLabel = TIER_LABELS[selectedDose.tier] || selectedDose.tier;
+    const tierTypeLabel = selectedDose.tierType === "base" ? "Base Tier" : "Modified Tier";
+
+    return (
+        <div className="flex items-center justify-between py-3 border-b border-muted-foreground/30">
+            <div className="flex items-center gap-3 flex-1">
+                <Checkbox checked={true} className="rounded" />
+                <span className="typo-body-2 text-foreground capitalize">
+                    {hormoneType}
+                </span>
+                <span className="typo-body-2 text-muted-foreground">
+                    {tierTypeLabel} – {tierLabel} | {selectedDose.dosageMg} mg | {selectedDose.pelletsCount} Pellets
+                </span>
+            </div>
+            <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                onClick={onEdit}
+            >
+                EDIT
+            </Button>
+        </div>
+    );
 }
 
 function HormoneSection({
     title,
     suggestions,
     hormoneType,
+    isEditMode,
+    onToggleEditMode,
+    onSelectTier,
 }: Readonly<HormoneSectionProps>) {
+    const { selectedDose } = useAppSelector((state) => state.dosingCalculator);
     const hasBaseTiers = suggestions.base && Object.keys(suggestions.base).length > 0;
     const hasModifiedTiers = suggestions.modified && Object.keys(suggestions.modified).length > 0;
 
@@ -162,27 +218,47 @@ function HormoneSection({
         return null;
     }
 
+    const isSelected = selectedDose?.hormoneType === hormoneType;
+    const showSummary = isSelected && !isEditMode;
+
     return (
         <div className="space-y-6">
-            <h4 className="typo-body-2-regular text-muted-foreground">{title}</h4>
-            <div className="space-y-6">
-                {hasBaseTiers && (
-                    <TierSection
-                        title="Base tiers"
-                        suggestions={suggestions.base}
-                        hormoneType={hormoneType}
-                        tierType="base"
-                    />
-                )}
-                {hasModifiedTiers && (
-                    <TierSection
-                        title="Modified tiers"
-                        suggestions={suggestions.modified}
-                        hormoneType={hormoneType}
-                        tierType="modified"
-                    />
-                )}
-            </div>
+            {showSummary ? (
+                <HormoneSummaryRow
+                    hormoneType={hormoneType}
+                    selectedDose={{
+                        tier: selectedDose.tier,
+                        tierType: selectedDose.tierType,
+                        dosageMg: selectedDose.dosageMg,
+                        pelletsCount: selectedDose.pelletsCount,
+                    }}
+                    onEdit={onToggleEditMode}
+                />
+            ) : (
+                <>
+                    <h4 className="typo-body-2-regular text-muted-foreground">{title}</h4>
+                    <div className="space-y-6">
+                        {hasBaseTiers && (
+                            <TierSection
+                                title="Base tiers"
+                                suggestions={suggestions.base}
+                                hormoneType={hormoneType}
+                                tierType="base"
+                                onSelect={onSelectTier}
+                            />
+                        )}
+                        {hasModifiedTiers && (
+                            <TierSection
+                                title="Modified tiers"
+                                suggestions={suggestions.modified}
+                                hormoneType={hormoneType}
+                                tierType="modified"
+                                onSelect={onSelectTier}
+                            />
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 }
@@ -190,6 +266,7 @@ function HormoneSection({
 export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>) {
     const dispatch = useAppDispatch();
     const { selectedDose } = useAppSelector((state) => state.dosingCalculator);
+    const [editModeHormones, setEditModeHormones] = useState<Set<string>>(new Set());
 
     const { testosteroneSuggestions, estradiolSuggestions } = useMemo(() => {
         if (!historyData || !Array.isArray(historyData) || historyData.length === 0) {
@@ -338,6 +415,22 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
                         title="Testosterone"
                         suggestions={testosteroneSuggestions}
                         hormoneType="testosterone"
+                        isEditMode={editModeHormones.has("testosterone")}
+                        onToggleEditMode={() => {
+                            const newSet = new Set(editModeHormones);
+                            if (newSet.has("testosterone")) {
+                                newSet.delete("testosterone");
+                            } else {
+                                newSet.add("testosterone");
+                            }
+                            setEditModeHormones(newSet);
+                        }}
+                        onSelectTier={() => {
+                            // Exit edit mode when a tier is selected
+                            const newSet = new Set(editModeHormones);
+                            newSet.delete("testosterone");
+                            setEditModeHormones(newSet);
+                        }}
                     />
                 )}
 
@@ -348,6 +441,22 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
                         title="Estradiol"
                         suggestions={estradiolSuggestions}
                         hormoneType="estradiol"
+                        isEditMode={editModeHormones.has("estradiol")}
+                        onToggleEditMode={() => {
+                            const newSet = new Set(editModeHormones);
+                            if (newSet.has("estradiol")) {
+                                newSet.delete("estradiol");
+                            } else {
+                                newSet.add("estradiol");
+                            }
+                            setEditModeHormones(newSet);
+                        }}
+                        onSelectTier={() => {
+                            // Exit edit mode when a tier is selected
+                            const newSet = new Set(editModeHormones);
+                            newSet.delete("estradiol");
+                            setEditModeHormones(newSet);
+                        }}
                     />
                 )}
         </div>

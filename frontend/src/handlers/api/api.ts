@@ -960,15 +960,15 @@ export const doctorsApi = {
   calculateTestosteroneDosing: async (
     patientId: string,
     pelletType: "T100" | "T200"
-  ): Promise<ApiResponse> => {
+  ): Promise<ApiResponse<TestosteroneDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE, patientId),
         { pelletType }
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {
@@ -979,14 +979,14 @@ export const doctorsApi = {
     }
   },
 
-  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse> => {
+  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<EstradiolDosingSuggestionsResponse>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL, patientId)
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {
@@ -999,21 +999,16 @@ export const doctorsApi = {
 
   saveDosingCalculation: async (
     patientId: string,
-    data: {
-      isOverridden?: boolean;
-      T100?: { tier: string };
-      T200?: { tier: string };
-      ESTRADIOL?: { tier: string };
-    }
-  ): Promise<ApiResponse> => {
+    data: SaveDosingCalculationRequest
+  ): Promise<ApiResponse<boolean>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<boolean>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.SAVE, patientId),
         data
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<boolean>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {
