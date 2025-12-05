@@ -999,21 +999,16 @@ export const doctorsApi = {
 
   saveDosingCalculation: async (
     patientId: string,
-    data: {
-      isOverridden?: boolean;
-      T100?: { tier: string };
-      T200?: { tier: string };
-      ESTRADIOL?: { tier: string };
-    }
-  ): Promise<ApiResponse> => {
+    data: SaveDosingCalculationRequest
+  ): Promise<ApiResponse<boolean>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<boolean>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.SAVE, patientId),
         data
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<boolean>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {

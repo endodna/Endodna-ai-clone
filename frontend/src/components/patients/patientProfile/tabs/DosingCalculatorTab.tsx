@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import { useGetDosingHistory } from "@/hooks/useDoctor";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Lock } from "lucide-react";
 import { Calculator } from "../doseCalc/components/Calculator";
 import { DoseSuggestions } from "../doseCalc/components/DoseSuggestions";
 import { TreatmentPlan } from "../doseCalc/components/TreatmentPlan";
@@ -11,6 +13,7 @@ interface DosingCalculatorTabProps {
 }
 
 export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalculatorTabProps>) {
+    const [showDoseSuggestions, setShowDoseSuggestions] = useState(true);
     const {
         data: historyResponse,
         isLoading,
@@ -52,7 +55,32 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
         <div className="rounded-lg bg-primary-foreground p-4 md:p-6 space-y-4 md:space-y-6 w-full">
             <Calculator patient={patient} />
             <TreatmentPlan historyData={historyResponse?.data ?? null} />
-            <DoseSuggestions historyData={historyResponse?.data ?? null} />
+
+            {/* Action Buttons */}
+            <div className="flex flex-row gap-3 justify-end">
+                <Button
+                    variant="outline"
+                    className="w-full sm:w-auto rounded-lg"
+                >
+                    Update patient's lab data
+                </Button>
+                <Button
+                    variant={showDoseSuggestions ? "secondary" : "outline"}
+                    className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
+                            ? "bg-muted text-muted-foreground opacity-60"
+                            : ""
+                        }`}
+                    onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
+                >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Override & Calculate Dose
+                </Button>
+            </div>
+
+            {/* Conditionally render DoseSuggestions */}
+            {showDoseSuggestions && (
+                <DoseSuggestions historyData={historyResponse?.data ?? null} />
+            )}
         </div>
     );
 }

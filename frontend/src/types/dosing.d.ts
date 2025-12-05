@@ -75,3 +75,32 @@ type TestosteroneDosingSuggestionsResponse = Record<DosageTier, Record<string, u
  * Estradiol Dosing Suggestions Response
  */
 type EstradiolDosingSuggestionsResponse = Record<DosageTier, Record<string, unknown>>;
+
+/**
+ * Supplement data structure for save dosing calculation
+ */
+interface SaveDosingSupplement {
+    drugName: string;
+    dosage: string;
+    unit: string;
+    frequency: string;
+    purpose: string;
+    isSuggested?: boolean;
+}
+
+/**
+ * Save Dosing Calculation Request
+ */
+interface SaveDosingCalculationRequest {
+    isOverridden?: boolean;
+    T100?: {
+        tier: DosageTier;
+    };
+    T200?: {
+        tier: DosageTier;
+    };
+    ESTRADIOL?: {
+        tier: DosageTier;
+    };
+    supplements?: SaveDosingSupplement[];
+}
