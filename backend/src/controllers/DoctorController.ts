@@ -4227,7 +4227,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.MALE && pelletType === PelletType.T100) {
+      if (user.gender.toUpperCase() !== Gender.MALE && pelletType == PelletType.T100) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4250,30 +4250,30 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          hematocrit: clinicalData?.hematocrit,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
         },
         lifeStyleFactors: {
-          smokingStatus: lifeStyleFactors.smokingStatus,
-          exerciseLevel: lifeStyleFactors.exerciseLevel,
+          smokingStatus: lifeStyleFactors?.smokingStatus,
+          exerciseLevel: lifeStyleFactors?.exerciseLevel,
         },
         medications: {
-          opiods: medicationsData.opiods,
-          opiodsList: medicationsData.opiodsList,
-          adhdStimulants: medicationsData.adhdStimulants,
-          adhdStimulantsList: medicationsData.adhdStimulantsList,
-          otherMedicationsList: medicationsData.otherMedicationsList,
+          opiods: medicationsData?.opiods,
+          opiodsList: medicationsData?.opiodsList,
+          adhdStimulants: medicationsData?.adhdStimulants,
+          adhdStimulantsList: medicationsData?.adhdStimulantsList,
+          otherMedicationsList: medicationsData?.otherMedicationsList,
         },
         geneticData: {
 
@@ -4339,7 +4339,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.FEMALE) {
+      if (user.gender.toUpperCase() !== Gender.FEMALE) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4359,19 +4359,19 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          hematocrit: clinicalData?.hematocrit,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
         },
         tier: DosageTier.STANDARD,
         geneticData: {
@@ -4449,7 +4449,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.MALE && T100?.tier) {
+      if (user.gender.toUpperCase() !== Gender.MALE && T100?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4457,7 +4457,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.FEMALE && ESTRADIOL?.tier) {
+      if (user.gender.toUpperCase() !== Gender.FEMALE && ESTRADIOL?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4465,7 +4465,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender === Gender.MALE && T100?.tier && T200?.tier) {
+      if (user.gender.toUpperCase() === Gender.MALE && T100?.tier && T200?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4488,30 +4488,30 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          hematocrit: clinicalData?.hematocrit,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
         },
         lifeStyleFactors: {
-          smokingStatus: lifeStyleFactors.smokingStatus,
-          exerciseLevel: lifeStyleFactors.exerciseLevel,
+          smokingStatus: lifeStyleFactors?.smokingStatus,
+          exerciseLevel: lifeStyleFactors?.exerciseLevel,
         },
         medications: {
-          opiods: medicationsData.opiods,
-          opiodsList: medicationsData.opiodsList,
-          adhdStimulants: medicationsData.adhdStimulants,
-          adhdStimulantsList: medicationsData.adhdStimulantsList,
-          otherMedicationsList: medicationsData.otherMedicationsList,
+          opiods: medicationsData?.opiods,
+          opiodsList: medicationsData?.opiodsList,
+          adhdStimulants: medicationsData?.adhdStimulants,
+          adhdStimulantsList: medicationsData?.adhdStimulantsList,
+          otherMedicationsList: medicationsData?.otherMedicationsList,
         },
         geneticData: {
 
