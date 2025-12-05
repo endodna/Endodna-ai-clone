@@ -960,15 +960,15 @@ export const doctorsApi = {
   calculateTestosteroneDosing: async (
     patientId: string,
     pelletType: "T100" | "T200"
-  ): Promise<ApiResponse> => {
+  ): Promise<ApiResponse<TestosteroneDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE, patientId),
         { pelletType }
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {
@@ -979,14 +979,14 @@ export const doctorsApi = {
     }
   },
 
-  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse> => {
+  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<EstradiolDosingSuggestionsResponse>>(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL, patientId)
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+      if (isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) && error.response?.data) {
         return error.response.data;
       }
       return {

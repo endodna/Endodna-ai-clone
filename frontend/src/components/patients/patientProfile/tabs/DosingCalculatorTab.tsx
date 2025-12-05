@@ -50,7 +50,7 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
 
     return (
         <div className="rounded-lg bg-primary-foreground p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-            <Calculator historyData={historyResponse?.data ?? null} patient={patient} />
+            <Calculator patient={patient} />
             <TreatmentPlan historyData={historyResponse?.data ?? null} />
             <DoseSuggestions historyData={historyResponse?.data ?? null} />
         </div>

@@ -15,6 +15,11 @@ enum DosageHistoryType {
   ESTRADIOL = "ESTRADIOL",
 }
 
+enum PelletType {
+  T100 = "T100",
+  T200 = "T200",
+}
+
 /**
  * Dosing tier data structure from API response
  */
@@ -60,3 +65,13 @@ interface PatientDosageHistoryEntry {
  * API response for getDosingHistory endpoint
  */
 type DosingHistoryResponse = PatientDosageHistoryEntry[];
+
+/**
+ * Testosterone Dosing Suggestions Response
+ */
+type TestosteroneDosingSuggestionsResponse = Record<DosageTier, Record<string, unknown>>;
+
+/**
+ * Estradiol Dosing Suggestions Response
+ */
+type EstradiolDosingSuggestionsResponse = Record<DosageTier, Record<string, unknown>>;
