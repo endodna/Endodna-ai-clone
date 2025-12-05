@@ -1041,6 +1041,52 @@ export const doctorsApi = {
       };
     }
   },
+
+  // Health Goal APIs
+  getPatientGoals: async (patientId: string): Promise<ApiResponse<{ goals: PatientGoal[] }>> => {
+    try {
+      const response = await apiClient.get(getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId));
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to fetch patient goals",
+      };
+    }
+  },
+
+  createPatientGoal: async (patientId: string, payload: { description: string, notes?: string }) => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to create goal",
+      };
+    }
+  },
+
+  updatePatientGoal: async (patientId: string, goalId: string, payload: { description: string,notes?:string }) => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL, patientId, goalId),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to update goal",
+      };
+    }
+  },
 };
 
 export const api = {

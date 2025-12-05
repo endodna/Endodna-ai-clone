@@ -169,9 +169,9 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                             />
 
                             <HealthGoalsSection
-                                goals={patient.patientGoals}
                                 onAddGoal={() => handleOpenGoalDialog()}
                                 onEditGoal={handleOpenGoalDialog}
+                                patientId={patientId}
                             />
 
                             <AlertsAndAllergiesSection
@@ -208,6 +208,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
             />
 
             <GoalEditDialog
+                patientId={patientId ?? ""}
                 open={goalDialogOpen}
                 onOpenChange={setGoalDialogOpen}
                 goal={editingGoal}

@@ -54,6 +54,9 @@ export const API_ENDPOINTS = {
         SAVE: (id: string) => `/doctor/patients/${id}/dosing`,
         GET_HISTORY: (id: string) => `/doctor/patients/${id}/dosing`,
       },
+      GOALS: (id: string) => `/doctor/patients/${id}/goals`,
+      GOALS_DETAIL: (patientId: string, goalId: string) =>
+        `/doctor/patients/${patientId}/goals/${goalId}`,
     },
     REPORTS: {
       LIST: "/doctor/reports",

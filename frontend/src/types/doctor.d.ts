@@ -367,3 +367,26 @@ interface SendChatMessageResponse {
     followUpPrompts?: string[];
     citations?: Array<{ id: string; title: string | null }>;
 }
+
+interface PatientGoal {
+  uuid: string;
+  id?: string;
+  description: string;
+}
+
+interface CreatePatientHealthGoalsVariables {
+    patientId: string;
+    data: {
+        description: string;
+        notes?: string;
+    };
+}
+
+interface UpdatePatientHealthGoalsVariables {
+    patientId: string;
+    goalId: string;
+    data: {
+        description: string;
+        notes?: string;
+    };
+}
