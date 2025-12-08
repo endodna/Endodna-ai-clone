@@ -20,25 +20,25 @@ export async function seedReports(prisma: PrismaClient) {
 
     for (const reportData of reports) {
         try {
-            const categoryName = reportData.category_name;
+            const reportName = reportData.name;
 
             const existingReport = await prisma.report.findFirst({
                 where: {
-                    title: categoryName,
+                    title: reportName,
                     organizationId: organizationId,
                     deletedAt: null,
                 },
             });
 
             if (existingReport) {
-                console.log(`Report "${categoryName}" already exists, skipping...`);
+                console.log(`Report "${reportName}" already exists, skipping...`);
                 skippedCount++;
                 continue;
             }
 
             reportsToCreate.push(reportData);
         } catch (error) {
-            console.error(`Error checking report "${reportData.category_name}":`, error);
+            console.error(`Error checking report "${reportData.name}":`, error);
             errorCount++;
         }
     }
@@ -58,16 +58,16 @@ export async function seedReports(prisma: PrismaClient) {
         await prisma.$transaction(
             async (tx) => {
                 for (const reportData of reportsToCreate) {
-                    const categoryName = reportData.category_name;
-                    const code = generateCodeFromTitle(categoryName);
+                    const reportName = reportData.name;
+                    const code = generateCodeFromTitle(reportName);
 
                     const report = await tx.report.create({
                         data: {
                             organizationId: organizationId,
                             code: code,
-                            title: categoryName,
+                            title: reportName,
                             description: null,
-                            genders: [reportData.gender],
+                            genders: reportData.genders,
                             price: new Prisma.Decimal(0),
                             metadata: Prisma.JsonNull,
                         },

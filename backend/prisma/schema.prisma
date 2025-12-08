@@ -352,7 +352,7 @@ model PatientGoal {
   patientId      String
   patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   description    String
-  targetDate     DateTime
+  targetDate     DateTime?
   allergies      Int[]
   medications    Int[]
   problems       Int[]
@@ -824,32 +824,46 @@ model Report {
   patientDNAResultKits PatientDNAResultKit[]
   patientReports       PatientReport[]
   reportVersions       ReportVersion[]
+  reportCategories     ReportCategory[]
+}
+
+model ReportCategory {
+  id                 String              @id @default(uuid())
+  name               String
+  reportId           String
+  report             Report              @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+  reportVersion      ReportVersion?      @relation(fields: [reportVersionId], references: [id])
+  reportVersionId    String?
+  reportCategorySNPs ReportCategorySNP[]
 }
 
 model ReportVersion {
-  id             String          @id @default(uuid())
-  reportId       String
-  report         Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  version        Int
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  deletedAt      DateTime?
-  reportSNPs     ReportSNP[]
-  patientReports PatientReport[]
+  id               String           @id @default(uuid())
+  reportId         String
+  report           Report           @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  version          Int
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+  reportCategories ReportCategory[]
+  patientReports   PatientReport[]
 }
 
-model ReportSNP {
-  id              String        @id @default(uuid())
-  reportVersionId String
-  reportVersion   ReportVersion @relation(fields: [reportVersionId], references: [id], onDelete: Cascade)
-  rsID            String
-  pathogenicity   String
-  genotype        String
-  sources         String[]
-  description     String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
+model ReportCategorySNP {
+  id               String         @id @default(uuid())
+  reportCategoryId String
+  reportCategory   ReportCategory @relation(fields: [reportCategoryId], references: [id], onDelete: Cascade)
+  rsID             String
+  pathogenicity    String
+  genotype         String
+  sources          String[]
+  description      String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
 }
 
 model PatientReport {
