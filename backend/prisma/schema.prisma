@@ -422,6 +422,21 @@ model PatientMedicalRecordChunk {
   @@index([patientMedicalRecordId])
 }
 
+model MasterSNP {
+  id              Int    @id @unique @default(autoincrement())
+  rsId            String
+  geneName        String
+  geneSummary     String
+  chromosome      Int
+  position_GRCh38 Int
+  referenceAllele String
+  altAllele       String
+
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  patientDNAResultBreakdowns PatientDNAResultBreakdown[]
+}
+
 model PatientDNAResultKit {
   id                        Int                         @id @unique @default(autoincrement())
   uuid                      String                      @unique @default(uuid())
@@ -456,6 +471,8 @@ model PatientDNAResultBreakdown {
   referenceAllele    String
   alternateAllele    String
   genotype           String?
+  masterSNPId        Int?
+  masterSNP          MasterSNP?          @relation(fields: [masterSNPId], references: [id], onDelete: Cascade)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }

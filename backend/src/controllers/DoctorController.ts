@@ -1,7 +1,7 @@
 
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
-import { AuthenticatedRequest, StatusCode } from "../types";
+import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticVariantResponse, StatusCode } from "../types";
 import { logger } from "../helpers/logger.helper";
 import {
   CreatePatientActiveMedicationSchema,
@@ -1423,6 +1423,171 @@ class DoctorController {
         method: "getPatientDNAAnalysis.Doctor",
         error: err,
       });
+    }
+  }
+
+  public static async getPatientGeneticReports(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as { patientId: string };
+      const { organizationId } = req.user!;
+      const patient = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!patient) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const response: PatientGeneticReportResponse = {
+        reports: [],
+        variantsCount: {
+          total: 0,
+          benign: 0,
+          likelyBenign: 0,
+          vus: 0,
+          likelyImpactful: 0,
+          impactful: 0,
+        },
+      };
+
+      const patientDNAResults = await prisma.patientDNAResultKit.findFirst({
+        where: {
+          patientId,
+          organizationId,
+          deletedAt: null,
+          isProcessed: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          patientDNAResultBreakdown: {
+            select: {
+              snpName: true,
+              genotype: true,
+            },
+          }
+        }
+      });
+
+      if (!patientDNAResults) {
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: response,
+          message: "Patient DNA results not found",
+        });
+      }
+
+      const patientReports = await prisma.patientReport.findMany({
+        where: {
+          patientId,
+          organizationId,
+          deletedAt: null,
+        },
+        include: {
+          report: {
+            select: {
+              id: true,
+              title: true,
+            },
+          }
+        }
+      });
+
+      if (!patientReports.length) {
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: response,
+          message: "Patient reports not found",
+        });
+      }
+
+      for (const patientReport of patientReports) {
+        const reportResponse: PatientGeneticReport = {
+          reportName: patientReport.report.title,
+          categories: [],
+        };
+        const reportCategories = await prisma.reportCategory.findMany({
+          where: {
+            reportId: patientReport.reportId,
+          },
+          select: {
+            id: true,
+            name: true,
+            reportCategorySNPs: {
+              select: {
+                id: true,
+                rsID: true,
+                genotype: true,
+                pathogenicity: true,
+              },
+            }
+          }
+        });
+
+        for (const category of reportCategories) {
+          const categorySnps = new Set();
+          for (const snp of category.reportCategorySNPs) {
+            categorySnps.add(snp.rsID);
+          }
+          let patientPathogenicity = "";
+          for (const snp of categorySnps) {
+            const patientDNASNP = patientDNAResults.patientDNAResultBreakdown.find((s) => s.snpName === snp);
+            if (!patientDNASNP) {
+              continue;
+            }
+            patientPathogenicity = category.reportCategorySNPs.find((s) => s.rsID === patientDNASNP.snpName)?.pathogenicity || "";
+            response.variantsCount.total++;
+            if (patientPathogenicity === "benign") {
+              response.variantsCount.benign++;
+            } else if (patientPathogenicity === "likely benign") {
+              response.variantsCount.likelyBenign++;
+            } else if (patientPathogenicity === "vus") {
+              response.variantsCount.vus++;
+            } else if (patientPathogenicity === "likely impactful") {
+              response.variantsCount.likelyImpactful++;
+            } else if (patientPathogenicity === "impactful") {
+              response.variantsCount.impactful++;
+            }
+            else {
+              response.variantsCount.total--;
+            }
+          }
+          reportResponse.categories.push({
+            categoryName: category.name,
+            variantStatus: patientPathogenicity || "",
+          });
+        }
+        response.reports.push(reportResponse);
+      }
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: response,
+        message: "Patient genetic reports fetched successfully",
+      });
+    }
+    catch (err) {
+      logger.error("Get patient genetic reports failed", {
+        traceId: req.traceId,
+        method: "getPatientGeneticReports.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get patient genetic reports",
+      }, req);
     }
   }
 

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { seedReports } from "./seeds/seedReports";
+import { seedMasterSNPs } from "./seeds/seedMasterSNPs";
 
 const prisma = new PrismaClient();
 
@@ -7,7 +8,10 @@ async function main() {
     console.log("Starting database seeding...\n");
 
     try {
-        await seedReports(prisma);
+        await Promise.all([
+            seedMasterSNPs(prisma),
+            seedReports(prisma)
+        ]);
         console.log("\nDatabase seeding completed!");
     } catch (error) {
         console.error("Error during seeding:", error);

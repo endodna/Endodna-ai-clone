@@ -31,7 +31,7 @@ import {
   dnaKitResultIdParamsSchema,
   updatePatientGeneticsStatusSchema,
   getReportsSchema,
-  createReportSchema,
+  // createReportSchema,
   updateReportSchema,
   reportIdParamsSchema,
   calculatePatientTestosteroneDosingSuggestionsSchema,
@@ -119,6 +119,11 @@ doctorRouter.get(
   "/patients/:patientId/genetics",
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientGenetics,
+);
+doctorRouter.get(
+  "/patients/:patientId/genetics/reports",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientGeneticReports,
 );
 doctorRouter.post(
   "/patients/:patientId/lab-orders",
@@ -273,22 +278,22 @@ doctorRouter.get(
   validateQuery(getReportsSchema),
   DoctorController.getReports,
 );
-doctorRouter.post(
-  "/reports",
-  validate(createReportSchema),
-  DoctorController.createReport,
-);
+// doctorRouter.post(
+//   "/reports",
+//   validate(createReportSchema),
+//   DoctorController.createReport,
+// );
 doctorRouter.put(
   "/reports/:reportId",
   validateParams(reportIdParamsSchema),
   validate(updateReportSchema),
   DoctorController.updateReport,
 );
-doctorRouter.delete(
-  "/reports/:reportId",
-  validateParams(reportIdParamsSchema),
-  DoctorController.deleteReport,
-);
+// doctorRouter.delete(
+//   "/reports/:reportId",
+//   validateParams(reportIdParamsSchema),
+//   DoctorController.deleteReport,
+// );
 
 // Dosing Routes
 doctorRouter.post(
@@ -339,4 +344,5 @@ doctorRouter.put(
   validate(updatePatientGoalSchema),
   DoctorController.updatePatientGoal,
 );
+
 export default doctorRouter;
