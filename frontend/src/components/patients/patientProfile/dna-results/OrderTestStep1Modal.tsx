@@ -20,6 +20,7 @@ import { formatOrderTypeDisplay, requiresAddress } from "@/utils/orderType.utils
 import { Step1Data } from '../tabs/DnaResultsTab';
 import { AddPatientAddressModal } from "@/components/patients/patientProfile/AddPatientAddressModal";
 import { Plus, AlertCircle } from "lucide-react";
+import AddReportModal from "./AddReportModal";
 
 type OrderTestStep1ModalProps = {
     open: boolean;
@@ -47,6 +48,7 @@ export const OrderTestStep1Modal = ({
     const [selectedReportId, setSelectedReportId] = useState<string>("");
     const [selectedAddressId, setSelectedAddressId] = useState<string>("");
     const [showAddressModal, setShowAddressModal] = useState(false);
+    const [showAddReportModal, setShowAddReportModal] = useState(false);
 
     const {
         data: reportsResponse,
@@ -323,8 +325,20 @@ export const OrderTestStep1Modal = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="typo-body-2 ">Select Report *</Label>
+                        <div className="flex items-center justify-between">
+                            <Label className="typo-body-2">Select Report *</Label>
+                            <Button
+                            size="sm"
+                            onClick={() => setShowAddReportModal(true)}
+                            >
+                            Add Report
+                            </Button>
+                        </div>
                         {renderReportCards()}
+                        <AddReportModal
+                            open={showAddReportModal}
+                            setOpen={setShowAddReportModal}
+                        />
                     </div>
                 </div>
 

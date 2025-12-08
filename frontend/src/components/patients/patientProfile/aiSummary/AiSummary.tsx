@@ -396,7 +396,8 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 <TooltipContent
                                     side="top"
                                     align="center"
-                                    className="w-48 rounded-xl border border-muted-foreground bg-primary-foreground px-4 py-4 typo-body-3 text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                    className="w-48 rounded-xl bg-primary-foreground px-4 py-4 typo-body-3 text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                                    variant="inverted"
                                 >
                                     <p className="typo-body-2 text-foreground">Connecter</p>
                                     <p className="mt-1 typo-body-3 text-muted-foreground">
@@ -416,7 +417,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                                 type="button"
                                                 onClick={() => handlePersonaSelect(option)}
                                                 className={cn(
-                                                    "flex h-7 w-7 items-center justify-center rounded-full border typo-body-3 transition",
+                                                    "flex h-7 w-7 items-center justify-center rounded-full border typo-body-3 transition hover:text-primary",
                                                     isActive
                                                         ? "bg-primary-foreground shadow-sm"
                                                         : "border-transparent bg-transparent typo-body-3 text-muted-foreground hover:border-muted-foreground",
@@ -445,7 +446,7 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className="gap-2 rounded-full border border-muted-foreground bg-primary-foreground px-4 py-[6px] typo-body-2  text-foreground hover:bg-primary"
+                                    className="gap-2 rounded-full border border-muted-foreground bg-primary-foreground px-4 py-[6px] typo-body-2  text-foreground hover:bg-primary hover:text-foreground"
                                 >
                                     <ChevronDown className="h-4 w-4 text-foreground" />
                                     {selectedModel.label}
@@ -455,15 +456,15 @@ export function AiSummary({ className, onSubmit, patientId }: Readonly<AiSummary
                                 {MODEL_OPTIONS.map((option) => (
                                     <DropdownMenuItem
                                         key={option.id}
-                                        className="flex gap-3 py-2 items-center"
+                                        className="flex gap-3 py-2 items-center group"
                                         onClick={() => setSelectedModel(option)}
                                     >
-                                        <option.icon className="h-4 w-4 text-muted-foreground" />
+                                        <option.icon className="h-4 w-4 text-muted-foreground group-data-[highlighted]:text-foreground" />
                                         <div className="flex flex-col text-left">
                                             <span className="typo-body-2 text-foreground">
                                                 {option.label}
                                             </span>
-                                            <span className="typo-body-3 text-muted-foreground">
+                                            <span className="typo-body-3 text-muted-foreground group-data-[highlighted]:text-foreground">
                                                 {option.description}
                                             </span>
                                         </div>

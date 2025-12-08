@@ -845,6 +845,26 @@ export const doctorsApi = {
     }
   },
 
+  createReport: async (data: CreateReportDto): Promise<ApiResponse<Report>> => {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.DOCTOR.REPORTS.CREATE,
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<Report>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to create report"),
+      };
+    }
+  },
+
   // Patient Address endpoints
   getPatientAddresses: async (
     patientId: string

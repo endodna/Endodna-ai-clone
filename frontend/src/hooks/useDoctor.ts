@@ -406,6 +406,45 @@ export const useGetReports = (
   });
 };
 
+export const useCreateReport = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<Report>,
+      Error,
+      CreateReportVariables
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<Report>,
+    Error,
+    CreateReportVariables
+  >({
+    mutationFn: ({ data }) =>
+      doctorsApi.createReport(data),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+      const createdGenders = (variables.data.genders ?? []).map((g) =>
+          g.toUpperCase()
+        );
+        createdGenders.forEach((gender) => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.doctor.dna.reports(gender),
+          });
+
+          // queryClient.invalidateQueries({
+          //   queryKey: queryKeys.doctor.dna.reports("ALL"),
+          // });
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
 // Dosing Calculator Hooks
 export const useUpdatePatientInfo = (
   options?: Omit<
