@@ -16,6 +16,12 @@ export const queryKeys = {
       summary: (id: string) => [...queryKeys.doctor.patients.all(), "summary", id] as const,
       medications: (id: string) => [...queryKeys.doctor.patients.all(), "medications", id] as const,
       create: (patientData: AddPatientData) => [...queryKeys.doctor.patients.all(), "create", patientData] as const,
+      goals: {
+        list: (patientId: string, params?: { page?: number; limit?: number; search?: string }) =>
+          [...queryKeys.doctor.patients.all(), "goals", patientId, params] as const,
+        detail: (patientId: string, goalId: string) =>
+          [...queryKeys.doctor.patients.all(), "goals", patientId, "detail", goalId] as const,
+      },
     },
     chat: {
       all: () => [...queryKeys.doctor.all, "chat"] as const,
@@ -39,6 +45,10 @@ export const queryKeys = {
       reports: (gender: string | null | undefined) =>
         [...queryKeys.doctor.dna.all(), "reports", gender ?? "ALL"] as const,
       addresses: (patientId: string) => [...queryKeys.doctor.dna.all(), "addresses", patientId] as const,
+    },
+    dosing: {
+      all: () => [...queryKeys.doctor.all, "dosing"] as const,
+      history: (patientId: string) => [...queryKeys.doctor.dosing.all(), "history", patientId] as const,
     },
   },
   misc: {

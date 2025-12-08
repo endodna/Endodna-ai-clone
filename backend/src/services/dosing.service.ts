@@ -37,6 +37,7 @@ export const getEstradiolDosingSuggestions = (params: EstradiolDosageParams): Es
     for (const tier of tiers) {
         results[tier] = estradiolDosingHelper.calculateEstradiolDosage({
             ...params,
+            tier
         });
     }
     return results as EstradiolDosingSuggestionsResponse;

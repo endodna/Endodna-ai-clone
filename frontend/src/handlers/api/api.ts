@@ -923,6 +923,165 @@ export const doctorsApi = {
       };
     }
   },
+
+  // Patient Info Update
+  updatePatientInfo: async (
+    patientId: string,
+    data: {
+      weight?: number;
+      height?: number;
+      dateOfBirth?: string;
+      gender?: string;
+      bloodType?: string;
+      clinicalData?: Record<string, any>;
+      lifestyleData?: Record<string, any>;
+      medicationsData?: Record<string, any>;
+    }
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.UPDATE_INFO, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to update patient info"),
+      };
+    }
+  },
+
+  // Dosing Calculation APIs
+  calculateTestosteroneDosing: async (
+    patientId: string,
+    pelletType: "T100" | "T200"
+  ): Promise<ApiResponse<TestosteroneDosingSuggestionsResponse>> => {
+    try {
+      const response = await apiClient.post<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE, patientId),
+        { pelletType }
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to calculate testosterone dosing"),
+      };
+    }
+  },
+
+  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
+    try {
+      const response = await apiClient.post<ApiResponse<EstradiolDosingSuggestionsResponse>>(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to calculate estradiol dosing"),
+      };
+    }
+  },
+
+  saveDosingCalculation: async (
+    patientId: string,
+    data: SaveDosingCalculationRequest
+  ): Promise<ApiResponse<boolean>> => {
+    try {
+      const response = await apiClient.post<ApiResponse<boolean>>(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.SAVE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<boolean>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to save dosing calculation"),
+      };
+    }
+  },
+
+  getDosingHistory: async (patientId: string): Promise<ApiResponse<DosingHistoryResponse>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.GET_HISTORY, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<DosingHistoryResponse>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch dosing history"),
+      };
+    }
+  },
+
+  // Health Goal APIs
+  getPatientGoals: async (patientId: string): Promise<ApiResponse<{ goals: PatientGoal[] }>> => {
+    try {
+      const response = await apiClient.get(getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId));
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to fetch patient goals",
+      };
+    }
+  },
+
+  createPatientGoal: async (patientId: string, payload: { description: string, notes?: string }) => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to create goal",
+      };
+    }
+  },
+
+  updatePatientGoal: async (patientId: string, goalId: string, payload: { description: string,notes?:string }) => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL, patientId, goalId),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message: error.response?.data?.message || error.message || "Failed to update goal",
+      };
+    }
+  },
 };
 
 export const api = {

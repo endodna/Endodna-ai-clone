@@ -21,7 +21,7 @@ export function formatDate(
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
   if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) {
-    throw new Error("Invalid date");
+    throw new TypeError("Invalid date");
   }
 
   const uppercaseTokens: Record<string, string> = {
