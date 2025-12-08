@@ -40,6 +40,17 @@ interface Report {
     updatedAt: string;
 }
 
+interface CreateReportDto {
+  code: string;
+  title: string;
+  description?: string | null;
+  genders: string[];
+  price: number; 
+}
+interface CreateReportVariables {
+  data: CreateReportDto;
+}
+
 interface OrderDNAKitResponseData {
     dnaResultKitId: string;
     orderId: string;
