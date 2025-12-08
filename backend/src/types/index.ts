@@ -118,3 +118,27 @@ export interface ResponseOptions {
   data?: object | boolean | null;
   message?: string;
 }
+
+export interface PatientGeneticReportCategory {
+  categoryName: string;
+  variantStatus: string;
+}
+
+export interface PatientGeneticReport {
+  reportName: string;
+  categories: PatientGeneticReportCategory[];
+}
+
+export interface PatientGeneticVariantResponse {
+  total: number;
+  benign: number;
+  likelyBenign: number;
+  vus: number;
+  likelyImpactful: number;
+  impactful: number;
+}
+
+export interface PatientGeneticReportResponse {
+  reports: PatientGeneticReport[];
+  variantsCount: PatientGeneticVariantResponse;
+}

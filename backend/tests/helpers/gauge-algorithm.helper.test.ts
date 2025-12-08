@@ -17,15 +17,15 @@ describe("gaugeFromAcmgLabels", () => {
         expect(result.normalizedScore).toBeCloseTo(0.5);
     });
 
-    it("returns red when a likely pathogenic variant is present", () => {
-        const result = gaugeFromAcmgLabels(["benign", "likely pathogenic"]);
+    it("returns red when a likely impactful variant is present", () => {
+        const result = gaugeFromAcmgLabels(["benign", "likely impactful"]);
         expect(result.color).toBe("red");
         expect(result.maxSeverity).toBe(3);
         expect(result.normalizedScore).toBeCloseTo(0.75);
     });
 
-    it("returns red when a pathogenic variant is present", () => {
-        const result = gaugeFromAcmgLabels(["benign", "benign", "pathogenic"]);
+    it("returns red when an impactful variant is present", () => {
+        const result = gaugeFromAcmgLabels(["benign", "benign", "impactful"]);
         expect(result.color).toBe("red");
         expect(result.maxSeverity).toBe(4);
         expect(result.normalizedScore).toBeCloseTo(1);
