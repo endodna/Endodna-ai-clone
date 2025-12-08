@@ -1,7 +1,7 @@
 
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
-import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticVariantResponse, StatusCode } from "../types";
+import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, StatusCode } from "../types";
 import { logger } from "../helpers/logger.helper";
 import {
   CreatePatientActiveMedicationSchema,
