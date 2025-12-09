@@ -8,61 +8,70 @@ interface VariantCounts {
   pathogenic: number;
 }
 
-function normalizePathogenicity(
-  pathogenicity: string | null | undefined
-): keyof VariantCounts | null {
-  if (!pathogenicity) return null;
-  const normalized = pathogenicity.toLowerCase().trim();
-
-  if (normalized.includes("benign") && !normalized.includes("likely"))
-    return "benign";
-  if (normalized.includes("likely") && normalized.includes("benign"))
-    return "likelyBenign";
-  if (
-    normalized.includes("vus") ||
-    normalized.includes("uncertain") ||
-    normalized.includes("uncertain significance")
-  )
-    return "vus";
-  if (normalized.includes("likely") && normalized.includes("pathogenic"))
-    return "likelyPathogenic";
-  if (normalized.includes("pathogenic") && !normalized.includes("likely"))
-    return "pathogenic";
-
-  return null;
-}
-
-function calculateVariantCounts(results: PatientDNAResult[]): VariantCounts {
+function calculateVariantCountsFromReports(
+  reports: PatientGeneticsReport[]
+): VariantCounts {
   const counts: VariantCounts = {
-    benign: 21,
-    likelyBenign: 7,
-    vus: 18,
-    likelyPathogenic: 4,
-    pathogenic: 2,
+    benign: 0,
+    likelyBenign: 0,
+    vus: 0,
+    likelyPathogenic: 0,
+    pathogenic: 0,
   };
 
-  results.forEach((result) => {
-    result.patientDNAResultBreakdown?.forEach((breakdown) => {
-      const pathogenicity = (breakdown as any).pathogenicity;
-      const classification = normalizePathogenicity(pathogenicity);
-      if (classification) {
-        counts[classification]++;
-      }
-    });
+  reports.forEach((report) => {
+    switch (report.variantStatus) {
+      case "Benign":
+        counts.benign++;
+        break;
+      case "Likely Benign":
+        counts.likelyBenign++;
+        break;
+      case "VUS":
+        counts.vus++;
+        break;
+      case "Likely Pathogenic":
+        counts.likelyPathogenic++;
+        break;
+      case "Pathogenic":
+        counts.pathogenic++;
+        break;
+    }
   });
 
   return counts;
 }
 
 export function GeneticVariantsSummary({
-  results,
+  reports,
+  variantsCount,
+  selectedClassification,
+  onClassificationClick,
 }: {
-  results: PatientDNAResult[];
+  reports: PatientGeneticsReport[];
+  variantsCount?: {
+    total: number;
+    benign: number;
+    likelyBenign: number;
+    vus: number;
+    likelyImpactful: number;
+    impactful: number;
+  };
+  selectedClassification?: string | null;
+  onClassificationClick?: (classification: string | null) => void;
 }) {
-  const variantCounts = useMemo(
-    () => calculateVariantCounts(results),
-    [results]
-  );
+  const variantCounts = useMemo(() => {
+    if (variantsCount) {
+      return {
+        benign: variantsCount.benign,
+        likelyBenign: variantsCount.likelyBenign,
+        vus: variantsCount.vus,
+        likelyPathogenic: variantsCount.likelyImpactful,
+        pathogenic: variantsCount.impactful,
+      };
+    }
+    return calculateVariantCountsFromReports(reports);
+  }, [reports, variantsCount]);
 
   const total = useMemo(() => {
     return (
@@ -85,30 +94,55 @@ export function GeneticVariantsSummary({
   const getProgressBarSegments = () => {
     if (total === 0) return [];
 
+    // Map classification labels to their colors
+    const classificationColors: Record<string, string> = {
+      Benign: "bg-teal-400",
+      "Likely Benign": "bg-lime-400",
+      VUS: "bg-yellow-400",
+      "Likely Pathogenic": "bg-violet-400",
+      Pathogenic: "bg-violet-600",
+    };
+
     const segments = [
       {
-        width:
-          ((variantCounts.benign + variantCounts.likelyBenign) / total) * 100,
-        color: "bg-teal-400",
+        label: "Benign",
+        width: (variantCounts.benign / total) * 100,
+        color: classificationColors["Benign"],
       },
       {
+        label: "Likely Benign",
         width: (variantCounts.likelyBenign / total) * 100,
-        color: "bg-lime-400",
+        color: classificationColors["Likely Benign"],
       },
       {
+        label: "VUS",
         width: (variantCounts.vus / total) * 100,
-        color: "bg-yellow-400",
+        color: classificationColors["VUS"],
       },
       {
+        label: "Likely Pathogenic",
         width: (variantCounts.likelyPathogenic / total) * 100,
-        color: "bg-orange-400",
+        color: classificationColors["Likely Pathogenic"],
       },
       {
+        label: "Pathogenic",
         width: (variantCounts.pathogenic / total) * 100,
-        color: "bg-red-400",
+        color: classificationColors["Pathogenic"],
       },
     ].filter((segment) => segment.width > 0);
 
+    // If a classification is selected, show only that color, others gray
+    if (selectedClassification) {
+      return segments.map((segment) => ({
+        ...segment,
+        color:
+          segment.label === selectedClassification
+            ? segment.color
+            : "bg-gray-300",
+      }));
+    }
+
+    // If no selection, show all colors
     return segments;
   };
 
@@ -121,31 +155,78 @@ export function GeneticVariantsSummary({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6 w-full">
-        <div className="flex flex-col rounded-lg justify-center items-center text-center h-[85px]">
-          <span className="text-neutral-900 text-5xl font-normal">{total}</span>
-          <span className="text-neutral-900 text-sm font-semibold">Total</span>
-        </div>
-
-        {classifications.map((classification) => (
-          <div
-            key={classification.label}
-            className="rounded-lg border border-neutral-200 flex flex-col justify-center items-center text-center gap-1 px-4 py-2 h-[85px]"
+        <button
+          onClick={() => {
+            if (onClassificationClick) {
+              onClassificationClick(null);
+            }
+          }}
+          className={`flex flex-col rounded-lg justify-center items-center text-center h-[85px] transition-all cursor-pointer ${
+            !selectedClassification ? "bg-transparent" : "hover:bg-neutral-50"
+          }`}
+        >
+          <span
+            className={`text-5xl ${
+              !selectedClassification
+                ? "text-neutral-900 font-normal"
+                : "text-neutral-600 font-thin"
+            }`}
           >
-            <div className="text-neutral-600 text-5xl font-thin">
-              {classification.count}
-            </div>
-            <div className="text-neutral-600 text-sm font-normal">
-              {classification.label}
-            </div>
-          </div>
-        ))}
+            {total}
+          </span>
+          <span
+            className={`text-sm ${
+              !selectedClassification
+                ? "text-neutral-900 font-semibold"
+                : "text-neutral-600 font-normal"
+            }`}
+          >
+            Total
+          </span>
+        </button>
+
+        {classifications.map((classification) => {
+          const isSelected = selectedClassification === classification.label;
+          return (
+            <button
+              key={classification.label}
+              onClick={() => {
+                if (onClassificationClick) {
+                  onClassificationClick(
+                    isSelected ? null : classification.label
+                  );
+                }
+              }}
+              className="rounded-lg border flex flex-col justify-center items-center text-center gap-1 px-4 py-2 h-[85px] transition-all cursor-pointer border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              <div
+                className={`text-5xl ${
+                  isSelected
+                    ? "text-neutral-900 font-normal"
+                    : "text-neutral-600 font-thin"
+                }`}
+              >
+                {classification.count}
+              </div>
+              <div
+                className={`text-sm ${
+                  isSelected
+                    ? "text-neutral-900 font-semibold"
+                    : "text-neutral-600 font-normal"
+                }`}
+              >
+                {classification.label}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="w-full h-2 flex gap-2">
         {getProgressBarSegments().map((segment, index) => (
           <div
-            key={index}
-            className={`h-full ${segment.color} rounded-full`}
+            key={`${segment.label}-${index}`}
+            className={`h-full ${segment.color} rounded-full transition-colors`}
             style={{ width: `${segment.width}%` }}
           />
         ))}

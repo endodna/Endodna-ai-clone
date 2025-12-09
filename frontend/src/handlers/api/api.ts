@@ -767,6 +767,31 @@ export const doctorsApi = {
     }
   },
 
+  getPatientGeneticsReports: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientGeneticsReport[]>> => {
+    try {
+      const endpoint = getEndpoint(
+        API_ENDPOINTS.DOCTOR.PATIENTS.GENETICS_REPORTS,
+        patientId
+      );
+      console.log("Fetching genetics reports from:", endpoint);
+      const response = await apiClient.get(endpoint);
+      console.log("Genetics reports response:", response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Error fetching genetics reports:", error);
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(
+          error,
+          "Failed to fetch patient genetics reports"
+        ),
+      };
+    }
+  },
+
   updateDnaKitStatus: async (
     patientId: string,
     dnaResultId: string,
@@ -828,9 +853,9 @@ export const doctorsApi = {
   },
 
   // Reports endpoints
-  getReports: async (
-    params?: { gender?: string }
-  ): Promise<ApiResponse<Report[]>> => {
+  getReports: async (params?: {
+    gender?: string;
+  }): Promise<ApiResponse<Report[]>> => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.DOCTOR.REPORTS.LIST, {
         params,
@@ -982,37 +1007,63 @@ export const doctorsApi = {
     pelletType: "T100" | "T200"
   ): Promise<ApiResponse<TestosteroneDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE, patientId),
+      const response = await apiClient.post<
+        ApiResponse<TestosteroneDosingSuggestionsResponse>
+      >(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE,
+          patientId
+        ),
         { pelletType }
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(error) && error.response?.data) {
+      if (
+        isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
+          error
+        ) &&
+        error.response?.data
+      ) {
         return error.response.data;
       }
       return {
         data: null,
         error: true,
-        message: getApiErrorMessage(error, "Failed to calculate testosterone dosing"),
+        message: getApiErrorMessage(
+          error,
+          "Failed to calculate testosterone dosing"
+        ),
       };
     }
   },
 
-  calculateEstradiolDosing: async (patientId: string): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
+  calculateEstradiolDosing: async (
+    patientId: string
+  ): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
     try {
-      const response = await apiClient.post<ApiResponse<EstradiolDosingSuggestionsResponse>>(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL, patientId)
+      const response = await apiClient.post<
+        ApiResponse<EstradiolDosingSuggestionsResponse>
+      >(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL,
+          patientId
+        )
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) && error.response?.data) {
+      if (
+        isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) &&
+        error.response?.data
+      ) {
         return error.response.data;
       }
       return {
         data: null,
         error: true,
-        message: getApiErrorMessage(error, "Failed to calculate estradiol dosing"),
+        message: getApiErrorMessage(
+          error,
+          "Failed to calculate estradiol dosing"
+        ),
       };
     }
   },
@@ -1039,14 +1090,19 @@ export const doctorsApi = {
     }
   },
 
-  getDosingHistory: async (patientId: string): Promise<ApiResponse<DosingHistoryResponse>> => {
+  getDosingHistory: async (
+    patientId: string
+  ): Promise<ApiResponse<DosingHistoryResponse>> => {
     try {
       const response = await apiClient.get(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.GET_HISTORY, patientId)
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<ApiResponse<DosingHistoryResponse>>(error) && error.response?.data) {
+      if (
+        isAxiosError<ApiResponse<DosingHistoryResponse>>(error) &&
+        error.response?.data
+      ) {
         return error.response.data;
       }
       return {
@@ -1058,20 +1114,30 @@ export const doctorsApi = {
   },
 
   // Health Goal APIs
-  getPatientGoals: async (patientId: string): Promise<ApiResponse<{ goals: PatientGoal[] }>> => {
+  getPatientGoals: async (
+    patientId: string
+  ): Promise<ApiResponse<{ goals: PatientGoal[] }>> => {
     try {
-      const response = await apiClient.get(getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId));
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId)
+      );
       return response.data;
     } catch (error: any) {
       return {
         data: null,
         error: true,
-        message: error.response?.data?.message || error.message || "Failed to fetch patient goals",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient goals",
       };
     }
   },
 
-  createPatientGoal: async (patientId: string, payload: { description: string, notes?: string }) => {
+  createPatientGoal: async (
+    patientId: string,
+    payload: { description: string; notes?: string }
+  ) => {
     try {
       const response = await apiClient.post(
         getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId),
@@ -1082,15 +1148,26 @@ export const doctorsApi = {
       return {
         data: null,
         error: true,
-        message: error.response?.data?.message || error.message || "Failed to create goal",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create goal",
       };
     }
   },
 
-  updatePatientGoal: async (patientId: string, goalId: string, payload: { description: string,notes?:string }) => {
+  updatePatientGoal: async (
+    patientId: string,
+    goalId: string,
+    payload: { description: string; notes?: string }
+  ) => {
     try {
       const response = await apiClient.put(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL, patientId, goalId),
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL,
+          patientId,
+          goalId
+        ),
         payload
       );
       return response.data;
@@ -1098,7 +1175,10 @@ export const doctorsApi = {
       return {
         data: null,
         error: true,
-        message: error.response?.data?.message || error.message || "Failed to update goal",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update goal",
       };
     }
   },

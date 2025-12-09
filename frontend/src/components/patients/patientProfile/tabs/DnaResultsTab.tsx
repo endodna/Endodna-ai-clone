@@ -1,15 +1,19 @@
-import { ShoppingCart } from "lucide-react";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useGetPatientGenetics, useOrderDNAKit } from "@/hooks/useDoctor";
+import {
+  useGetPatientGenetics,
+  useGetPatientGeneticsReports,
+  useOrderDNAKit,
+} from "@/hooks/useDoctor";
 import { formatDate } from "@/utils/date.utils";
 import { shouldSkipStep2 } from "@/utils/orderType.utils";
 import { DnaResultsTable } from "@/components/patients/patientProfile/dna-results/DnaResultsTable";
 import { OrderTestOptionsModal } from "@/components/patients/patientProfile/dna-results/OrderTestOptionsModal";
 import { OrderTestStep1Modal } from "@/components/patients/patientProfile/dna-results/OrderTestStep1Modal";
 import { OrderTestStep2Modal } from "@/components/patients/patientProfile/dna-results/OrderTestStep2Modal";
-// import { GeneticVariantsSummary } from "@/components/patients/patientProfile/dna-results/GeneticVariantsSummary";
-// import { ReportsList } from "@/components/patients/patientProfile/dna-results/ReportsList";
+import { GeneticVariantsSummary } from "@/components/patients/patientProfile/dna-results/GeneticVariantsSummary";
+import { ReportsList } from "@/components/patients/patientProfile/dna-results/ReportsList";
 
 interface DnaResultsTabProps {
   patientId?: string;
@@ -34,11 +38,68 @@ export function DnaResultsTab({
   );
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step1Error, setStep1Error] = useState<string | null>(null);
+  const [showDetailsView, setShowDetailsView] = useState(false);
+  const [selectedClassification, setSelectedClassification] = useState<
+    string | null
+  >(null);
 
   const { data: geneticsResponse } = useGetPatientGenetics(patientId ?? "", {
     enabled: Boolean(patientId),
   });
   const results = geneticsResponse?.data ?? [];
+
+  const { data: reportsResponse } = useGetPatientGeneticsReports(
+    patientId ?? "",
+    {
+      enabled: Boolean(patientId),
+    }
+  );
+
+  const reportsData = reportsResponse?.data as any;
+  const reports = useMemo(() => {
+    if (
+      !reportsData ||
+      !reportsData.reports ||
+      !Array.isArray(reportsData.reports)
+    ) {
+      return [];
+    }
+
+    const flatReports: PatientGeneticsReport[] = [];
+    reportsData.reports.forEach((report: any, reportIndex: number) => {
+      if (report.categories && Array.isArray(report.categories)) {
+        report.categories.forEach((category: any, categoryIndex: number) => {
+          const normalizedStatus = (category.variantStatus || "")
+            .toLowerCase()
+            .trim();
+          let variantStatus: PatientGeneticsReport["variantStatus"] = "VUS";
+          if (normalizedStatus === "benign") variantStatus = "Benign";
+          else if (normalizedStatus === "likely benign")
+            variantStatus = "Likely Benign";
+          else if (normalizedStatus === "vus") variantStatus = "VUS";
+          else if (
+            normalizedStatus === "likely impactful" ||
+            normalizedStatus === "likely pathogenic"
+          )
+            variantStatus = "Likely Pathogenic";
+          else if (
+            normalizedStatus === "impactful" ||
+            normalizedStatus === "pathogenic"
+          )
+            variantStatus = "Pathogenic";
+
+          flatReports.push({
+            id: `${reportIndex}-${categoryIndex}`,
+            name: category.categoryName || "",
+            variantStatus,
+          });
+        });
+      }
+    });
+    return flatReports;
+  }, [reportsData]);
+
+  const variantsCount = reportsData?.variantsCount;
 
   const orderMutation = useOrderDNAKit();
 
@@ -130,77 +191,105 @@ export function DnaResultsTab({
           <span className="typo-body-2">Order Test</span>
         </Button>
       </div>
-      {/* <div className="space-y-6">
-        <GeneticVariantsSummary results={results} />
-        <ReportsList />
-      </div> */}
-      <div className="space-y-4 md:space-y-6 bg-primary-foreground p-4 md:p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-foreground">Results</h3>
-          {lastUpdated && (
-            <p className="typo-body-2 text-muted-foreground">
-              Updated on {lastUpdated}
-            </p>
-          )}
+      {showDetailsView ? (
+        <div className="space-y-6">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setShowDetailsView(false);
+              setSelectedClassification(null);
+            }}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Results
+          </Button>
+          <GeneticVariantsSummary
+            reports={reports}
+            variantsCount={variantsCount}
+            selectedClassification={selectedClassification}
+            onClassificationClick={setSelectedClassification}
+          />
+          <ReportsList
+            initialFilter={selectedClassification || undefined}
+            patientId={patientId}
+            onFilterChange={(filter) => {
+              setSelectedClassification(filter);
+            }}
+          />
         </div>
+      ) : (
+        <div className="space-y-4 md:space-y-6 bg-primary-foreground p-4 md:p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-foreground">Results</h3>
+            {lastUpdated && (
+              <p className="typo-body-2 text-muted-foreground">
+                Updated on {lastUpdated}
+              </p>
+            )}
+          </div>
 
-        <DnaResultsTable patientId={patientId} />
+          <DnaResultsTable
+            patientId={patientId}
+            onOpenClick={() => setShowDetailsView(true)}
+          />
+        </div>
+      )}
 
-        <OrderTestOptionsModal
-          open={showOptionsModal}
-          onOpenChange={(open) => {
-            setShowOptionsModal(open);
-            if (!open) {
-              setSelectedOrderType(null);
-              setStep1Error(null);
-              setStep1Data(null);
-            }
-          }}
-          onSelectOption={handleSelectOption}
-        />
+      <OrderTestOptionsModal
+        open={showOptionsModal}
+        onOpenChange={(open) => {
+          setShowOptionsModal(open);
+          if (!open) {
+            setSelectedOrderType(null);
+            setStep1Error(null);
+            setStep1Data(null);
+          }
+        }}
+        onSelectOption={handleSelectOption}
+      />
 
-        {selectedOrderType && (
-          <>
-            <OrderTestStep1Modal
-              open={showStep1Modal}
+      {selectedOrderType && (
+        <>
+          <OrderTestStep1Modal
+            open={showStep1Modal}
+            onOpenChange={(open) => {
+              setShowStep1Modal(open);
+              if (!open && !showStep2Modal) {
+                setStep1Data(null);
+                setSelectedOrderType(null);
+                setStep1Error(null);
+              }
+            }}
+            patientId={patientId}
+            orderType={selectedOrderType}
+            onSubmit={handleStep1Submit}
+            patient={patient}
+            isSubmitting={orderMutation.isPending}
+            errorMessage={step1Error}
+          />
+
+          {!shouldSkipStep2(selectedOrderType) && step1Data && (
+            <OrderTestStep2Modal
+              open={showStep2Modal}
               onOpenChange={(open) => {
-                setShowStep1Modal(open);
-                if (!open && !showStep2Modal) {
+                setShowStep2Modal(open);
+                if (!open) {
                   setStep1Data(null);
                   setSelectedOrderType(null);
-                  setStep1Error(null);
                 }
               }}
               patientId={patientId}
               orderType={selectedOrderType}
-              onSubmit={handleStep1Submit}
-              patient={patient}
+              step1Data={step1Data}
+              onConfirm={handleConfirmFromStep2}
+              onCancel={resetFlow}
               isSubmitting={orderMutation.isPending}
-              errorMessage={step1Error}
+              patient={patient}
             />
-
-            {!shouldSkipStep2(selectedOrderType) && step1Data && (
-              <OrderTestStep2Modal
-                open={showStep2Modal}
-                onOpenChange={(open) => {
-                  setShowStep2Modal(open);
-                  if (!open) {
-                    setStep1Data(null);
-                    setSelectedOrderType(null);
-                  }
-                }}
-                patientId={patientId}
-                orderType={selectedOrderType}
-                step1Data={step1Data}
-                onConfirm={handleConfirmFromStep2}
-                onCancel={resetFlow}
-                isSubmitting={orderMutation.isPending}
-                patient={patient}
-              />
-            )}
-          </>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -2,14 +2,23 @@ import { queryKeys } from "@/components/constants/QueryKeys";
 import { ApiResponse, doctorsApi, miscApi } from "@/handlers/api/api";
 import { supabase } from "@/lib/supabase";
 import { AddPatientFormData } from "@/schemas/patient.schema";
-import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQuery,
+  useQueryClient,
+  UseQueryOptions,
+} from "@tanstack/react-query";
 
 /**
  * Hook for fetching doctor's patients list
  */
 export const useGetDoctorPatients = (
   params?: GetDoctorPatientsParams,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientsApiResponse>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientsApiResponse>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientsApiResponse>, Error>({
     queryKey: queryKeys.doctor.patients.list(params),
@@ -25,7 +34,10 @@ export const useGetDoctorPatients = (
  * Hook for fetching list of doctors
  */
 export const useGetDoctors = (
-    options?: Omit<UseQueryOptions<ApiResponse<Doctor[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Doctor[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<Doctor[]>, Error>({
     queryKey: queryKeys.doctor.doctors.list(),
@@ -41,13 +53,17 @@ export const useGetDoctors = (
  * Hook for fetching backend constants
  */
 export const useGetConstants = (
-    options?: Omit<UseQueryOptions<ApiResponse<Constants>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Constants>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<Constants>, Error>({
     queryKey: queryKeys.misc.constants.list(),
     queryFn: async () => {
       const { data } = await supabase.auth.getSession();
-            if (!data.session?.access_token) throw new Error("No valid session available");
+      if (!data.session?.access_token)
+        throw new Error("No valid session available");
       return miscApi.getConstants();
     },
     placeholderData: (previousData) => previousData,
@@ -68,11 +84,22 @@ export const useGetConstants = (
  * Hook for creating a new patient
  */
 export const useCreatePatient = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientAddedResponse>, Error, AddPatientFormData>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAddedResponse>,
+      Error,
+      AddPatientFormData
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
 
-    return useMutation<ApiResponse<PatientAddedResponse>, Error, AddPatientFormData>({
+  return useMutation<
+    ApiResponse<PatientAddedResponse>,
+    Error,
+    AddPatientFormData
+  >({
     mutationFn: async (patientData) => {
       const response = await doctorsApi.createPatient(patientData);
       return response;
@@ -88,11 +115,27 @@ export const useCreatePatient = (
 };
 
 export const useUploadMedicalRecords = (
-    options?: Omit<UseMutationOptions<ApiResponse<UploadMedicalRecordsResponse>, Error, UploadMedicalRecordsVariables>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<UploadMedicalRecordsResponse>,
+      Error,
+      UploadMedicalRecordsVariables
+    >,
+    "mutationFn"
+  >
 ) => {
-    return useMutation<ApiResponse<UploadMedicalRecordsResponse>, Error, UploadMedicalRecordsVariables>({
+  return useMutation<
+    ApiResponse<UploadMedicalRecordsResponse>,
+    Error,
+    UploadMedicalRecordsVariables
+  >({
     mutationFn: ({ patientId, files, metadata, onUploadProgress }) =>
-            doctorsApi.uploadMedicalRecords({ patientId, files, metadata, onUploadProgress }),
+      doctorsApi.uploadMedicalRecords({
+        patientId,
+        files,
+        metadata,
+        onUploadProgress,
+      }),
     ...options,
   });
 };
@@ -102,7 +145,10 @@ export const useUploadMedicalRecords = (
  */
 export const useGetPatientById = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientDetail>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientDetail>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientDetail>, Error>({
     queryKey: queryKeys.doctor.patients.detail(patientId),
@@ -120,7 +166,10 @@ export const useGetPatientById = (
  */
 export const useGetPatientSummary = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<any>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<any>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<any>, Error>({
     queryKey: queryKeys.doctor.patients.summary(patientId),
@@ -135,7 +184,10 @@ export const useGetPatientSummary = (
 
 export const useGetPatientMedications = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientMedication[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientMedication[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientMedication[]>, Error>({
     queryKey: queryKeys.doctor.patients.medications(patientId),
@@ -149,11 +201,23 @@ export const useGetPatientMedications = (
 };
 
 export const useCreatePatientMedication = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientMedication>, Error, { patientId: string; payload: CreatePatientMedicationPayload }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientMedication>,
+      Error,
+      { patientId: string; payload: CreatePatientMedicationPayload }
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientMedication>, Error, { patientId: string; payload: CreatePatientMedicationPayload }>({
-        mutationFn: ({ patientId, payload }) => doctorsApi.createPatientMedication(patientId, payload),
+  return useMutation<
+    ApiResponse<PatientMedication>,
+    Error,
+    { patientId: string; payload: CreatePatientMedicationPayload }
+  >({
+    mutationFn: ({ patientId, payload }) =>
+      doctorsApi.createPatientMedication(patientId, payload),
     onSuccess: (data, variables) => {
       if (!data.error) {
         queryClient.invalidateQueries({
@@ -166,11 +230,31 @@ export const useCreatePatientMedication = (
 };
 
 export const useUpdatePatientMedication = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientMedication>, Error, { patientId: string; medicationId: string; payload: CreatePatientMedicationPayload }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientMedication>,
+      Error,
+      {
+        patientId: string;
+        medicationId: string;
+        payload: CreatePatientMedicationPayload;
+      }
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientMedication>, Error, { patientId: string; medicationId: string; payload: CreatePatientMedicationPayload }>({
-        mutationFn: ({ patientId, medicationId, payload }) => doctorsApi.updatePatientMedication(patientId, medicationId, payload),
+  return useMutation<
+    ApiResponse<PatientMedication>,
+    Error,
+    {
+      patientId: string;
+      medicationId: string;
+      payload: CreatePatientMedicationPayload;
+    }
+  >({
+    mutationFn: ({ patientId, medicationId, payload }) =>
+      doctorsApi.updatePatientMedication(patientId, medicationId, payload),
     onSuccess: (data, variables) => {
       if (!data.error) {
         queryClient.invalidateQueries({
@@ -183,11 +267,23 @@ export const useUpdatePatientMedication = (
 };
 
 export const useDeletePatientMedication = (
-    options?: Omit<UseMutationOptions<ApiResponse<null>, Error, { patientId: string; medicationId: string }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<null>,
+      Error,
+      { patientId: string; medicationId: string }
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<null>, Error, { patientId: string; medicationId: string }>({
-        mutationFn: ({ patientId, medicationId }) => doctorsApi.deletePatientMedication(patientId, medicationId),
+  return useMutation<
+    ApiResponse<null>,
+    Error,
+    { patientId: string; medicationId: string }
+  >({
+    mutationFn: ({ patientId, medicationId }) =>
+      doctorsApi.deletePatientMedication(patientId, medicationId),
     onSuccess: (data, variables) => {
       if (!data.error) {
         queryClient.invalidateQueries({
@@ -203,7 +299,10 @@ export const useDeletePatientMedication = (
 
 export const useGetPatientConversations = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientChatConversation[]>, Error>({
     queryKey: queryKeys.doctor.chat.patient.conversations(patientId),
@@ -216,7 +315,10 @@ export const useGetPatientConversations = (
 };
 
 export const useGetAllPatientConversations = (
-    options?: Omit<UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientChatConversation[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientChatConversation[]>, Error>({
     queryKey: queryKeys.doctor.chat.patient.allPatients(),
@@ -228,7 +330,10 @@ export const useGetAllPatientConversations = (
 };
 
 export const useGetGeneralConversations = (
-    options?: Omit<UseQueryOptions<ApiResponse<GeneralChatConversation[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<GeneralChatConversation[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<GeneralChatConversation[]>, Error>({
     queryKey: queryKeys.doctor.chat.general.conversations(),
@@ -242,11 +347,18 @@ export const useGetGeneralConversations = (
 export const useGetPatientConversationMessages = (
   patientId: string,
   conversationId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<ChatMessage[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<ChatMessage[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<ChatMessage[]>, Error>({
-        queryKey: queryKeys.doctor.chat.patient.conversationMessages(patientId, conversationId),
-        queryFn: () => doctorsApi.getPatientConversationMessages(patientId, conversationId),
+    queryKey: queryKeys.doctor.chat.patient.conversationMessages(
+      patientId,
+      conversationId
+    ),
+    queryFn: () =>
+      doctorsApi.getPatientConversationMessages(patientId, conversationId),
     enabled: !!patientId && !!conversationId,
     refetchOnWindowFocus: false,
     retry: 1,
@@ -256,10 +368,14 @@ export const useGetPatientConversationMessages = (
 
 export const useGetGeneralConversationMessages = (
   conversationId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<ChatMessage[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<ChatMessage[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<ChatMessage[]>, Error>({
-        queryKey: queryKeys.doctor.chat.general.conversationMessages(conversationId),
+    queryKey:
+      queryKeys.doctor.chat.general.conversationMessages(conversationId),
     queryFn: () => doctorsApi.getGeneralConversationMessages(conversationId),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
@@ -269,16 +385,30 @@ export const useGetGeneralConversationMessages = (
 };
 
 export const useCreatePatientConversation = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientChatConversation>, Error, { patientId: string }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientChatConversation>,
+      Error,
+      { patientId: string }
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientChatConversation>, Error, { patientId: string }>({
-        mutationFn: ({ patientId }) => doctorsApi.createPatientConversation(patientId),
+  return useMutation<
+    ApiResponse<PatientChatConversation>,
+    Error,
+    { patientId: string }
+  >({
+    mutationFn: ({ patientId }) =>
+      doctorsApi.createPatientConversation(patientId),
     onSuccess: (response, variables) => {
       if (!response.error) {
         // Invalidate patient-specific conversations
         queryClient.invalidateQueries({
-                    queryKey: queryKeys.doctor.chat.patient.conversations(variables.patientId),
+          queryKey: queryKeys.doctor.chat.patient.conversations(
+            variables.patientId
+          ),
         });
         // Invalidate all patient conversations (for sidebar)
         queryClient.invalidateQueries({
@@ -292,32 +422,58 @@ export const useCreatePatientConversation = (
 
 export const useSendPatientConversationMessage = (
   options?: Omit<
-        UseMutationOptions<ApiResponse<SendChatMessageResponse>, Error, { patientId: string; conversationId: string; message: string }>,
+    UseMutationOptions<
+      ApiResponse<SendChatMessageResponse>,
+      Error,
+      { patientId: string; conversationId: string; message: string }
+    >,
     "mutationFn"
   >
 ) => {
-    return useMutation<ApiResponse<SendChatMessageResponse>, Error, { patientId: string; conversationId: string; message: string }>({
+  return useMutation<
+    ApiResponse<SendChatMessageResponse>,
+    Error,
+    { patientId: string; conversationId: string; message: string }
+  >({
     mutationFn: ({ patientId, conversationId, message }) =>
-            doctorsApi.sendPatientConversationMessage(patientId, conversationId, message),
+      doctorsApi.sendPatientConversationMessage(
+        patientId,
+        conversationId,
+        message
+      ),
     ...options,
   });
 };
 
 export const useUpdatePatientConversationTitle = (
   options?: Omit<
-        UseMutationOptions<ApiResponse<PatientChatConversation>, Error, { patientId: string; conversationId: string; title: string }>,
+    UseMutationOptions<
+      ApiResponse<PatientChatConversation>,
+      Error,
+      { patientId: string; conversationId: string; title: string }
+    >,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientChatConversation>, Error, { patientId: string; conversationId: string; title: string }>({
+  return useMutation<
+    ApiResponse<PatientChatConversation>,
+    Error,
+    { patientId: string; conversationId: string; title: string }
+  >({
     mutationFn: ({ patientId, conversationId, title }) =>
-            doctorsApi.updatePatientConversationTitle(patientId, conversationId, title),
+      doctorsApi.updatePatientConversationTitle(
+        patientId,
+        conversationId,
+        title
+      ),
     onSuccess: (response, variables) => {
       if (!response.error) {
         // Invalidate patient-specific conversations
         queryClient.invalidateQueries({
-                    queryKey: queryKeys.doctor.chat.patient.conversations(variables.patientId),
+          queryKey: queryKeys.doctor.chat.patient.conversations(
+            variables.patientId
+          ),
         });
         // Invalidate all patient conversations (for sidebar)
         queryClient.invalidateQueries({
@@ -330,11 +486,23 @@ export const useUpdatePatientConversationTitle = (
 };
 
 export const useCreateGeneralConversation = (
-    options?: Omit<UseMutationOptions<ApiResponse<GeneralChatConversation>, Error, { title?: string } | void>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<GeneralChatConversation>,
+      Error,
+      { title?: string } | void
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<GeneralChatConversation>, Error, { title?: string } | void>({
-        mutationFn: (variables) => doctorsApi.createGeneralConversation(variables ?? {}),
+  return useMutation<
+    ApiResponse<GeneralChatConversation>,
+    Error,
+    { title?: string } | void
+  >({
+    mutationFn: (variables) =>
+      doctorsApi.createGeneralConversation(variables ?? {}),
     onSuccess: (response) => {
       if (!response.error) {
         queryClient.invalidateQueries({
@@ -347,9 +515,20 @@ export const useCreateGeneralConversation = (
 };
 
 export const useSendGeneralConversationMessage = (
-    options?: Omit<UseMutationOptions<ApiResponse<SendChatMessageResponse>, Error, { conversationId: string; message: string }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<SendChatMessageResponse>,
+      Error,
+      { conversationId: string; message: string }
+    >,
+    "mutationFn"
+  >
 ) => {
-    return useMutation<ApiResponse<SendChatMessageResponse>, Error, { conversationId: string; message: string }>({
+  return useMutation<
+    ApiResponse<SendChatMessageResponse>,
+    Error,
+    { conversationId: string; message: string }
+  >({
     mutationFn: ({ conversationId, message }) =>
       doctorsApi.sendGeneralConversationMessage(conversationId, message),
     ...options,
@@ -357,10 +536,21 @@ export const useSendGeneralConversationMessage = (
 };
 
 export const useUpdateGeneralConversationTitle = (
-    options?: Omit<UseMutationOptions<ApiResponse<GeneralChatConversation>, Error, { conversationId: string; title: string }>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<GeneralChatConversation>,
+      Error,
+      { conversationId: string; title: string }
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<GeneralChatConversation>, Error, { conversationId: string; title: string }>({
+  return useMutation<
+    ApiResponse<GeneralChatConversation>,
+    Error,
+    { conversationId: string; title: string }
+  >({
     mutationFn: ({ conversationId, title }) =>
       doctorsApi.updateGeneralConversationTitle(conversationId, title),
     onSuccess: (response) => {
@@ -377,7 +567,10 @@ export const useUpdateGeneralConversationTitle = (
 // DNA/Genetics hooks
 export const useGetPatientGenetics = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientDNAResult[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientDNAResult[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientDNAResult[]>, Error>({
     queryKey: queryKeys.doctor.dna.results(patientId),
@@ -390,9 +583,30 @@ export const useGetPatientGenetics = (
   });
 };
 
+export const useGetPatientGeneticsReports = (
+  patientId: string,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientGeneticsReport[]>, Error>,
+    "queryKey" | "queryFn"
+  >
+) => {
+  return useQuery<ApiResponse<PatientGeneticsReport[]>, Error>({
+    queryKey: queryKeys.doctor.dna.geneticsReports(patientId),
+    queryFn: () => doctorsApi.getPatientGeneticsReports(patientId),
+    enabled: Boolean(patientId),
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    ...options,
+  });
+};
+
 export const useGetReports = (
   params?: { gender?: string },
-    options?: Omit<UseQueryOptions<ApiResponse<Report[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Report[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   const gender = (params?.gender ?? "ALL").toUpperCase();
   const queryParams = { ...params, gender };
@@ -408,25 +622,16 @@ export const useGetReports = (
 
 export const useCreateReport = (
   options?: Omit<
-    UseMutationOptions<
-      ApiResponse<Report>,
-      Error,
-      CreateReportVariables
-    >,
+    UseMutationOptions<ApiResponse<Report>, Error, CreateReportVariables>,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useMutation<
-    ApiResponse<Report>,
-    Error,
-    CreateReportVariables
-  >({
-    mutationFn: ({ data }) =>
-      doctorsApi.createReport(data),
+  return useMutation<ApiResponse<Report>, Error, CreateReportVariables>({
+    mutationFn: ({ data }) => doctorsApi.createReport(data),
     onSuccess: (response, variables) => {
       if (!response.error) {
-      const createdGenders = (variables.data.genders ?? []).map((g) =>
+        const createdGenders = (variables.data.genders ?? []).map((g) =>
           g.toUpperCase()
         );
         createdGenders.forEach((gender) => {
@@ -454,7 +659,8 @@ export const useUpdatePatientInfo = (
 ) => {
   const queryClient = useQueryClient();
   return useMutation<ApiResponse, Error, { patientId: string; data: any }>({
-        mutationFn: ({ patientId, data }) => doctorsApi.updatePatientInfo(patientId, data),
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.updatePatientInfo(patientId, data),
     onSuccess: (_response, variables) => {
       // Invalidate patient detail query to update the patient profile page
       queryClient.invalidateQueries({
@@ -470,77 +676,89 @@ export const useUpdatePatientInfo = (
 };
 
 export const useCalculateTestosteroneDosing = (
-    options?: Omit<
-        UseMutationOptions<
-            ApiResponse<TestosteroneDosingSuggestionsResponse>,
-            Error,
-            { patientId: string; pelletType: "T100" | "T200" }
-        >,
-        "mutationFn"
-    >
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<TestosteroneDosingSuggestionsResponse>,
+      Error,
+      { patientId: string; pelletType: "T100" | "T200" }
+    >,
+    "mutationFn"
+  >
 ) => {
-    return useMutation<
-        ApiResponse<TestosteroneDosingSuggestionsResponse>,
-        Error,
-        { patientId: string; pelletType: "T100" | "T200" }
-    >({
-        mutationFn: ({ patientId, pelletType }) =>
-            doctorsApi.calculateTestosteroneDosing(patientId, pelletType),
-        ...options,
-    });
+  return useMutation<
+    ApiResponse<TestosteroneDosingSuggestionsResponse>,
+    Error,
+    { patientId: string; pelletType: "T100" | "T200" }
+  >({
+    mutationFn: ({ patientId, pelletType }) =>
+      doctorsApi.calculateTestosteroneDosing(patientId, pelletType),
+    ...options,
+  });
 };
 
 export const useCalculateEstradiolDosing = (
-    options?: Omit<
-        UseMutationOptions<ApiResponse<EstradiolDosingSuggestionsResponse>, Error, string>,
-        "mutationFn"
-    >
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<EstradiolDosingSuggestionsResponse>,
+      Error,
+      string
+    >,
+    "mutationFn"
+  >
 ) => {
-    return useMutation<ApiResponse<EstradiolDosingSuggestionsResponse>, Error, string>({
-        mutationFn: (patientId) => doctorsApi.calculateEstradiolDosing(patientId),
-        ...options,
-    });
+  return useMutation<
+    ApiResponse<EstradiolDosingSuggestionsResponse>,
+    Error,
+    string
+  >({
+    mutationFn: (patientId) => doctorsApi.calculateEstradiolDosing(patientId),
+    ...options,
+  });
 };
 
 export const useSaveDosingCalculation = (
-    options?: Omit<
-        UseMutationOptions<
-            ApiResponse<boolean>,
-            Error,
-            {
-                patientId: string;
-                data: SaveDosingCalculationRequest;
-            }
-        >,
-        "mutationFn"
-    >
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<boolean>,
+      Error,
+      {
+        patientId: string;
+        data: SaveDosingCalculationRequest;
+      }
+    >,
+    "mutationFn"
+  >
 ) => {
-    const queryClient = useQueryClient();
-    return useMutation<
-        ApiResponse<boolean>,
-        Error,
-        {
-            patientId: string;
-            data: SaveDosingCalculationRequest;
-        }
-    >({
-        mutationFn: ({ patientId, data }) => doctorsApi.saveDosingCalculation(patientId, data),
-        onSuccess: (_response, variables) => {
-            // Invalidate queries on successful save
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.doctor.dosing.history(variables.patientId),
-            });
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.doctor.patients.medications(variables.patientId),
-            });
-        },
-        ...options,
-    });
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<boolean>,
+    Error,
+    {
+      patientId: string;
+      data: SaveDosingCalculationRequest;
+    }
+  >({
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.saveDosingCalculation(patientId, data),
+    onSuccess: (_response, variables) => {
+      // Invalidate queries on successful save
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.doctor.dosing.history(variables.patientId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.doctor.patients.medications(variables.patientId),
+      });
+    },
+    ...options,
+  });
 };
 
 export const useGetDosingHistory = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<DosingHistoryResponse>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<DosingHistoryResponse>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<DosingHistoryResponse>, Error>({
     queryKey: queryKeys.doctor.dosing.history(patientId),
@@ -554,11 +772,23 @@ export const useGetDosingHistory = (
 };
 
 export const useOrderDNAKit = (
-    options?: Omit<UseMutationOptions<ApiResponse<OrderDNAKitResponseData>, Error, OrderDNAKitVariables>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<OrderDNAKitResponseData>,
+      Error,
+      OrderDNAKitVariables
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<OrderDNAKitResponseData>, Error, OrderDNAKitVariables>({
-        mutationFn: ({ patientId, data }) => doctorsApi.orderDNAKit(patientId, data),
+  return useMutation<
+    ApiResponse<OrderDNAKitResponseData>,
+    Error,
+    OrderDNAKitVariables
+  >({
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.orderDNAKit(patientId, data),
     onSuccess: (response, variables) => {
       if (!response.error) {
         queryClient.invalidateQueries({
@@ -575,7 +805,11 @@ export const useUpdateDnaKitStatus = (
     UseMutationOptions<
       ApiResponse<PatientDNAResult>,
       Error,
-            { patientId: string; dnaResultId: string; action: "HOLD" | "PROCESS" | "CANCEL" }
+      {
+        patientId: string;
+        dnaResultId: string;
+        action: "HOLD" | "PROCESS" | "CANCEL";
+      }
     >,
     "mutationFn"
   >
@@ -584,7 +818,11 @@ export const useUpdateDnaKitStatus = (
   return useMutation<
     ApiResponse<PatientDNAResult>,
     Error,
-        { patientId: string; dnaResultId: string; action: "HOLD" | "PROCESS" | "CANCEL" }
+    {
+      patientId: string;
+      dnaResultId: string;
+      action: "HOLD" | "PROCESS" | "CANCEL";
+    }
   >({
     mutationFn: ({ patientId, dnaResultId, action }) =>
       doctorsApi.updateDnaKitStatus(patientId, dnaResultId, action),
@@ -602,7 +840,10 @@ export const useUpdateDnaKitStatus = (
 // Patient Address hooks
 export const useGetPatientAddresses = (
   patientId: string,
-    options?: Omit<UseQueryOptions<ApiResponse<PatientAddress[]>, Error>, "queryKey" | "queryFn">
+  options?: Omit<
+    UseQueryOptions<ApiResponse<PatientAddress[]>, Error>,
+    "queryKey" | "queryFn"
+  >
 ) => {
   return useQuery<ApiResponse<PatientAddress[]>, Error>({
     queryKey: queryKeys.doctor.dna.addresses(patientId),
@@ -615,13 +856,24 @@ export const useGetPatientAddresses = (
   });
 };
 
-
 export const useCreatePatientAddress = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientAddress>, Error, CreatePatientAddressVariables>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAddress>,
+      Error,
+      CreatePatientAddressVariables
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientAddress>, Error, CreatePatientAddressVariables>({
-        mutationFn: ({ patientId, data }) => doctorsApi.createPatientAddress(patientId, data),
+  return useMutation<
+    ApiResponse<PatientAddress>,
+    Error,
+    CreatePatientAddressVariables
+  >({
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.createPatientAddress(patientId, data),
     onSuccess: (response, variables) => {
       if (!response.error) {
         queryClient.invalidateQueries({
@@ -634,11 +886,23 @@ export const useCreatePatientAddress = (
 };
 
 export const useUpdatePatientAddress = (
-    options?: Omit<UseMutationOptions<ApiResponse<PatientAddress>, Error, UpdatePatientAddressVariables>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAddress>,
+      Error,
+      UpdatePatientAddressVariables
+    >,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
-    return useMutation<ApiResponse<PatientAddress>, Error, UpdatePatientAddressVariables>({
-        mutationFn: ({ patientId, addressId, data }) => doctorsApi.updatePatientAddress(patientId, addressId, data),
+  return useMutation<
+    ApiResponse<PatientAddress>,
+    Error,
+    UpdatePatientAddressVariables
+  >({
+    mutationFn: ({ patientId, addressId, data }) =>
+      doctorsApi.updatePatientAddress(patientId, addressId, data),
     onSuccess: (response, variables) => {
       if (!response.error) {
         queryClient.invalidateQueries({
@@ -709,8 +973,8 @@ export const useUpdatePatientGoal = (
     Error,
     UpdatePatientHealthGoalsVariables
   >({
-    mutationFn: ({ patientId,goalId, data }) =>
-      doctorsApi.updatePatientGoal(patientId,goalId, data),
+    mutationFn: ({ patientId, goalId, data }) =>
+      doctorsApi.updatePatientGoal(patientId, goalId, data),
     onSuccess: (response, variables) => {
       if (!response.error) {
         queryClient.invalidateQueries({
