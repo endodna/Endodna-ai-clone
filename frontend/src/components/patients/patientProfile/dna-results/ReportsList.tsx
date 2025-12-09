@@ -277,8 +277,8 @@ export function ReportsList({
         <div className="flex items-start justify-between mb-4">
           <h3 className="text-neutral-600 text-2xl font-semibold">Reports</h3>
           <Button
-            variant="default"
-            className="bg-neutral-100 text-neutral-900 font-medium text-sm"
+            variant="secondary"
+            // className="bg-neutral-100 text-neutral-900 font-medium text-sm"
             onClick={() => {
               setShowWelcomeSection(true);
               setIsSheetOpen(true);
@@ -291,7 +291,7 @@ export function ReportsList({
 
         <div className="flex justify-between gap-3">
           <div className="relative w-[240px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-600" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search"
@@ -301,7 +301,7 @@ export function ReportsList({
             />
           </div>
           <Select value={filterValue} onValueChange={setFilterValue}>
-            <SelectTrigger className="w-[128px] text-sm font-normal text-neutral-950 border-neutral-300">
+            <SelectTrigger className="w-[128px] text-sm font-normal text-foreground border-muted-foreground">
               <SelectValue placeholder="All Variants" />
             </SelectTrigger>
             <SelectContent>
@@ -318,16 +318,16 @@ export function ReportsList({
         </div>
       </div>
 
-      <div className="border-b border-gray-200 mb-3 -mx-6" />
+      <div className="border-b border-muted-foreground/30 mb-3 -mx-6" />
       <div className="space-y-0">
         <div className="grid grid-cols-12 gap-4 pb-2">
           <div className="col-span-7">
-            <span className="text-sm font-medium text-neutral-950 ml-5">
+            <span className="text-sm font-medium text-foreground ml-5">
               Name
             </span>
           </div>
           <div className="col-span-3">
-            <span className="text-sm font-medium text-neutral-950">
+            <span className="text-sm font-medium text-foreground">
               Variant Status
             </span>
           </div>
@@ -379,7 +379,7 @@ export function ReportsList({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-white border-neutral-300 hover:bg-neutral-100 text-neutral-950 font-medium text-xs"
+                  className="bg-white border-neutral-300 text-neutral-950 hover:bg-neutral-100 hover:text-neutral-950 font-medium text-xs"
                   onClick={() => {
                     setSelectedReport(report);
                     setIsReportSheetOpen(true);
@@ -390,7 +390,7 @@ export function ReportsList({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-white border-neutral-300 hover:bg-neutral-100 text-neutral-950 font-medium text-xs"
+                  className="bg-white border-neutral-300 text-neutral-950 hover:bg-neutral-100 hover:text-neutral-950 font-medium text-xs"
                   onClick={() => {
                     setShowWelcomeSection(false);
                     setAutoSubmitPrompt(report.name);

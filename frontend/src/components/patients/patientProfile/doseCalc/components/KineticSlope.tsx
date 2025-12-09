@@ -133,7 +133,7 @@ function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
         <p className="typo-body-2 typo-body-2-regular text-foreground">Dose:</p>
         {selectedDose ? (
           <p className="typo-body-2 typo-body-2-regular text-foreground">
-            {selectedDose.dosageMg} mg
+            {Number(selectedDose.dosageMg).toFixed(2)} mg
           </p>
         ) : (
           <p className="typo-body-2 typo-body-2-regular text-muted-foreground">

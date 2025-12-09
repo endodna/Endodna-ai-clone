@@ -755,6 +755,7 @@ export const useSaveDosingCalculation = (
 
 export const useGetDosingHistory = (
   patientId: string,
+  gender: string,
   options?: Omit<
     UseQueryOptions<ApiResponse<DosingHistoryResponse>, Error>,
     "queryKey" | "queryFn"
@@ -762,7 +763,8 @@ export const useGetDosingHistory = (
 ) => {
   return useQuery<ApiResponse<DosingHistoryResponse>, Error>({
     queryKey: queryKeys.doctor.dosing.history(patientId),
-    queryFn: () => doctorsApi.getDosingHistory(patientId),
+    // queryFn: () => doctorsApi.getDosingHistory(patientId),
+    queryFn: () => doctorsApi.getDosingHistoryPostApi(patientId, gender),
     enabled: Boolean(patientId),
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,

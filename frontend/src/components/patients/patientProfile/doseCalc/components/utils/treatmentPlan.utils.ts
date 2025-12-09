@@ -43,9 +43,11 @@ function getTierData(
         geneticMultiplier?: number;
     };
 } | null {
+    console.log('TreatmentPlan historyData getTierData historyData', historyData, selectedDose);
     if (!selectedDose || !historyData || historyData.length === 0) {
         return null;
     }
+
 
     // Get the most recent entry
     const mostRecentEntry = historyData[0];
@@ -53,6 +55,8 @@ function getTierData(
 
     // Determine which hormone data to access
     let hormoneData: { dosingSuggestions?: Record<string, unknown> } | undefined;
+
+    console.log('TreatmentPlan historyData getTierData selectedDose', selectedDose);
 
     if (selectedDose.hormoneType === "testosterone") {
         // Check T100 first, then T200
@@ -102,6 +106,7 @@ export function extractModifiers(
     }
 
     const tierData = getTierData(historyData, selectedDose);
+
     if (!tierData) {
         return [];
     }

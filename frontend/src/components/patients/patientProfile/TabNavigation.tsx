@@ -49,8 +49,8 @@ export function TabNavigation<TProps extends object = Record<string, never>>({
             className={cn("flex-1", className)}
         >
             <div className="">
-                <div className="border border-muted-foreground bg-secondary-background rounded-2xl w-fit p-2">
-                    <TabsList className="bg-muted-foreground/10">
+                <div className="bg-muted-foreground/10 rounded-2xl w-fit p-2">
+                    <TabsList className="bg-transparent">
                         {tabs.map((tab) => (
                             <TabsTrigger
                                 key={tab.id}

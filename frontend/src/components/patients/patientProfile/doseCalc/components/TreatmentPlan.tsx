@@ -11,9 +11,16 @@ interface TreatmentPlanProps {
 export function TreatmentPlan({ historyData }: Readonly<TreatmentPlanProps>) {
     const { selectedDose } = useAppSelector((state) => state.dosingCalculator);
 
+    console.log('TreatmentPlan historyData', historyData);
+    
+
     const hasData = useMemo(() => {
         const modifiers = extractModifiers(historyData ?? null, selectedDose);
+        console.log('TreatmentPlan historyData modifiers', modifiers);
+        
         const alerts = extractAlerts(historyData ?? null, selectedDose);
+        console.log('TreatmentPlan historyData alerts', alerts); 
+
         return modifiers.length > 0 || alerts.length > 0;
     }, [historyData, selectedDose]);
 

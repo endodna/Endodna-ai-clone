@@ -1090,6 +1090,70 @@ export const doctorsApi = {
     }
   },
 
+  // Get Dosing History using Post API
+  getDosingHistoryPostApi: async (patientId: string, gender: string): Promise<any> => {
+    try {
+      if (gender.toLowerCase() === "male") {
+        const [result100, result200] = await Promise.allSettled([
+          doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
+          doctorsApi.calculateTestosteroneDosing(patientId, "T200"),
+        ]);
+        const t100 = result100.status === "fulfilled" ? result100.value : null;
+        const t200 = result200.status === "fulfilled" ? result200.value : null;
+        const result = {
+          data: [{
+            data: {
+              "T100": { dosingSuggestions: t100?.data || {} },
+            },
+            type: "T100"
+          },
+          {
+            data: {
+              "T200": { dosingSuggestions: t200?.data || {} },
+            },
+            type: "T200"
+          }],
+          error: false,
+          message: "Dosing history fetched successfully",
+        }
+        return result;
+      }
+      else if (gender.toLowerCase() === "female") {
+        const [result100, estradiol] = await Promise.allSettled([
+          doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
+          doctorsApi.calculateEstradiolDosing(patientId),
+        ]);
+        const t100 = result100.status === "fulfilled" ? result100.value : null;
+        const estradiolRes = estradiol.status === "fulfilled" ? estradiol.value : null;
+
+        const result = {
+          data: [{
+            data: {
+              "ESTRADIOL": { dosingSuggestions: estradiolRes?.data || {} },
+            },
+            type: "ESTRADIOL"
+          },
+          {
+            data: {
+              "T100": { dosingSuggestions: t100?.data || {} },
+            },
+            type: "T100"
+          }],
+          error: false,
+          message: "Dosing history fetched successfully",
+        }
+        return result;
+      }
+    }
+    catch (error: unknown) {
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch dosing history"),
+      };
+    }
+  },
+
   getDosingHistory: async (
     patientId: string
   ): Promise<ApiResponse<DosingHistoryResponse>> => {

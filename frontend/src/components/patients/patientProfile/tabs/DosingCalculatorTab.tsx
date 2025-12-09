@@ -19,9 +19,11 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
         isLoading,
         isError,
         error,
-    } = useGetDosingHistory(patientId ?? "", {
+    } = useGetDosingHistory(patientId ?? "", patient?.gender || "", {
         enabled: Boolean(patientId),
     });
+
+    console.log('historyResponse', historyResponse);
 
     if (isLoading) {
         return (
@@ -67,8 +69,8 @@ export function DosingCalculatorTab({ patientId, patient }: Readonly<DosingCalcu
                 <Button
                     variant={showDoseSuggestions ? "secondary" : "outline"}
                     className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
-                            ? "bg-muted text-muted-foreground opacity-60"
-                            : ""
+                        ? "bg-muted text-muted-foreground opacity-60"
+                        : ""
                         }`}
                     onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
                 >

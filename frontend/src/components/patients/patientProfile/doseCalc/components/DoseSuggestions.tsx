@@ -113,7 +113,7 @@ function TierCard({
             </CardHeader>
             <CardContent className="space-y-2 px-2 md:px-4 py-2">
                 <div className="flex items-center justify-between">
-                    <p className="typo-body-2 text-foreground">{dosageMg}</p>
+                    <p className="typo-body-2 text-foreground">{Number(dosageMg).toFixed(2)}</p>
                     <p className="typo-body-2 text-foreground">mg</p>
                 </div>
             </CardContent>
@@ -177,8 +177,8 @@ function HormoneSummaryRow({
                 <span className="typo-body-2 text-foreground capitalize">
                     {hormoneType}
                 </span>
-                <span className="typo-body-2 text-muted-foreground">
-                    {tierTypeLabel} – {tierLabel} | {selectedDose.dosageMg} mg 
+                <span className="mx-auto mr-4 typo-body-2 text-muted-foreground">
+                    {tierTypeLabel} - {tierLabel} | {Number(selectedDose.dosageMg).toFixed(2)} mg 
                 </span>
             </div>
             <Button
@@ -187,7 +187,7 @@ function HormoneSummaryRow({
                 className="rounded-lg"
                 onClick={onEdit}
             >
-                EDIT
+                Edit
             </Button>
         </div>
     );

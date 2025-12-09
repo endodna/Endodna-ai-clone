@@ -45,6 +45,7 @@ import {
   Box,
   Plus,
   Boxes,
+  LoaderCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -482,6 +483,7 @@ export function AiSummary({
                   side="top"
                   align="center"
                   className="w-48 rounded-xl border border-muted-foreground bg-primary-foreground px-4 py-4 typo-body-3 text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                  variant="inverted"
                 >
                   <p className="typo-body-2 text-foreground">Upload</p>
                   <p className="mt-1 typo-body-3 text-muted-foreground">
@@ -539,6 +541,7 @@ export function AiSummary({
                       side="top"
                       align="center"
                       className="w-48 rounded-xl border border-muted-foreground bg-primary-foreground px-4 py-4 typo-body-3 text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+                      variant="inverted"
                     >
                       <p className="typo-body-2  text-foreground">
                         {option.label}
@@ -597,12 +600,13 @@ export function AiSummary({
 
             <Button
               type="button"
-              className="h-10 w-10 gap-2 px-5 typo-body-2  text-foreground  disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-10 w-10 typo-body-2 disabled:cursor-not-allowed disabled:opacity-60"
+              variant="default"
               disabled={isSendDisabled}
               onClick={handleSubmit}
             >
               {isProcessing ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-foreground border-t-transparent"></div>
+                <LoaderCircle className="h-4 w-4 animate-spin" />
               ) : (
                 <SendHorizontal className="h-4 w-4 rotate-[-45deg]" />
               )}
