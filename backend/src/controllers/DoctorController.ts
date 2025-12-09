@@ -1,7 +1,7 @@
 
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
-import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, StatusCode } from "../types";
+import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticReportVariant, StatusCode } from "../types";
 import { logger } from "../helpers/logger.helper";
 import {
   CreatePatientActiveMedicationSchema,
@@ -74,6 +74,7 @@ import { testosteroneDosingHelper } from "../helpers/dosing.helper";
 import { PelletType, DosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams, TestosteroneDosageParams, DosageTier } from "../types";
 import moment from "moment";
 import { EstradiolDosingSuggestionsResponse, getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
+import gaugeFromAcmgLabels, { REVERSED_ACMG_SEVERITY } from "../helpers/gauge-algorithm.helper";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -1475,6 +1476,17 @@ class DoctorController {
             select: {
               snpName: true,
               genotype: true,
+              masterSNP: {
+                select: {
+                  rsId: true,
+                  geneName: true,
+                  geneSummary: true,
+                  chromosome: true,
+                  position_GRCh38: true,
+                  referenceAllele: true,
+                  altAllele: true,
+                }
+              }
             },
           }
         }
@@ -1530,6 +1542,8 @@ class DoctorController {
                 rsID: true,
                 genotype: true,
                 pathogenicity: true,
+                sources: true,
+                description: true,
               },
             }
           }
@@ -1540,13 +1554,28 @@ class DoctorController {
           for (const snp of category.reportCategorySNPs) {
             categorySnps.add(snp.rsID);
           }
-          let patientPathogenicity = "";
+          const variants: PatientGeneticReportVariant[] = [];
+
           for (const snp of categorySnps) {
             const patientDNASNP = patientDNAResults.patientDNAResultBreakdown.find((s) => s.snpName === snp);
             if (!patientDNASNP) {
               continue;
             }
-            patientPathogenicity = category.reportCategorySNPs.find((s) => s.rsID === patientDNASNP.snpName)?.pathogenicity || "";
+            const reportCategorySNP = category.reportCategorySNPs.find((s) => s.rsID === patientDNASNP.snpName);
+            if (!reportCategorySNP) {
+              continue;
+            }
+            const patientPathogenicity = reportCategorySNP.pathogenicity;
+
+            const variant: PatientGeneticReportVariant = {
+              rsID: patientDNASNP.snpName,
+              geneName: patientDNASNP.masterSNP?.geneName,
+              genotype: patientDNASNP.genotype || "",
+              variantStatus: patientPathogenicity,
+              clinicalSignificance: patientDNASNP.masterSNP?.geneSummary || "",
+              references: reportCategorySNP.sources || [],
+            };
+
             response.variantsCount.total++;
             if (patientPathogenicity === "benign") {
               response.variantsCount.benign++;
@@ -1559,13 +1588,15 @@ class DoctorController {
             } else if (patientPathogenicity === "impactful") {
               response.variantsCount.impactful++;
             }
-            else {
-              response.variantsCount.total--;
-            }
+            variants.push(variant);
           }
+
+          const guageResult = gaugeFromAcmgLabels(variants.map((v) => v.variantStatus));
           reportResponse.categories.push({
             categoryName: category.name,
-            variantStatus: patientPathogenicity || "",
+            variantStatus: REVERSED_ACMG_SEVERITY[guageResult.maxSeverity || 0],
+            variants,
+            overallScore: guageResult.normalizedScore || 0,
           });
         }
         response.reports.push(reportResponse);
