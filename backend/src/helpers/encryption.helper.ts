@@ -36,7 +36,7 @@ export const verifySupabaseToken = async (token: string, traceId?: string) => {
     }
     return user;
   } catch (error) {
-    logger.error("Supabase token verification error", {
+    logger.debug("Supabase token verification error", {
       traceId,
       error: error,
       method: "verifySupabaseToken",
