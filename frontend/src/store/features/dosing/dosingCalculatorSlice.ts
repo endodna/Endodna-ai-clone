@@ -5,7 +5,6 @@ interface SelectedDose {
     tier: string;
     tierType: "base" | "modified";
     dosageMg: number;
-    pelletsCount: number;
 }
 
 interface DosingCalculatorState {

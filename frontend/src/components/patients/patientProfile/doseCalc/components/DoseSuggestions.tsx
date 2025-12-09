@@ -23,7 +23,6 @@ interface HormoneSuggestions {
 interface TierCardProps {
     tier: string;
     dosageMg: number;
-    pelletsCount: number;
     hormoneType: "testosterone" | "estradiol";
     tierType: "base" | "modified";
     isSelected?: boolean;
@@ -51,7 +50,6 @@ interface HormoneSummaryRowProps {
         tier: string;
         tierType: "base" | "modified";
         dosageMg: number;
-        pelletsCount: number;
     };
     onEdit: () => void;
 }
@@ -81,7 +79,6 @@ const TIER_ORDER: string[] = [
 function TierCard({
     tier,
     dosageMg,
-    pelletsCount,
     hormoneType,
     tierType,
     isSelected,
@@ -96,7 +93,6 @@ function TierCard({
                 tier,
                 tierType,
                 dosageMg,
-                pelletsCount,
             })
         );
         onSelect?.();
@@ -119,10 +115,6 @@ function TierCard({
                 <div className="flex items-center justify-between">
                     <p className="typo-body-2 text-foreground">{dosageMg}</p>
                     <p className="typo-body-2 text-foreground">mg</p>
-                </div>
-                <div className="flex items-center justify-between">
-                    <p className="typo-body-2 text-foreground">{pelletsCount}</p>
-                    <p className="typo-body-2 text-foreground">Pellets</p>
                 </div>
             </CardContent>
         </Card>
@@ -158,7 +150,6 @@ function TierSection({
                             key={tier}
                             tier={tier}
                             dosageMg={tierData.dosageMg}
-                            pelletsCount={tierData.pelletsCount}
                             hormoneType={hormoneType}
                             tierType={tierType}
                             isSelected={isSelected}
@@ -187,7 +178,7 @@ function HormoneSummaryRow({
                     {hormoneType}
                 </span>
                 <span className="typo-body-2 text-muted-foreground">
-                    {tierTypeLabel} – {tierLabel} | {selectedDose.dosageMg} mg | {selectedDose.pelletsCount} Pellets
+                    {tierTypeLabel} – {tierLabel} | {selectedDose.dosageMg} mg 
                 </span>
             </div>
             <Button
@@ -230,7 +221,6 @@ function HormoneSection({
                         tier: selectedDose.tier,
                         tierType: selectedDose.tierType,
                         dosageMg: selectedDose.dosageMg,
-                        pelletsCount: selectedDose.pelletsCount,
                     }}
                     onEdit={onToggleEditMode}
                 />
@@ -382,7 +372,6 @@ export function DoseSuggestions({ historyData }: Readonly<DoseSuggestionsProps>)
                         tier: conservativeTier,
                         tierType,
                         dosageMg: suggestionsToUse[conservativeTier].dosageMg,
-                        pelletsCount: suggestionsToUse[conservativeTier].pelletsCount,
                     })
                 );
             }
