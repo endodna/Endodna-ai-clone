@@ -43,6 +43,14 @@ const ACMG_SEVERITY: Record<string, number> = {
     impactful: 4,
 };
 
+export const REVERSED_ACMG_SEVERITY: Record<number, string> = {
+    4: "impactful",
+    3: "likely impactful",
+    2: "vus",
+    1: "likely benign",
+    0: "benign",
+};
+
 /**
  * Normalizes ACMG labels and aggregates them into a gauge color using a worst-case approach.
  *

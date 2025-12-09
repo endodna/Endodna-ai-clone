@@ -119,9 +119,20 @@ export interface ResponseOptions {
   message?: string;
 }
 
+export interface PatientGeneticReportVariant {
+  rsID: string;
+  geneName?: string;
+  genotype?: string;
+  variantStatus: string;
+  clinicalSignificance: string;
+  references: string[];
+}
+
 export interface PatientGeneticReportCategory {
   categoryName: string;
+  overallScore: number;
   variantStatus: string;
+  variants: PatientGeneticReportVariant[];
 }
 
 export interface PatientGeneticReport {
