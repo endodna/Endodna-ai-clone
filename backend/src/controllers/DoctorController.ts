@@ -4423,11 +4423,11 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender.toUpperCase() !== Gender.MALE && pelletType == PelletType.T100) {
+      if (user.gender.toUpperCase() !== Gender.MALE && pelletType == PelletType.T200) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: "T100 Male protocol used for non-male patient.",
+          message: "T200 Male protocol used for non-male patient.",
         });
       }
 
@@ -4645,11 +4645,11 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender.toUpperCase() !== Gender.MALE && T100?.tier) {
+      if (user.gender.toUpperCase() !== Gender.MALE && T200?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: "T100 Male protocol used for non-male patient.",
+          message: "T200 Male protocol used for non-male patient.",
         });
       }
 
