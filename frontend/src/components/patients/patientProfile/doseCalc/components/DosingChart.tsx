@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
 import {
   AreaChart,
@@ -23,6 +23,122 @@ interface DosingChartProps {
   yAxisLabel?: string;
 }
 
+interface ChartDataPoint {
+  days: number;
+  dosageMg: number;
+}
+
+interface ChartCalculations {
+  chartData: ChartDataPoint[];
+  xAxisTicks: number[];
+  yAxisTicks: number[];
+  maxDays: number;
+  maxDosage: number;
+  rePelletWindowStartDays: number;
+  rePelletWindowEndDays: number;
+}
+
+// Helper function to calculate re-pellet days based on patient gender
+function calculateRePelletDays(patientGender?: string | null): number {
+  const gender = patientGender?.toUpperCase();
+
+  if (gender === GENDER.MALE) {
+    // 5.5 months = 5 months + 15 days ≈ 165 days
+    return 165;
+  } else if (gender === GENDER.FEMALE) {
+    // 3.5 months = 3 months + 15 days ≈ 105 days
+    return 105;
+  }
+  // Default to 85 days if gender is not available
+  return 85;
+}
+
+// Helper function to calculate re-pellet window
+function calculateRePelletWindow(rePelletDays: number): {
+  startDays: number;
+  endDays: number;
+} {
+  // Window is 4 weeks (28 days) before re-pellet date
+  const startDays = Math.max(0, rePelletDays - 28);
+  const endDays = rePelletDays;
+  return { startDays, endDays };
+}
+
+// Helper function to create chart data points
+function createChartData(
+  dosageMg: number,
+  peakDosageMg: number,
+  rePelletDays: number
+): ChartDataPoint[] {
+  const sixWeekDays = 42;
+  const twelveWeekDays = 84;
+
+  return [
+    // Day 0: Initial dosage
+    { days: 0, dosageMg },
+    // 6 Week Lab Draw: 50% more
+    { days: sixWeekDays, dosageMg: peakDosageMg },
+    // 12 Week Lab Draw: 50% more
+    { days: twelveWeekDays, dosageMg: peakDosageMg },
+    // Estimated Re-pellet: goes to 0
+    { days: rePelletDays, dosageMg: 0 },
+  ];
+}
+
+// Helper function to calculate X-axis ticks
+function calculateXAxisTicks(rePelletDays: number): {
+  ticks: number[];
+  maxDays: number;
+} {
+  const tickInterval = 25;
+  const maxDaysValue = Math.ceil(rePelletDays / tickInterval) * tickInterval; // Round up to nearest 25
+  const ticks: number[] = [];
+
+  for (let i = 0; i <= maxDaysValue; i += tickInterval) {
+    ticks.push(i);
+  }
+
+  return { ticks, maxDays: maxDaysValue };
+}
+
+// Helper function to calculate Y-axis ticks
+function calculateYAxisTicks(peakDosageMg: number): {
+  ticks: number[];
+  maxDosage: number;
+} {
+  const targetTicks = 5;
+  const maxDosageValue = Math.ceil(peakDosageMg * 1.1); // Add 10% padding
+
+  // Determine appropriate interval for uniform spacing
+  let yTickInterval = Math.ceil(maxDosageValue / targetTicks);
+
+  // Round to nice numbers (50, 100, 200, 500, 1000, etc.)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(yTickInterval)));
+  const normalized = yTickInterval / magnitude;
+
+  if (normalized <= 1) {
+    yTickInterval = magnitude;
+  } else if (normalized <= 2) {
+    yTickInterval = 2 * magnitude;
+  } else if (normalized <= 5) {
+    yTickInterval = 5 * magnitude;
+  } else {
+    yTickInterval = 10 * magnitude;
+  }
+
+  const ticks: number[] = [];
+  for (let i = 0; i <= maxDosageValue; i += yTickInterval) {
+    ticks.push(i);
+  }
+
+  // Ensure the last tick includes max value
+  if (ticks[ticks.length - 1] < maxDosageValue) {
+    ticks.push(Math.ceil(maxDosageValue / yTickInterval) * yTickInterval);
+  }
+
+  return { ticks, maxDosage: maxDosageValue };
+}
+
 export function DosingChart({
   patient,
   xAxisLabel = "Days",
@@ -40,7 +156,7 @@ export function DosingChart({
     maxDosage,
     rePelletWindowStartDays,
     rePelletWindowEndDays,
-  } = useMemo(() => {
+  } = useMemo<ChartCalculations>(() => {
     if (!selectedDose || !insertionDate) {
       return {
         chartData: [],
@@ -56,80 +172,20 @@ export function DosingChart({
     const dosageMg = selectedDose.dosageMg;
     const peakDosageMg = dosageMg * 1.5; // 50% more
 
-    // Calculate 6 week and 12 week lab draw dates (6 weeks = 42 days, 12 weeks = 84 days)
-    const sixWeekDays = 42;
-    const twelveWeekDays = 84;
-
     // Calculate re-pellet date based on patient gender
-    const patientGender = patient?.gender?.toUpperCase();
-    let rePelletDays: number;
+    const rePelletDays = calculateRePelletDays(patient?.gender);
 
-    if (patientGender === GENDER.MALE) {
-      // 5.5 months = 5 months + 15 days ≈ 165 days
-      rePelletDays = 165;
-    } else if (patientGender === GENDER.FEMALE) {
-      // 3.5 months = 3 months + 15 days ≈ 105 days
-      rePelletDays = 105;
-    } else {
-      // Default to 85 days if gender is not available
-      rePelletDays = 85;
-    }
+    // Calculate re-pellet window
+    const { startDays, endDays } = calculateRePelletWindow(rePelletDays);
 
-    // Calculate re-pellet window (orange vertical band)
-    // Window is 4 weeks (28 days) before re-pellet date
-    const rePelletWindowStartDays = Math.max(0, rePelletDays - 28);
-    const rePelletWindowEndDays = rePelletDays;
+    // Create chart data points
+    const data = createChartData(dosageMg, peakDosageMg, rePelletDays);
 
-    // Create data points
-    const data = [
-      // Day 0: Initial dosage
-      { days: 0, dosageMg },
-      // 6 Week Lab Draw: 50% more
-      { days: sixWeekDays, dosageMg: peakDosageMg },
-      // 12 Week Lab Draw: 50% more
-      { days: twelveWeekDays, dosageMg: peakDosageMg },
-      // Estimated Re-pellet: goes to 0
-      { days: rePelletDays, dosageMg: 0 },
-    ];
-
-    // Calculate uniform X-axis ticks (days)
-    const maxDaysValue = Math.ceil(rePelletDays / 25) * 25; // Round up to nearest 25
-    const xTicks: number[] = [];
-    const tickInterval = 25;
-    for (let i = 0; i <= maxDaysValue; i += tickInterval) {
-      xTicks.push(i);
-    }
-
-    // Calculate uniform Y-axis ticks (dosageMg)
-    const maxDosageValue = Math.ceil(peakDosageMg * 1.1); // Add 10% padding
-
-    // Determine appropriate interval for uniform spacing (aim for 5-6 ticks)
-    const targetTicks = 5;
-    let yTickInterval = Math.ceil(maxDosageValue / targetTicks);
-
-    // Round to nice numbers (50, 100, 200, 500, 1000, etc.)
-    const magnitude = Math.pow(10, Math.floor(Math.log10(yTickInterval)));
-    const normalized = yTickInterval / magnitude;
-
-    if (normalized <= 1) {
-      yTickInterval = magnitude;
-    } else if (normalized <= 2) {
-      yTickInterval = 2 * magnitude;
-    } else if (normalized <= 5) {
-      yTickInterval = 5 * magnitude;
-    } else {
-      yTickInterval = 10 * magnitude;
-    }
-
-    const yTicks: number[] = [];
-    for (let i = 0; i <= maxDosageValue; i += yTickInterval) {
-      yTicks.push(i);
-    }
-
-    // Ensure the last tick includes max value
-    if (yTicks[yTicks.length - 1] < maxDosageValue) {
-      yTicks.push(Math.ceil(maxDosageValue / yTickInterval) * yTickInterval);
-    }
+    // Calculate axis ticks
+    const { ticks: xTicks, maxDays: maxDaysValue } =
+      calculateXAxisTicks(rePelletDays);
+    const { ticks: yTicks, maxDosage: maxDosageValue } =
+      calculateYAxisTicks(peakDosageMg);
 
     return {
       chartData: data,
@@ -137,17 +193,25 @@ export function DosingChart({
       yAxisTicks: yTicks,
       maxDays: maxDaysValue,
       maxDosage: maxDosageValue,
-      rePelletWindowStartDays,
-      rePelletWindowEndDays,
+      rePelletWindowStartDays: startDays,
+      rePelletWindowEndDays: endDays,
     };
   }, [selectedDose, insertionDate, patient?.gender]);
 
-  const chartConfig = {
-    dosageMg: {
-      label: "Dosage (mg)",
-      color: "hsl(var(--primary))",
-    },
-  };
+  // Memoize tick formatter functions
+  const formatTick = useCallback((value: number): string => {
+    return `${value}`;
+  }, []);
+
+  const chartConfig = useMemo(
+    () => ({
+      dosageMg: {
+        label: "Dosage (mg)",
+        color: "hsl(var(--primary))",
+      },
+    }),
+    []
+  );
 
   if (!selectedDose || !insertionDate || chartData.length === 0) {
     return (
@@ -188,7 +252,7 @@ export function DosingChart({
               scale="linear"
               domain={[0, maxDays]}
               ticks={xAxisTicks}
-              tickFormatter={(value) => `${value}`}
+              tickFormatter={formatTick}
               label={{ value: xAxisLabel, position: "bottom", offset: -8 }}
               stroke="hsl(var(--muted-foreground))"
             />
@@ -197,7 +261,7 @@ export function DosingChart({
               type="number"
               domain={[0, maxDosage]}
               ticks={yAxisTicks}
-              tickFormatter={(value) => `${value}`}
+              tickFormatter={formatTick}
               label={{
                 value: yAxisLabel,
                 angle: -90,

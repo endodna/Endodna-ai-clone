@@ -55,15 +55,19 @@ export function PatientInfoSection({
           </Avatar>
           <div className="flex flex-col">
             <h2 className="text-foreground">{fullName || "Unnamed patient"}</h2>
-            <h6 className="text-foreground flex items-center gap-2">
-              {patientId && (
-                  <>
-                  <span>{patientId}</span>
-                  <span>•</span>
+            <p className="text-foreground/80 flex items-center gap-2 font-semibold text-sm">
+                {patientId && (
+                    <>
+                        <span>{patientId.slice(0, 5) + "..." + patientId.slice(-5)}</span>
+                    </>
+                )}
+              {email && (
+                <>
+                    <span>•</span>
+                    <span>{email}</span>
                 </>
               )}
-              {email ?? "No email"}
-            </h6>
+            </p>
           </div>
         </div>
         <Button
