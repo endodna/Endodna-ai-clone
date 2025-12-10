@@ -25,6 +25,7 @@ import {
   createGeneralConversationSchema,
   sendGeneralMessageSchema,
   generalConversationIdParamsSchema,
+  createPatientConversationSchema,
   createPatientAddressSchema,
   updatePatientAddressSchema,
   addressIdParamsSchema,
@@ -147,6 +148,7 @@ doctorRouter.get(
 doctorRouter.post(
   "/patients/:patientId/conversations",
   validateParams(patientIdParamsSchema),
+  validate(createPatientConversationSchema),
   DoctorController.createPatientConversation,
 );
 doctorRouter.get(

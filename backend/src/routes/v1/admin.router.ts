@@ -3,7 +3,7 @@ import AdminController from "../../controllers/AdminController";
 import { Authentication } from "../../middlewares/Authentication";
 import { AdminAuthorization } from "../../middlewares/Authorization";
 import { validate } from "../../middlewares/Validator";
-import { createAdminSchema, createDoctorSchema, updateOrganizationCustomizationSchema, updateOrganizationNameSchema } from "../../schemas";
+import { createAdminSchema, createDoctorSchema, updateOrganizationCustomizationSchema, updateOrganizationNameSchema, deletePatientSchema } from "../../schemas";
 import { uploadSingle } from "../../middlewares/FileUpload";
 
 const adminRouter = Router().use("/", Authentication, AdminAuthorization);
@@ -18,6 +18,11 @@ adminRouter.post(
   "/admin",
   validate(createAdminSchema),
   AdminController.createAdmin,
+);
+adminRouter.delete(
+  "/patient",
+  validate(deletePatientSchema),
+  AdminController.deleteOrganizationPatients,
 );
 
 // Organization routes

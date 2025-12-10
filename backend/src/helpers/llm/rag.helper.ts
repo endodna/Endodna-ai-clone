@@ -1,11 +1,12 @@
 import { prisma } from "../../lib/prisma";
 import { logger } from "../logger.helper";
 import bedrockHelper from "../aws/bedrock.helper";
-import { TaskType, Status } from "@prisma/client";
+import { TaskType } from "@prisma/client";
 import redis from "../../lib/redis";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import tokenUsageHelper, { MODEL_ID } from "../token-usage.helper";
 import { prefilledDataFields } from "./prefilledDataField";
+import patientDataToolsHelper from "./tools/patient-data-tools.helper";
 
 export interface PatientSummaryParams {
     patientId: string;
@@ -20,6 +21,8 @@ export interface PatientSummaryResult {
     inputTokens: number;
     outputTokens: number;
     latencyMs: number;
+    toolCallsUsed?: string[];
+    toolCallsCount?: number;
 }
 
 interface RelevantChunk {
@@ -771,41 +774,29 @@ class RAGHelper {
     }
 
     private buildSummarySystemPrompt(): string {
-        return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers.
+        return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers. You have access to patient information through tools that you can call when needed.
       
-        **CRITICAL PRIVACY RULE - MUST BE FOLLOWED:**
-        - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
-        - **NEVER** include next of kin information, emergency contact details, or family member contact information in the summary
-        - **NEVER** include patient addresses, phone numbers, email addresses, or other contact information in the summary
-        - **NEVER** include social security numbers, government IDs, or other administrative identifiers in the summary
-        - **NEVER** include financial information, payment details, or billing information in the summary
-        - Focus ONLY on clinical information: medical conditions, medications, allergies, lab results, treatments, diagnoses, and clinical observations
-        - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated summaries
-        - If you encounter any administrative, identifying, or financial information in the source data, completely exclude it from the summary
+        **PRIVACY RULE**: NEVER include health card numbers, insurance numbers, addresses, phone numbers, emails, SSNs, government IDs, financial info, or next of kin. Focus ONLY on clinical information: conditions, medications, allergies, lab results, treatments, diagnoses, and observations.
       
         Guidelines:
-        1. Present the entire summary in **Markdown** format.
-        2. Use clear section headers (##) for major categories such as demographics, conditions, medications, allergies, and treatments.
-        3. Highlight important data using **bold** or bullet points when appropriate.
-        4. Be factual and concise — avoid speculation or filler.
-        5. Extract ALL clinical information from medical records, chart notes, and patient reports, including medications, allergies, diagnoses, treatments, lab results, and clinical observations, even if they are not explicitly listed in the structured patient data section.
-        6. Combine information from structured patient data, medical record content, chart notes, and patient reports. If the same information appears in multiple sources, use the most recent or most detailed version.
-        7. For date calculations, ALWAYS use the patient's date of birth when calculating age. Calculate age accurately by subtracting the birthdate from the current date or reference date. When converting dates to years (e.g., age, duration of condition), be precise and accurate.
-        8. If information is missing, note that explicitly (e.g., "_No recent lab results available._").
-        9. Maintain privacy and confidentiality - this includes never including health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information.
-        10. Do **not** include instructions or meta-comments in the output.
-        11. For line breaks in markdown: Use two spaces followed by a newline for line breaks within a paragraph, or use two newlines for paragraph breaks. Do NOT use literal \n characters - use actual newlines.
+        1. Present summary in **Markdown** format with clear section headers (##).
+        2. Use **bold** or bullet points for important data.
+        3. **Use markdown tables** to display structured data when appropriate (e.g., medications, lab results, allergies, treatment plans, dosage history). Tables make data easier to read and compare.
+        4. Be factual and concise — avoid speculation.
+        5. Extract ALL clinical information from medical records, chart notes, and patient reports.
+        6. Combine information from multiple sources; use the most recent or detailed version.
+        7. Calculate age accurately using patient's date of birth and current date.
+        8. If information is missing, note explicitly (e.g., "_No recent lab results available._").
+        9. Do **not** include meta-comments or transitional phrases. Start directly with summary content.
+        10. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
         
-        At the end of every summary, include this markdown disclaimer block:
-        
+        Include this disclaimer at the end:
         ---
-        
         *Disclaimer: This summary is generated automatically for clinical reference and does not replace professional medical judgment.*
-        
         ---`;
     }
 
-    private buildSummaryUserPrompt(patientData: string, medicalRecords: string, includePrefilledData: boolean = false): string {
+    private buildSummaryUserPromptWithTools(medicalRecords: string, includePrefilledData: boolean = false): string {
         const currentDate = new Date();
         const currentDateISO = currentDate.toISOString();
         const currentDateFormatted = currentDate.toLocaleDateString('en-US', {
@@ -841,62 +832,34 @@ class RAGHelper {
         
         For each field found in the medical records, replace \`null\` with the actual value. If a field is not found, keep it as \`null\`. For numeric fields, use numbers. For text fields, use strings. For fields with type "multiple", use an array of values.` : '';
 
-        return `Generate a structured **Markdown** summary using the information below.
+        return `Generate a structured **Markdown** summary for this patient. Use tools to fetch patient information as needed.
       
         ### Current Date and Time
         Current Date: ${currentDateFormatted}
         Current Time: ${currentTimeFormatted}
         ISO 8601 Format: ${currentDateISO}
-      
-        ### Patient Data
-        ${patientData}
         
         ### Medical Records
         ${medicalRecords}
         
-        **IMPORTANT**: Extract and include ALL relevant clinical information from the medical records, chart notes, and patient reports, even if it's not explicitly listed in the Patient Data section above. This includes:
-        - Medications (current and past) mentioned in medical records
-        - Allergies and adverse reactions documented in records
-        - Medical conditions, diagnoses, and problem lists
-        - Treatment plans and interventions
-        - Lab results and diagnostic findings
-        - Clinical observations and assessments
-        - Chart notes with clinical observations, progress notes, and provider comments
-        - Patient reports with their associated report details and status
+        **Extract ALL clinical information** from medical records, chart notes, and patient reports. Use tools to fetch and combine patient data. Include: medications, allergies, conditions, diagnoses, treatment plans, lab results, clinical observations, chart notes, and dosage history (T100, T200, estradiol).
         ${prefilledFieldsSection}
-        **CRITICAL PRIVACY REQUIREMENT - MUST BE FOLLOWED:**
-        - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in the summary
-        - **NEVER** include next of kin information, emergency contact details, or family member contact information in the summary
-        - **NEVER** include patient addresses, phone numbers, email addresses, or other contact information in the summary
-        - **NEVER** include social security numbers, government IDs, or other administrative identifiers in the summary
-        - **NEVER** include financial information, payment details, or billing information in the summary
-        - Focus ONLY on clinical information: medical conditions, medications, allergies, lab results, treatments, diagnoses, and clinical observations
-        - Doctors can access all administrative and identifying information directly from patient details if needed - it should NOT appear in AI-generated summaries
-        - If you encounter any administrative, identifying, or financial information in the source data, completely exclude it from the summary
+        **DATE CALCULATIONS**: Use patient's Date of Birth and Current Date above. Calculate age accurately. Be precise when converting dates to years.
         
-        **DATE CALCULATIONS**: When calculating age or converting dates to years:
-        - ALWAYS use the patient's Date of Birth from the Patient Data section above
-        - Use the Current Date and Time provided above as the reference date for all calculations
-        - Calculate age accurately by subtracting the birthdate from the current date provided above
-        - Be precise when converting dates to years (e.g., age, duration of conditions, medication duration)
-        - Do not estimate or approximate ages - calculate them accurately using the exact current date provided
-        
-        The output should include the following sections (using markdown headings):
+        **Output sections** (markdown headings):
         ### Patient Overview  
         ### Active Conditions  
         ### Medications  
         ### Allergies  
         ### Treatment Plans  
         ### Recent Labs and Key Findings  
-        ### Clinical Notes (include relevant information from chart notes and patient reports)
+        ### Clinical Notes (include relevant chart notes)
         ### Medical History Summary  
         ### Suggested Follow-up Questions
         
-        Each section should be clear and concise — use bullet points or short paragraphs as needed.  
-        Combine information from the Patient Data section, Medical Records section, Chart Notes, and Patient Reports. If information appears in multiple sources, prioritize the most recent or most detailed source.
-        Keep the full medical history summary under 4 paragraphs and end with the markdown disclaimer block.
+        Be clear and concise. Use bullet points or short paragraphs. Prioritize most recent/detailed source when information appears in multiple places. Keep medical history summary under 4 paragraphs.
         
-        **FOLLOW-UP QUESTIONS**: In the "## Suggested Follow-up Questions" section, provide 3-5 relevant clinical questions that a doctor might want to ask based on the patient's medical history, current conditions, medications, or areas that need further investigation. Format each question as a bullet point starting with "- ". These questions should help guide further clinical inquiry and should be based on the clinical information in the summary.${structuredDataSection}`;
+        **FOLLOW-UP QUESTIONS**: Provide 3-5 relevant clinical questions as bullet points starting with "- ".${structuredDataSection}`;
     }
 
     private buildPrefilledDataFieldsInstructions(): string {
@@ -933,7 +896,7 @@ class RAGHelper {
     ): Promise<PatientSummaryResult> {
         const { patientId, organizationId, doctorId, traceId } = params;
         const cacheKey = this.getPatientSummaryCacheKey(organizationId, patientId);
-        const CACHE_TTL_SECONDS = 7200; // 2 hours
+        const CACHE_TTL_SECONDS = 60 * 60 * 5; // 5 hours
 
         try {
             logger.info("Generating patient AI summary", {
@@ -980,6 +943,8 @@ class RAGHelper {
                             cacheKey,
                             cached: true,
                             cacheHitCount,
+                            toolCallsUsed: parsed.toolCallsUsed || [],
+                            toolCallsCount: parsed.toolCallsCount || 0,
                         },
                         traceId,
                     });
@@ -1048,136 +1013,6 @@ class RAGHelper {
                     firstName: true,
                     lastName: true,
                     middleName: true,
-                    email: true,
-                    phoneNumber: true,
-                    dateOfBirth: true,
-                    gender: true,
-                    patientInfo: {
-                        select: {
-                            weight: true,
-                            height: true,
-                            bloodType: true,
-                            bmi: true,
-                            prefilledData: true,
-                            clinicalData: true,
-                            lifestyleData: true,
-                            medicationsData: true,
-                        },
-                    },
-                    patientAllergies: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            allergen: true,
-                            reactionType: true,
-                        },
-                    },
-                    patientActiveMedications: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            drugName: true,
-                            dosage: true,
-                            frequency: true,
-                            reason: true,
-                            notes: true,
-                        },
-                    },
-                    patientProblemLists: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            problem: true,
-                            severity: true,
-                            status: true,
-                            notes: true,
-                        },
-                    },
-                    patientGoals: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            description: true,
-                            targetDate: true,
-                            status: true,
-                            notes: true,
-                        },
-                    },
-                    patientTreatmentPlans: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            planName: true,
-                            startDate: true,
-                            endDate: true,
-                            status: true,
-                        },
-                    },
-                    patientLabResults: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            bioMarkerName: true,
-                            value: true,
-                            unit: true,
-                            referenceRange: true,
-                            status: true,
-                            collectionDate: true,
-                        },
-                        orderBy: {
-                            collectionDate: "desc",
-                        },
-                        take: 10,
-                    },
-                    patientChartNotes: {
-                        where: {
-                            deletedAt: null,
-                        },
-                        select: {
-                            id: true,
-                            title: true,
-                            content: true,
-                            createdAt: true,
-                            updatedAt: true,
-                            doctor: {
-                                select: {
-                                    firstName: true,
-                                    lastName: true,
-                                },
-                            },
-                        },
-                        orderBy: {
-                            updatedAt: "desc",
-                        },
-                    },
-                    patientReports: {
-                        where: {
-                            deletedAt: null,
-                            status: Status.ACTIVE,
-                        },
-                        select: {
-                            id: true,
-                            status: true,
-                            createdAt: true,
-                            updatedAt: true,
-                            report: {
-                                select: {
-                                    code: true,
-                                    title: true,
-                                    description: true,
-                                },
-                            },
-                        },
-                        orderBy: {
-                            createdAt: "desc",
-                        },
-                    },
                 },
             });
 
@@ -1195,37 +1030,137 @@ class RAGHelper {
                 [],
                 patientId,
                 organizationId,
-                50,
-                0.7,
+                30,
+                0.75,
                 traceId,
             );
 
-            const patientData = this.formatPatientData(patient);
             const medicalRecordsText = this.formatMedicalRecordChunks(medicalRecordChunks);
             const systemPrompt = this.buildSummarySystemPrompt();
-            const userPrompt = this.buildSummaryUserPrompt(patientData, medicalRecordsText, isOutdated);
+            const tools = patientDataToolsHelper.getPatientDataTools();
 
-            logger.debug("Patient data formatted for summary", {
+            const userPrompt = this.buildSummaryUserPromptWithTools(medicalRecordsText, isOutdated);
+
+            logger.debug("Starting patient summary generation with tools", {
                 traceId,
                 patientId,
-                patientDataLength: patientData.length,
                 medicalRecordChunksCount: medicalRecordChunks.length,
                 medicalRecordsTextLength: medicalRecordsText.length,
             });
 
-            const result = await bedrockHelper.generateText({
-                systemPrompt,
-                userPrompt,
-                organizationId,
-                patientId,
-                doctorId,
-                taskType: TaskType.PATIENT_SUMMARY_GENERATION,
-                maxTokens: 4096,
-                temperature: 0.1,
-                traceId,
+            const messages: Array<{ role: string; content: string | any[] }> = [
+                {
+                    role: "user",
+                    content: userPrompt,
+                },
+            ];
+
+            const MAX_TOOL_ITERATIONS = 3;
+            let finalResponse = "";
+            let totalInputTokens = 0;
+            let totalOutputTokens = 0;
+            let totalLatencyMs = 0;
+            const toolCallsUsed: string[] = [];
+
+            for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+                const result = await bedrockHelper.generateChatCompletion({
+                    systemPrompt,
+                    messages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.PATIENT_SUMMARY_GENERATION,
+                    maxTokens: 2048,
+                    temperature: 0.1,
+                    traceId,
+                });
+
+                totalInputTokens += result.inputTokens;
+                totalOutputTokens += result.outputTokens;
+                totalLatencyMs += result.latencyMs;
+
+                const assistantContent: any[] = [];
+                if (result.text) {
+                    assistantContent.push({ type: "text", text: result.text });
+                }
+                if (result.toolCalls && result.toolCalls.length > 0) {
+                    result.toolCalls.forEach(toolCall => {
+                        assistantContent.push({
+                            type: "tool_use",
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input: toolCall.input,
+                        });
+                        toolCallsUsed.push(toolCall.name);
+                    });
+                }
+
+                messages.push({
+                    role: "assistant",
+                    content: assistantContent,
+                });
+
+                if (!result.toolCalls || result.toolCalls.length === 0) {
+                    finalResponse = result.text || "";
+                    break;
+                }
+
+                const toolResults = await Promise.all(
+                    result.toolCalls.map(async (toolCall) => {
+                        const toolResult = await patientDataToolsHelper.executeTool(
+                            toolCall,
+                            patientId,
+                            organizationId,
+                            traceId,
+                        );
+                        return {
+                            type: "tool_result",
+                            tool_use_id: toolResult.toolUseId,
+                            content: toolResult.content,
+                            is_error: toolResult.isError || false,
+                        };
+                    }),
+                );
+
+                messages.push({
+                    role: "user",
+                    content: toolResults,
+                });
+            }
+
+            if (!finalResponse && messages.length > 0) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage.role === "assistant" && Array.isArray(lastMessage.content)) {
+                    const textContent = lastMessage.content.find((c: any) => c.type === "text");
+                    finalResponse = textContent?.text || "";
+                }
+            }
+
+            const result = {
+                text: finalResponse,
+                inputTokens: totalInputTokens,
+                outputTokens: totalOutputTokens,
+                latencyMs: totalLatencyMs,
+            };
+
+            let cleanedText = result.text;
+            const metaCommentPatterns = [
+                /^Now I'll create[^\n]*\n?/i,
+                /^Based on the information[^\n]*\n?/i,
+                /^Let me summarize[^\n]*\n?/i,
+                /^I'll now create[^\n]*\n?/i,
+                /^I'll generate[^\n]*\n?/i,
+                /^Here is[^\n]*\n?/i,
+            ];
+
+            metaCommentPatterns.forEach(pattern => {
+                cleanedText = cleanedText.replace(pattern, '');
             });
 
-            const { summary: summaryText, followUpPrompts, prefilledData } = this.parseSummaryWithPrefilledData(result.text, isOutdated);
+            cleanedText = cleanedText.trim();
+
+            const { summary: summaryText, followUpPrompts, prefilledData } = this.parseSummaryWithPrefilledData(cleanedText, isOutdated);
             const cleanedSummary = this.replaceNewlinesWithBr(summaryText);
 
             try {
@@ -1314,6 +1249,8 @@ class RAGHelper {
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
+                toolCallsUsed,
+                toolCallsCount: toolCallsUsed.length,
             };
 
             if (doctorId) {
@@ -1326,7 +1263,6 @@ class RAGHelper {
                             summary: cleanedSummary,
                             followUpPrompts: followUpPrompts.length > 0 ? followUpPrompts : undefined,
                             context: {
-                                patientData: patientData,
                                 medicalRecordsContext: medicalRecordsText,
                                 systemPrompt: systemPrompt,
                                 userPrompt: userPrompt,
@@ -1346,6 +1282,8 @@ class RAGHelper {
                                 traceId: traceId,
                                 cacheKey,
                                 generatedAt: new Date().toISOString(),
+                                toolCallsUsed,
+                                toolCallsCount: toolCallsUsed.length,
                             },
                         },
                     });
@@ -1367,6 +1305,35 @@ class RAGHelper {
                         method: "RAGHelper.generatePatientSummary",
                     });
                 }
+            }
+
+            try {
+                await tokenUsageHelper.recordUsage({
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.PATIENT_SUMMARY_GENERATION,
+                    requestType: "TEXT_GENERATION",
+                    modelId: MODEL_ID.CHAT_COMPLETION,
+                    modelType: "text-generation",
+                    inputTokens: result.inputTokens,
+                    outputTokens: result.outputTokens,
+                    cacheHit: false,
+                    latencyMs: result.latencyMs,
+                    metadata: {
+                        toolCallsUsed,
+                        toolCallsCount: toolCallsUsed.length,
+                    },
+                    traceId,
+                });
+            } catch (tokenUsageError) {
+                logger.error("Failed to record token usage for patient summary", {
+                    traceId,
+                    patientId,
+                    organizationId,
+                    error: tokenUsageError,
+                    method: "RAGHelper.generatePatientSummary",
+                });
             }
 
             try {
@@ -1404,6 +1371,8 @@ class RAGHelper {
                 inputTokens: result.inputTokens,
                 outputTokens: result.outputTokens,
                 latencyMs: result.latencyMs,
+                toolCallsUsed,
+                toolCallsCount: toolCallsUsed.length,
                 method: "RAGHelper.generatePatientSummary",
             });
 

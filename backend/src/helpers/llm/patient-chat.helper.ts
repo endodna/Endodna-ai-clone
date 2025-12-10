@@ -1,8 +1,8 @@
 import { prisma } from "../../lib/prisma";
-import { TaskType, ChatType, ChatMessageRole, Status } from "@prisma/client";
+import { TaskType, ChatType, ChatMessageRole } from "@prisma/client";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
-import ragHelper from "./rag.helper";
 import { BaseChatHelper, BaseMessage } from "./base-chat.helper";
+import patientDataToolsHelper from "./tools/patient-data-tools.helper";
 
 export interface ChatMessage {
     role: ChatMessageRole;
@@ -38,13 +38,20 @@ export interface SendMessageResult {
 
 class PatientChatHelper extends BaseChatHelper {
 
-    private buildSystemPrompt(patientData: string): string {
-        return `You are OmniBox, an AI medical assistant helping doctors provide better patient care. You have access to comprehensive patient information and medical records.
+    private buildSystemPrompt(chatType: ChatType): string {
+        const toolUsageInstructions = chatType === ChatType.DNA_ANALYSIS
+            ? `- This is a DNA analysis conversation. You have access to all patient information tools.
+        - **Prioritize using DNA and genetic report tools** to fetch patient genetic data when discussing genetic analysis.
+        - You can also use other patient data tools (medications, lab results, allergies, medical history, etc.) if the doctor's question requires that information to provide context for the DNA analysis.
+        - Actively use the available tools to retrieve relevant genetic and patient information.`
+            : `- You have access to patient information tools, but **ONLY use them when the doctor's question explicitly requires specific patient data**.
+        - Do NOT call tools for general questions, medical advice, or questions that don't require specific patient information.
+        - Only use tools when asked about specific patient data such as: medications, lab results, allergies, medical history, chart notes, treatment plans, or other patient-specific information.
+        - If the question is general medical knowledge, treatment recommendations, or doesn't require patient data, answer directly without using tools.`;
+
+        return `You are OmniBox, an AI medical assistant helping doctors provide better patient care.${chatType === ChatType.DNA_ANALYSIS ? ' You specialize in DNA and genetic analysis.' : ''}
 
         ${this.getOmniBoxIdentityPrompt()}
-
-        PATIENT AND MEDICAL RECORDS CONTEXT:
-        ${patientData}
 
         **CRITICAL PRIVACY RULE - MUST BE FOLLOWED:**
         - **NEVER** include health card numbers, health insurance numbers, insurance policy numbers, or any health card identifiers in your responses
@@ -57,10 +64,10 @@ class PatientChatHelper extends BaseChatHelper {
         - If you encounter any administrative, identifying, or financial information in the patient data, completely exclude it from your responses
 
         ${this.getCommonGuidelinesPrompt()}
-        - Focus on providing helpful context and insights based on the patient's medical history, including chart notes, medical records, medications, allergies, lab results, and patient reports
-        - Help doctors understand medical summaries, discuss treatment plans, and provide general medical context as needed
-        - Reference chart notes, patient reports, and clinical observations when relevant to the conversation
-        - **NEVER** include health card numbers, next of kin details, addresses, phone numbers, email addresses, insurance information, financial information, or any other administrative/identifying information in your responses - doctors can access all of this from patient details
+        ${toolUsageInstructions}
+        - When you have the information you need, provide a clear and helpful response
+        - **Use markdown tables** to display structured data when appropriate (e.g., medications, lab results, allergies, treatment plans, dosage history, genetic variants). Tables make data easier to read and compare.
+        - Reference specific data points from the tools when relevant
         ${this.getFollowUpQuestionsInstruction()} and patient information`;
     }
 
@@ -289,80 +296,10 @@ class PatientChatHelper extends BaseChatHelper {
                     id: patientId,
                     ...buildOrganizationUserFilter(organizationId),
                 },
-                include: {
-                    patientInfo: true,
-                    patientAllergies: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientActiveMedications: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientProblemLists: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientGoals: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientTreatmentPlans: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientLabResults: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                    },
-                    patientChartNotes: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                        },
-                        include: {
-                            doctor: {
-                                select: {
-                                    firstName: true,
-                                    lastName: true,
-                                },
-                            },
-                        },
-                        orderBy: {
-                            updatedAt: "desc",
-                        },
-                    },
-                    patientReports: {
-                        where: {
-                            organizationId,
-                            deletedAt: null,
-                            status: Status.ACTIVE,
-                        },
-                        include: {
-                            report: {
-                                select: {
-                                    code: true,
-                                    title: true,
-                                    description: true,
-                                },
-                            },
-                        },
-                        orderBy: {
-                            createdAt: "desc",
-                        },
-                    },
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    middleName: true,
                 },
             });
 
@@ -370,22 +307,20 @@ class PatientChatHelper extends BaseChatHelper {
                 throw new Error("Patient not found");
             }
 
-            const patientData = this.formatPatientData(patient);
-            const medicalRecordContextResult = await ragHelper.getRelevantMedicalRecordContext(
-                message,
-                patientId,
-                organizationId,
-                5,
-                traceId,
-            );
+            const systemPrompt = this.buildSystemPrompt(chatType);
+            const tools = patientDataToolsHelper.getPatientDataTools();
 
-            const systemPrompt = this.buildSystemPrompt(patientData + "\n\n" + medicalRecordContextResult.context);
             const tokenCalc = this.calculateTokens(systemPrompt, message);
-            const { messages } = this.buildMessagesFromHistory(
+            const { messages: historyMessages } = this.buildMessagesFromHistory(
                 conversation.messages as BaseMessage[],
                 message,
                 tokenCalc.availableTokens,
             );
+
+            const messages: Array<{ role: string; content: string | any[] }> = historyMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+            }));
 
             const userMessage = await prisma.patientChatMessage.create({
                 data: {
@@ -396,34 +331,103 @@ class PatientChatHelper extends BaseChatHelper {
                 },
             });
 
-            const result = await this.generateAIResponse({
-                systemPrompt,
-                messages,
-                organizationId,
-                patientId,
-                doctorId,
-                taskType: TaskType.DIAGNOSIS_ASSISTANCE,
-                maxTokens: this.MAX_OUTPUT_TOKENS,
-                temperature: this.TEMPERATURE,
-                traceId,
-            });
+            const MAX_TOOL_ITERATIONS = 3;
+            let finalResponse = "";
+            let totalInputTokens = 0;
+            let totalOutputTokens = 0;
+            let totalLatencyMs = 0;
+            const toolCallsUsed: string[] = [];
 
+            for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+                const result = await this.generateAIResponse({
+                    systemPrompt,
+                    messages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.DIAGNOSIS_ASSISTANCE,
+                    maxTokens: this.MAX_OUTPUT_TOKENS,
+                    temperature: this.TEMPERATURE,
+                    traceId,
+                });
 
-            const { content: parsedContent, followUpPrompts } = this.parseChatResponseWithFollowUps(result.text);
+                totalInputTokens += result.inputTokens;
+                totalOutputTokens += result.outputTokens;
+                totalLatencyMs += result.latencyMs;
+
+                const assistantContent: any[] = [];
+                if (result.text) {
+                    assistantContent.push({ type: "text", text: result.text });
+                }
+                if (result.toolCalls && result.toolCalls.length > 0) {
+                    result.toolCalls.forEach(toolCall => {
+                        assistantContent.push({
+                            type: "tool_use",
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input: toolCall.input,
+                        });
+                        toolCallsUsed.push(toolCall.name);
+                    });
+                }
+
+                messages.push({
+                    role: "assistant",
+                    content: assistantContent,
+                });
+
+                if (!result.toolCalls || result.toolCalls.length === 0) {
+                    finalResponse = result.text;
+                    break;
+                }
+
+                const toolResults = await Promise.all(
+                    result.toolCalls.map(async (toolCall) => {
+                        const toolResult = await patientDataToolsHelper.executeTool(
+                            toolCall,
+                            patientId,
+                            organizationId,
+                            traceId,
+                        );
+                        return {
+                            type: "tool_result",
+                            tool_use_id: toolResult.toolUseId,
+                            content: toolResult.content,
+                            is_error: toolResult.isError || false,
+                        };
+                    }),
+                );
+
+                messages.push({
+                    role: "user",
+                    content: toolResults,
+                });
+            }
+
+            if (!finalResponse && messages.length > 0) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage.role === "assistant" && Array.isArray(lastMessage.content)) {
+                    const textContent = lastMessage.content.find((c: any) => c.type === "text");
+                    finalResponse = textContent?.text || "I apologize, but I encountered an issue processing your request.";
+                }
+            }
+
+            const { content: parsedContent, followUpPrompts } = this.parseChatResponseWithFollowUps(finalResponse);
 
             const assistantMessage = await prisma.patientChatMessage.create({
                 data: {
                     conversationId,
                     role: ChatMessageRole.ASSISTANT,
-                    content: result.text,
+                    content: finalResponse,
                     version: 1,
-                    inputTokens: result.inputTokens,
-                    outputTokens: result.outputTokens,
-                    latencyMs: result.latencyMs,
+                    inputTokens: totalInputTokens,
+                    outputTokens: totalOutputTokens,
+                    latencyMs: totalLatencyMs,
                     metadata: {
                         chatType,
-                        medicalRecordContextUsed: medicalRecordContextResult.citations.length > 0,
-                        citations: medicalRecordContextResult.citations,
+                        toolCallsUsed,
+                        toolCallsCount: toolCallsUsed.length,
                         followUpPrompts,
                     },
                 },
@@ -432,9 +436,9 @@ class PatientChatHelper extends BaseChatHelper {
             await prisma.patientChatMessage.update({
                 where: { id: userMessage.id },
                 data: {
-                    inputTokens: result.inputTokens,
+                    inputTokens: totalInputTokens,
                     outputTokens: 0,
-                    latencyMs: result.latencyMs,
+                    latencyMs: totalLatencyMs,
                 },
             });
 
@@ -452,21 +456,22 @@ class PatientChatHelper extends BaseChatHelper {
                 doctorId,
                 organizationId,
                 messageLength: message.length,
-                responseLength: result.text.length,
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                latencyMs: result.latencyMs,
+                responseLength: finalResponse.length,
+                inputTokens: totalInputTokens,
+                outputTokens: totalOutputTokens,
+                latencyMs: totalLatencyMs,
                 method: "PatientChatHelper.sendMessage",
+                toolCallsUsed,
             });
 
             return {
                 messageId: assistantMessage.id,
                 content: parsedContent,
                 followUpPrompts,
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                latencyMs: result.latencyMs,
-                citations: medicalRecordContextResult.citations,
+                inputTokens: totalInputTokens,
+                outputTokens: totalOutputTokens,
+                latencyMs: totalLatencyMs,
+                citations: [],
             };
         } catch (error) {
             this.logMessageError({

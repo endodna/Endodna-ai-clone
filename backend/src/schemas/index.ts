@@ -1,4 +1,4 @@
-import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status } from "@prisma/client";
+import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status, ChatType } from "@prisma/client";
 import { z } from "zod";
 import { TempusActions } from "../types";
 import { PelletType, DosageTier } from "../types";
@@ -191,6 +191,11 @@ export const patientIdParamsSchema = z.object({
 }).strict();
 export type PatientIdParamsSchema = z.infer<typeof patientIdParamsSchema>;
 
+export const deletePatientSchema = z.object({
+  patientIds: z.array(z.string().uuid("Invalid patient ID")).min(1, "At least one patient ID is required"),
+}).strict();
+export type DeletePatientSchema = z.infer<typeof deletePatientSchema>;
+
 export const dnaKitResultIdParamsSchema = z.object({
   patientId: z.string().uuid("Invalid patient ID"),
   dnaKitResultId: z.string().uuid("Invalid DNA kit result ID"),
@@ -229,6 +234,11 @@ export const updateConversationTitleSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
 }).strict();
 export type UpdateConversationTitleSchema = z.infer<typeof updateConversationTitleSchema>;
+
+export const createPatientConversationSchema = z.object({
+  chatType: z.nativeEnum(ChatType).optional().default(ChatType.GENERAL),
+}).strict();
+export type CreatePatientConversationSchema = z.infer<typeof createPatientConversationSchema>;
 
 export const createGeneralConversationSchema = z.object({
   title: z.string().max(200).optional(),
