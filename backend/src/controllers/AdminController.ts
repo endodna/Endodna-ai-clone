@@ -8,6 +8,9 @@ import { logger } from "../helpers/logger.helper";
 import { prisma } from "../lib/prisma";
 import s3Helper from "../helpers/aws/s3.helper";
 import OrganizationCustomizationHelper, { OrganizationCustomizationData } from "../helpers/organization-customization.helper";
+import { supabase } from "../lib/supabase";
+import { buildOrganizationUserFilter } from "../helpers/organization-user.helper";
+import ragHelper from "../helpers/llm/rag.helper";
 
 class AdminController {
   public static async createAdmin(req: AuthenticatedRequest, res: Response) {
@@ -413,6 +416,156 @@ class AdminController {
     }
   }
 
+  public static async deleteOrganizationPatients(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { userId, organizationId } = req.user!;
+      const { patientIds } = req.body as { patientIds: string[] };
+
+      const patients = await prisma.user.findMany({
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: {
+            in: patientIds,
+          },
+          userType: PrismaUserType.PATIENT,
+        }),
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        },
+      });
+
+      if (patients.length === 0) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "No patients found in this organization",
+        });
+      }
+
+      const foundPatientIds = new Set(patients.map(p => p.id));
+      const notFoundIds = patientIds.filter(id => !foundPatientIds.has(id));
+
+      const results: Array<{
+        patientId: string;
+        success: boolean;
+        error?: string;
+      }> = [];
+
+      for (const patient of patients) {
+        try {
+          const deleteSupabaseUser = await supabase.auth.admin.deleteUser(patient.id);
+
+          if (deleteSupabaseUser.error) {
+            logger.error("Failed to delete Supabase user", {
+              traceId: req.traceId,
+              method: "deleteOrganizationPatients",
+              patientId: patient.id,
+              error: deleteSupabaseUser.error,
+            });
+
+            results.push({
+              patientId: patient.id,
+              success: false,
+              error: "Failed to delete user from authentication system",
+            });
+            continue;
+          }
+
+          await Promise.all([
+            prisma.user.delete({
+              where: {
+                id: patient.id,
+              },
+            }),
+            ragHelper.invalidatePatientSummaryCache(
+              organizationId!,
+              patient.id,
+              req.traceId,
+            ),
+          ]);
+
+          await UserService.createUserAuditLog({
+            userId: userId!,
+            description: `Patient deleted: ${patient.firstName} ${patient.lastName} (${patient.email || 'No email'})`,
+            metadata: {
+              patientId: patient.id,
+              patientEmail: patient.email,
+              patientName: `${patient.firstName} ${patient.lastName}`,
+              action: "delete_patient",
+            },
+            priority: Priority.HIGH,
+          });
+
+          results.push({
+            patientId: patient.id,
+            success: true,
+          });
+        } catch (err) {
+          logger.error("Failed to delete patient", {
+            traceId: req.traceId,
+            method: "deleteOrganizationPatients",
+            patientId: patient.id,
+            error: err,
+          });
+
+          results.push({
+            patientId: patient.id,
+            success: false,
+            error: err instanceof Error ? err.message : "Unknown error",
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
+      const responseData: any = {
+        deleted: results.filter(r => r.success).map(r => r.patientId),
+        failed: results.filter(r => !r.success).map(r => ({
+          patientId: r.patientId,
+          error: r.error,
+        })),
+        notFound: notFoundIds,
+        summary: {
+          total: patientIds.length,
+          successful: successCount,
+          failed: failureCount,
+          notFound: notFoundIds.length,
+        },
+      };
+
+      if (failureCount > 0 || notFoundIds.length > 0) {
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: responseData,
+          message: `Deleted ${successCount} patient(s). ${failureCount} failed, ${notFoundIds.length} not found.`,
+        });
+      }
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: responseData,
+        message: `Successfully deleted ${successCount} patient(s)`,
+      });
+    } catch (err) {
+      logger.error("Delete organization patients failed", {
+        traceId: req.traceId,
+        method: "deleteOrganizationPatients",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patients",
+        },
+        req,
+      );
+    }
+  }
 }
 
 export default AdminController;

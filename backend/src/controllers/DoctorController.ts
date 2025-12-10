@@ -1978,6 +1978,7 @@ class DoctorController {
     try {
       const { patientId } = req.params as unknown as { patientId: string };
       const { organizationId, userId } = req.user!;
+      const { chatType } = req.body as { chatType?: ChatType };
 
       const patient = await prisma.user.findFirst({
         where: {
@@ -2000,7 +2001,7 @@ class DoctorController {
         }, req);
       }
 
-      const chatType = ChatType.GENERAL;
+      const finalChatType = chatType || ChatType.GENERAL;
       const patientName = `${patient.firstName} ${patient.lastName}`.trim();
 
       let defaultTitle = patientName;
@@ -2019,7 +2020,7 @@ class DoctorController {
             patientId,
             doctorId: userId,
             organizationId: organizationId!,
-            type: chatType,
+            type: finalChatType,
             title: defaultTitle,
           },
           select: {
@@ -2038,10 +2039,10 @@ class DoctorController {
         }),
         UserService.createUserAuditLog({
           userId: userId!,
-          description: `Patient conversation created: ${chatType}`,
+          description: `Patient conversation created: ${finalChatType}`,
           metadata: {
             patientId,
-            chatType,
+            chatType: finalChatType,
             action: "create",
           },
           priority: Priority.LOW,
