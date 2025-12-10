@@ -154,6 +154,7 @@ export function PatientHeader({ patientId, className }: Readonly<PatientHeaderPr
                         gender={patient.gender}
                         phoneNumber={patient.phoneNumber}
                         email={patient.email}
+                        patientId={patientId}
                         isCollapsed={isCollapsed}
                         onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
                     />

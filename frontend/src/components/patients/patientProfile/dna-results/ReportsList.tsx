@@ -9,6 +9,8 @@ import {
   Send,
   ThumbsUp,
   ThumbsDown,
+  ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +47,7 @@ interface ReportsListProps {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "Likely Pathogenic":
+    case "Likely Impactful":
       return "bg-violet-400";
     case "Benign":
       return "bg-teal-400";
@@ -53,7 +55,7 @@ const getStatusColor = (status: string) => {
       return "bg-yellow-400";
     case "Likely Benign":
       return "bg-lime-400";
-    case "Pathogenic":
+    case "Impactful":
       return "bg-violet-600";
     default:
       return "bg-gray-500";
@@ -71,6 +73,10 @@ export function ReportsList({
   const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
   const [selectedReport, setSelectedReport] =
     useState<PatientGeneticsReport | null>(null);
+  const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
+  const [expandedReferences, setExpandedReferences] = useState<Set<number>>(
+    new Set()
+  );
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(
     null
   );
@@ -202,28 +208,30 @@ export function ReportsList({
     if (normalized === "likely benign") return "Likely Benign";
     if (normalized === "vus") return "VUS";
     if (normalized === "likely impactful" || normalized === "likely pathogenic")
-      return "Likely Pathogenic";
+      return "Likely Impactful";
     if (normalized === "impactful" || normalized === "pathogenic")
-      return "Pathogenic";
+      return "Impactful";
     return "VUS";
   };
 
-  const reports = useMemo(() => {
-    if (!reportsResponse) return [];
+  const reportsData = useMemo(() => {
+    if (!reportsResponse) return null;
 
     if (reportsResponse.error) {
       console.warn("API returned error:", reportsResponse.message);
-      return [];
+      return null;
     }
 
-    const reportsData = reportsResponse.data as any;
-    if (
-      !reportsData ||
-      !reportsData.reports ||
-      !Array.isArray(reportsData.reports)
-    ) {
-      return [];
+    const data = reportsResponse.data as any;
+    if (!data || !data.reports || !Array.isArray(data.reports)) {
+      return null;
     }
+
+    return data;
+  }, [reportsResponse]);
+
+  const reports = useMemo(() => {
+    if (!reportsData) return [];
 
     const flatReports: PatientGeneticsReport[] = [];
     reportsData.reports.forEach((report: any, reportIndex: number) => {
@@ -239,7 +247,18 @@ export function ReportsList({
     });
 
     return flatReports;
-  }, [reportsResponse]);
+  }, [reportsData]);
+
+  const getCategoryData = (reportId: string) => {
+    if (!reportsData) return null;
+
+    const [reportIndex, categoryIndex] = reportId.split("-").map(Number);
+    const report = reportsData.reports[reportIndex];
+    if (report && report.categories) {
+      return report.categories[categoryIndex] || null;
+    }
+    return null;
+  };
 
   const patient = patientData?.data as any;
   const patientName = patient
@@ -286,7 +305,7 @@ export function ReportsList({
     <div className="w-full rounded-2xl bg-white p-6 shadow-md">
       <div className="mb-6">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-neutral-600 text-2xl font-semibold">Reports</h3>
+          <h3 className="text-foreground/80 text-2xl font-semibold">Reports</h3>
           <Button
             variant="secondary"
             // className="bg-neutral-100 text-neutral-900 font-medium text-sm"
@@ -302,7 +321,7 @@ export function ReportsList({
 
         <div className="flex justify-between gap-3">
           <div className="relative w-[240px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground/80" />
             <Input
               type="text"
               placeholder="Search"
@@ -312,7 +331,7 @@ export function ReportsList({
             />
           </div>
           <Select value={filterValue} onValueChange={setFilterValue}>
-            <SelectTrigger className="w-[128px] text-sm font-normal text-foreground border-muted-foreground">
+            <SelectTrigger className="w-[128px] text-sm font-normal text-foreground border-foreground/80">
               <SelectValue placeholder="All Variants" />
             </SelectTrigger>
             <SelectContent>
@@ -320,16 +339,14 @@ export function ReportsList({
               <SelectItem value="Benign">Benign</SelectItem>
               <SelectItem value="Likely Benign">Likely Benign</SelectItem>
               <SelectItem value="VUS">VUS</SelectItem>
-              <SelectItem value="Likely Pathogenic">
-                Likely Pathogenic
-              </SelectItem>
-              <SelectItem value="Pathogenic">Pathogenic</SelectItem>
+              <SelectItem value="Likely Impactful">Likely Impactful</SelectItem>
+              <SelectItem value="Impactful">Impactful</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="border-b border-muted-foreground/30 mb-3 -mx-6" />
+      <div className="border-b border-foreground/80/30 mb-3 -mx-6" />
       <div className="space-y-0">
         <div className="grid grid-cols-12 gap-4 pb-2">
           <div className="col-span-7">
@@ -377,12 +394,12 @@ export function ReportsList({
                 <div
                   className={`w-2 h-2 rounded-full ${getStatusColor(report.variantStatus)}`}
                 />
-                <span className="text-sm text-neutral-950 font-normal">
+                <span className="text-sm text-foreground font-normal">
                   {report.name}
                 </span>
               </div>
               <div className="col-span-3">
-                <span className="text-sm text-neutral-950 font-normal">
+                <span className="text-sm text-foreground font-normal">
                   {report.variantStatus}
                 </span>
               </div>
@@ -390,9 +407,11 @@ export function ReportsList({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-white border-neutral-300 text-neutral-950 hover:bg-neutral-100 hover:text-neutral-950 font-medium text-xs"
+                  className="bg-white border-neutral-300 text-foreground hover:bg-neutral-100 hover:text-foreground font-medium text-xs"
                   onClick={() => {
                     setSelectedReport(report);
+                    const categoryData = getCategoryData(report.id);
+                    setSelectedCategoryData(categoryData);
                     setIsReportSheetOpen(true);
                   }}
                 >
@@ -401,7 +420,7 @@ export function ReportsList({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-white border-neutral-300 text-neutral-950 hover:bg-neutral-100 hover:text-neutral-950 font-medium text-xs"
+                  className="bg-white border-neutral-300 text-foreground hover:bg-neutral-100 hover:text-foreground font-medium text-xs"
                   onClick={() => {
                     setShowWelcomeSection(false);
                     setAutoSubmitPrompt(report.name);
@@ -442,7 +461,7 @@ export function ReportsList({
                     <h2 className="text-2xl font-semibold text-neutral-900">
                       Welcome {doctorName}!
                     </h2>
-                    <p className="text-neutral-600 text-base font-normal">
+                    <p className="text-foreground/80 text-base font-normal">
                       Here are a few suggestions to assist you in exploring the
                       DNA Results of{" "}
                       <strong className="text-neutral-900">
@@ -743,15 +762,17 @@ export function ReportsList({
           setIsReportSheetOpen(open);
           if (!open) {
             setSelectedReport(null);
+            setSelectedCategoryData(null);
+            setExpandedReferences(new Set());
           }
         }}
       >
         <SheetContent className="w-full sm:max-w-3xl flex flex-col p-0 h-full overflow-y-auto">
-          {selectedReport && (
+          {selectedReport && selectedCategoryData && (
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-6 pb-0 sticky top-0 bg-white z-10">
-                <h2 className="text-xl font-semibold text-neutral-950">
+                <h2 className="text-xl font-semibold text-foreground">
                   {selectedReport.name}
                 </h2>
                 <button
@@ -765,51 +786,257 @@ export function ReportsList({
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Navigation List */}
-                <ul className="space-y-2 text-neutral-950 font-normal text-sm">
-                  <li>• Intro</li>
-                  <li>• GENETIC VARIANT ANALYSIS REPORTS</li>
-                  <li>• Clinical and Detailed Interpretation Formats</li>
-                </ul>
-
-                {/* Genetic Variants Detected Section */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-neutral-950">
-                    Genetic Variants Detected
-                  </h3>
+                {/* Overall Impact Score Section */}
+                <div className="space-y-4 bg-muted-foreground/10 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-foreground">
+                      Overall Impact Score
+                    </h3>
+                    {(() => {
+                      const score = selectedCategoryData.overallScore || 0;
+                      const segments = [
+                        {
+                          label: "Benign",
+                          color: "bg-teal-400",
+                          range: [0, 0.2],
+                        },
+                        {
+                          label: "Likely Benign",
+                          color: "bg-lime-400",
+                          range: [0.2, 0.4],
+                        },
+                        {
+                          label: "VUS",
+                          color: "bg-yellow-400",
+                          range: [0.4, 0.6],
+                        },
+                        {
+                          label: "Likely Impactful",
+                          color: "bg-violet-400",
+                          range: [0.6, 0.8],
+                        },
+                        {
+                          label: "Impactful",
+                          color: "bg-violet-600",
+                          range: [0.8, 1.01],
+                        },
+                      ];
+                      const selectedSegment = segments.find(
+                        (segment) =>
+                          score >= segment.range[0] && score < segment.range[1]
+                      );
+                      if (selectedSegment) {
+                        return (
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-transparent rounded-full border border-muted-foreground/30">
+                            <div
+                              className={`w-2 h-2 rounded-full ${selectedSegment.color}`}
+                            ></div>
+                            <span className="text-sm font-medium text-neutral-950">
+                              {selectedSegment.label}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-4 justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-xl font-normal text-neutral-400">
-                          rs1047303
-                        </span>
-                        <span className="text-sm font-semibold text-neutral-400">
-                          HSD3B1 Gene
-                        </span>
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl font-semibold text-foreground">
+                        {selectedCategoryData.overallScore?.toFixed(4) ||
+                          "0.0000"}
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-neutral-200 bg-white text-xs font-medium">
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full ${getStatusColor(selectedReport.variantStatus)}`}
-                          ></div>
-                          <span className="text-neutral-950">
-                            {selectedReport.variantStatus}
-                          </span>
-                        </div>
+                    </div>
+                    <p className="text-sm text-foreground/80 font-normal">
+                      A score above 0.75 indicates a high predicted impact on
+                      hormone metabolism and should be considered by the
+                      treating physician when making clinical decisions.
+                    </p>
+                    {/* Gradient Bar */}
+                    <div className="relative w-full pt-6">
+                      <div className="relative w-full h-2 flex gap-1.5 rounded-full overflow-hidden">
+                        {[
+                          {
+                            label: "Benign",
+                            light: "bg-teal-200",
+                            dark: "bg-teal-400",
+                            range: [0, 0.2],
+                          },
+                          {
+                            label: "Likely Benign",
+                            light: "bg-lime-200",
+                            dark: "bg-lime-400",
+                            range: [0.2, 0.4],
+                          },
+                          {
+                            label: "VUS",
+                            light: "bg-yellow-200",
+                            dark: "bg-yellow-400",
+                            range: [0.4, 0.6],
+                          },
+                          {
+                            label: "Likely Impactful",
+                            light: "bg-violet-200",
+                            dark: "bg-violet-400",
+                            range: [0.6, 0.8],
+                          },
+                          {
+                            label: "Impactful",
+                            light: "bg-violet-300",
+                            dark: "bg-violet-600",
+                            range: [0.8, 1.01],
+                          },
+                        ].map((segment, index) => {
+                          const score = selectedCategoryData.overallScore || 0;
+                          const isSelected =
+                            score >= segment.range[0] &&
+                            score < segment.range[1];
+                          return (
+                            <div
+                              key={index}
+                              className={`h-full flex-1 transition-colors rounded-full ${
+                                isSelected ? segment.dark : segment.light
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                      {/* Score Indicator - Outside bar container to avoid overflow clipping */}
+                      <div
+                        className="absolute h-4 w-3 bg-black rounded-full pointer-events-none z-10"
+                        style={{
+                          left: `${Math.min((selectedCategoryData.overallScore || 0) * 100, 100)}%`,
+                          transform: "translateX(-50%)",
+                          top: "calc(1.5rem + 0.25rem - 0.5rem)",
+                        }}
+                      >
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-black rounded-full border-2 border-white"></div>
+                      </div>
+                      <div className="flex justify-between mt-2 text-xs text-neutral-500">
+                        <span>0.00 (Low)</span>
+                        <span>0.25</span>
+                        <span>0.75</span>
+                        <span>1.00 (High Impact)</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Report Sections List */}
-                <ul className="space-y-2 text-neutral-950 font-normal text-sm pl-6">
-                  <li>• 1a - Patient ID and Analysis</li>
-                  <li>• 2a - VARIANT SUMMARY</li>
-                  <li>• 3a - CLINICAL INTERPRETATION</li>
-                  <li>• 4a - INTERACTION EFFECTS</li>
-                  <li>• 5a - RISK STRATIFICATION</li>
-                  <li>• 6a - RECOMMENDATIONS</li>
-                </ul>
+                {/* Genetic Variants Detected Section */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Genetic Variants Detected
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedCategoryData.variants?.map(
+                      (variant: any, index: number) => (
+                        <div
+                          key={index}
+                          className="border border-neutral-200 rounded-lg p-4 space-y-4 bg-white"
+                        >
+                          {/* Variant Header */}
+                          <div className="flex items-center gap-4 justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-xl font-normal text-foreground">
+                                {variant.rsID}
+                              </span>
+                              <span className="text-sm font-semibold text-foreground/60">
+                                {variant.geneName}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-muted-foreground/30 bg-white text-xs font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-foreground"></div>
+                                <span className="text-foreground">
+                                  {variant.genotype || "--"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-muted-foreground/30 bg-white text-xs font-medium">
+                                <div
+                                  className={`w-1.5 h-1.5 rounded-full ${getStatusColor(normalizeVariantStatus(variant.variantStatus))}`}
+                                ></div>
+                                <span className="text-foreground">
+                                  {normalizeVariantStatus(
+                                    variant.variantStatus
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="border-b -mx-4" />
+
+                          {/* Clinical Significance */}
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-foreground">
+                              Clinical Significance:
+                            </h4>
+                            <p className="text-sm text-foreground/80 font-normal leading-relaxed">
+                              {variant.clinicalSignificance}
+                            </p>
+                          </div>
+
+                          <div className="border-b -mx-4" />
+
+                          {/* References */}
+                          {variant.references &&
+                            variant.references.length > 0 && (
+                              <div className="space-y-2">
+                                <button
+                                  onClick={() => {
+                                    setExpandedReferences((prev) => {
+                                      const newSet = new Set(prev);
+                                      if (newSet.has(index)) {
+                                        newSet.delete(index);
+                                      } else {
+                                        newSet.add(index);
+                                      }
+                                      return newSet;
+                                    });
+                                  }}
+                                  className="flex items-center justify-between w-full hover:opacity-70 transition-opacity"
+                                >
+                                  <h4 className="text-sm font-semibold text-foreground">
+                                    References
+                                  </h4>
+                                  <ChevronDown
+                                    className={`w-4 h-4 text-foreground transition-transform ${
+                                      expandedReferences.has(index)
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
+                                  />
+                                </button>
+                                <div className="flex items-center gap-2 flex-wrap overflow-hidden">
+                                  {(expandedReferences.has(index)
+                                    ? variant.references
+                                    : variant.references.slice(0, 4)
+                                  ).map((ref: string, refIndex: number) => (
+                                    <a
+                                      key={refIndex}
+                                      href={`https://pubmed.ncbi.nlm.nih.gov/${ref.replace("PMID", "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-950 bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors"
+                                    >
+                                      {ref}
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  ))}
+                                  {!expandedReferences.has(index) &&
+                                    variant.references.length > 4 && (
+                                      <span className="text-xs text-neutral-500 font-medium">
+                                        +{variant.references.length - 4} others
+                                      </span>
+                                    )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

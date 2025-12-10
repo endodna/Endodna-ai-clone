@@ -110,8 +110,8 @@ interface PatientGeneticsReport {
     | "Benign"
     | "Likely Benign"
     | "VUS"
-    | "Likely Pathogenic"
-    | "Pathogenic";
+    | "Likely Impactful"
+    | "Impactful";
 }
 
 interface PatientGeneticsReportsResponse {

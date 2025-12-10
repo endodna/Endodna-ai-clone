@@ -81,12 +81,12 @@ export function DnaResultsTab({
             normalizedStatus === "likely impactful" ||
             normalizedStatus === "likely pathogenic"
           )
-            variantStatus = "Likely Pathogenic";
+            variantStatus = "Likely Impactful";
           else if (
             normalizedStatus === "impactful" ||
             normalizedStatus === "pathogenic"
           )
-            variantStatus = "Pathogenic";
+            variantStatus = "Impactful";
 
           flatReports.push({
             id: `${reportIndex}-${categoryIndex}`,

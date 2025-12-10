@@ -30,10 +30,10 @@ function calculateVariantCountsFromReports(
       case "VUS":
         counts.vus++;
         break;
-      case "Likely Pathogenic":
+      case "Likely Impactful":
         counts.likelyPathogenic++;
         break;
-      case "Pathogenic":
+      case "Impactful":
         counts.pathogenic++;
         break;
     }
@@ -87,8 +87,8 @@ export function GeneticVariantsSummary({
     { label: "Benign", count: variantCounts.benign },
     { label: "Likely Benign", count: variantCounts.likelyBenign },
     { label: "VUS", count: variantCounts.vus },
-    { label: "Likely Pathogenic", count: variantCounts.likelyPathogenic },
-    { label: "Pathogenic", count: variantCounts.pathogenic },
+    { label: "Likely Impactful", count: variantCounts.likelyPathogenic },
+    { label: "Impactful", count: variantCounts.pathogenic },
   ];
 
   const getProgressBarSegments = () => {
@@ -99,8 +99,8 @@ export function GeneticVariantsSummary({
       Benign: "bg-teal-400",
       "Likely Benign": "bg-lime-400",
       VUS: "bg-yellow-400",
-      "Likely Pathogenic": "bg-violet-400",
-      Pathogenic: "bg-violet-600",
+      "Likely Impactful": "bg-violet-400",
+      Impactful: "bg-violet-600",
     };
 
     const segments = [
@@ -120,14 +120,14 @@ export function GeneticVariantsSummary({
         color: classificationColors["VUS"],
       },
       {
-        label: "Likely Pathogenic",
+        label: "Likely Impactful",
         width: (variantCounts.likelyPathogenic / total) * 100,
-        color: classificationColors["Likely Pathogenic"],
+        color: classificationColors["Likely Impactful"],
       },
       {
-        label: "Pathogenic",
+        label: "Impactful",
         width: (variantCounts.pathogenic / total) * 100,
-        color: classificationColors["Pathogenic"],
+        color: classificationColors["Impactful"],
       },
     ].filter((segment) => segment.width > 0);
 
