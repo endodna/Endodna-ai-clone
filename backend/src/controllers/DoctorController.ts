@@ -1575,29 +1575,29 @@ class DoctorController {
               clinicalSignificance: patientDNASNP.masterSNP?.geneSummary || "",
               references: reportCategorySNP.sources || [],
             };
-
-            response.variantsCount.total++;
-            if (patientPathogenicity === "benign") {
-              response.variantsCount.benign++;
-            } else if (patientPathogenicity === "likely benign") {
-              response.variantsCount.likelyBenign++;
-            } else if (patientPathogenicity === "vus") {
-              response.variantsCount.vus++;
-            } else if (patientPathogenicity === "likely impactful") {
-              response.variantsCount.likelyImpactful++;
-            } else if (patientPathogenicity === "impactful") {
-              response.variantsCount.impactful++;
-            }
             variants.push(variant);
           }
 
           const guageResult = gaugeFromAcmgLabels(variants.map((v) => v.variantStatus));
+          const variantStatus = REVERSED_ACMG_SEVERITY[guageResult.maxSeverity || 0];
           reportResponse.categories.push({
             categoryName: category.name,
-            variantStatus: REVERSED_ACMG_SEVERITY[guageResult.maxSeverity || 0],
+            variantStatus,
             variants,
             overallScore: guageResult.normalizedScore || 0,
           });
+          response.variantsCount.total++;
+          if (variantStatus === "benign") {
+            response.variantsCount.benign++;
+          } else if (variantStatus === "likely benign") {
+            response.variantsCount.likelyBenign++;
+          } else if (variantStatus === "vus") {
+            response.variantsCount.vus++;
+          } else if (variantStatus === "likely impactful") {
+            response.variantsCount.likelyImpactful++;
+          } else if (variantStatus === "impactful") {
+            response.variantsCount.impactful++;
+          }
         }
         response.reports.push(reportResponse);
       }
