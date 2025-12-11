@@ -1,4 +1,6 @@
-import { DosingChart } from "./DosingChart";
+import { PatientTestosteroneChart } from "./PatientTestosteroneChart";
+import { PatientEstradiolChart } from "./PatientEstradiolChart";
+import { PatientFshChart } from "./PatientFshChart";
 import { KineticSlope } from "./KineticSlope";
 import { GENDER } from "@/components/constants/patient";
 import type { HormoneTypeKey } from "@/store/features/dosing";
@@ -14,45 +16,29 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
   const patientGender = patient?.gender?.toUpperCase();
   const isMale = patientGender === GENDER.MALE;
 
-  // Map tab ID to hormone type key for males
-  const getHormoneTypeKey = (tabId: string): HormoneTypeKey | null => {
-    switch (tabId) {
-      case "testosterone-t100":
-        return "testosterone_100";
-      case "testosterone-t200":
-        return "testosterone_200";
-      case "estradiol":
-        return "estradiol";
-      default:
-        return null;
-    }
-  };
-
-  const hormoneTypeKey = activeTab ? getHormoneTypeKey(activeTab) : null;
-
   return (
     <div className="w-full space-y-4 md:space-y-6">
       <h3 className="typo-h4 text-foreground">Calculator</h3>
       <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="w-full md:w-1/2 flex flex-col gap-4 md:gap-6">
           {isMale ? (
-            // For males: Show only one Testosterone chart based on active tab
-            <DosingChart
-              patient={patient}
-              xAxisLabel="Weeks Since Pellet Insertion"
-              yAxisLabel="Testosterone, ng/dL"
-              hormoneTypeKey={hormoneTypeKey || undefined}
-              maxYAxis={1200}
-            />
+            // For males: Show PatientTestosteroneChart, PatientEstradiolChart, and PatientFshChart
+            <>
+              <PatientTestosteroneChart
+                patient={patient}
+                xAxisLabel="Weeks Since Pellet Insertion"
+                yAxisLabel="Testosterone, ng/dL"
+              />
+            </>
           ) : (
             // For females: Show Estradiol and FSH charts
             <>
-              <DosingChart
+              <PatientEstradiolChart
                 patient={patient}
                 xAxisLabel="Weeks Since Pellet Insertion"
                 yAxisLabel="Estradiol (E2), pg/mL"
               />
-              <DosingChart
+              <PatientFshChart
                 patient={patient}
                 xAxisLabel="Weeks Since Pellet Insertion"
                 yAxisLabel="FSH, mIU/mL"
