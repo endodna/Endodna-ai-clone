@@ -308,6 +308,7 @@ export interface RecommendPelletProtocolForMaleResult {
 
 export interface TestosteroneDosageConfig {
     maxDoseMg: number;
+    maxFemaleDoseMg?: number;
     maxPelletsCount: number;
     t100Multiplier: number;
     expectedDurationDays: number;
