@@ -1145,7 +1145,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         adjustedDoseMg: number,
         expectedDuration: number,
         calculationBreakdown: DosageCalculationBreakdown[],
-        isT200: boolean
+        isT200: boolean,
+        isFemale: boolean
     ): { preliminaryDoseMg: number; finalDoseMg: number; pelletCount: number; newExpectedDuration: number } {
         if (!isT200) {
             const newExpectedDuration = Math.max(expectedDuration, 60);
@@ -1164,15 +1165,25 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                 } : {}
             });
 
-            const preliminaryDoseMg = Math.ceil(adjustedDoseMg / 100) * 100;
-            let finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
-            const remainder = finalDoseMg % 100;
-            if (remainder < 50) {
-                finalDoseMg = Math.floor(finalDoseMg / 100) * 100;
+            let preliminaryDoseMg: number;
+            let finalDoseMg: number;
+            let pelletCount: number;
+
+            if (isFemale) {
+                preliminaryDoseMg = Math.round(adjustedDoseMg / 12.5) * 12.5;
+                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
+                pelletCount = Math.ceil(finalDoseMg / 100);
             } else {
-                finalDoseMg = Math.ceil(finalDoseMg / 100) * 100;
+                preliminaryDoseMg = Math.ceil(adjustedDoseMg / 100) * 100;
+                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
+                const remainder = finalDoseMg % 100;
+                if (remainder < 50) {
+                    finalDoseMg = Math.floor(finalDoseMg / 100) * 100;
+                } else {
+                    finalDoseMg = Math.ceil(finalDoseMg / 100) * 100;
+                }
+                pelletCount = Math.ceil(finalDoseMg / 100);
             }
-            const pelletCount = Math.ceil(finalDoseMg / 100);
 
             return { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration };
         }
@@ -1384,7 +1395,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, false);
         const psaVelocity = this.applyPSAAndProstateModifiers(patientDemographics, clinical, adjustedDoseMg, expectedDuration, calculationBreakdown);
 
-        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false);
+        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false, patientDemographics.biologicalSex === Gender.FEMALE);
 
         const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
         const basePelletCount = Math.ceil(finalBaseDose / 100);
@@ -1465,7 +1476,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         this.applyVitaminDAndVDRModifiers(clinical, geneticData, adjustedDoseMg, expectedDuration, geneticMultiplier, calculationBreakdown, true);
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, true);
 
-        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, true);
+        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, true, patientDemographics.biologicalSex === Gender.FEMALE);
 
         const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
         const basePelletCount = Math.ceil(finalBaseDose / 100);
