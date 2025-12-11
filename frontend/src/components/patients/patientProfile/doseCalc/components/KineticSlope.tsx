@@ -167,7 +167,7 @@ function KineticSlopeContent({ patient, activeTab }: Readonly<KineticSlopeConten
       {/* Insertion Date */}
       <div className="flex items-center justify-between border-b border-muted-foreground/30 pb-1">
         <p className="typo-body-2 typo-body-2-regular text-foreground">
-          Insertion date:
+          Insertion Date:
         </p>
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>

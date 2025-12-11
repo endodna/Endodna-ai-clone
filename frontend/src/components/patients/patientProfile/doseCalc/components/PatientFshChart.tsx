@@ -67,41 +67,213 @@ function calculateRePelletWindow(rePelletDays: number): {
   return { startDays, endDays };
 }
 
-// Helper function to create chart data points with curve similar to DosingChart
+// Helper function to calculate FSH inversely from Estradiol
+// When Estradiol is at baseline (low), FSH is at baseline (high)
+// When Estradiol is at peak (high), FSH is at lowest (low)
+function calculateInverseFsh(
+  estradiolValue: number,
+  estradiolBaseline: number,
+  estradiolPeak: number,
+  fshBaseline: number
+): number {
+  // Handle case where Estradiol is 0 or very low (at re-pellet)
+  if (estradiolValue <= 0) {
+    return fshBaseline;
+  }
+
+  // If Estradiol is at or below baseline, FSH is at baseline
+  if (estradiolValue <= estradiolBaseline) {
+    return fshBaseline;
+  }
+
+  // If Estradiol is at or above peak, FSH is at lowest
+  if (estradiolValue >= estradiolPeak) {
+    // Calculate lowest FSH based on the inverse relationship
+    // Using a proportional decrease: when Estradiol increases, FSH decreases
+    // The lowest FSH is typically around 45-50% of baseline (based on typical ranges)
+    const fshLowest = fshBaseline * 0.467; // ~28/60 ratio from image
+    return fshLowest;
+  }
+
+  // Linear interpolation for values between baseline and peak
+  // As Estradiol increases from baseline to peak, FSH decreases from baseline to lowest
+  const estradiolRange = estradiolPeak - estradiolBaseline;
+  const estradiolProgress = (estradiolValue - estradiolBaseline) / estradiolRange;
+
+  // FSH decreases as Estradiol increases (inverse relationship)
+  const fshLowest = fshBaseline * 0.467; // ~28/60 ratio
+  const fshRange = fshBaseline - fshLowest;
+
+  return fshBaseline - (fshRange * estradiolProgress);
+}
+
+// Helper function to calculate FSH inversely from selected Estradiol values
+// Based on lab data: Estradiol 26→72 (range 46), FSH 28→16 (range 12, inverse)
+// Ratio: FSH change / Estradiol change = 12/46 ≈ 0.261
+// The selected FSH should be proportional to baseline FSH, matching the ratio
+// of difference between baseline Estradiol and selected Estradiol
+function calculateInverseFshFromSelected(
+  selectedEstradiolValue: number,
+  selectedEstradiolBaseline: number,
+  selectedEstradiolPeak: number,
+  baselineEstradiol: number,
+  baselinePeakEstradiol: number,
+  baselineFsh: number,
+  baselineFshLowest: number
+): number {
+  // Handle case where Estradiol is 0 or very low (at re-pellet)
+  // Return the starting point (proportional to baseline) when Estradiol returns to 0
+  if (selectedEstradiolValue <= 0) {
+    const estradiolBaselineRatio = selectedEstradiolBaseline / baselineEstradiol;
+    return baselineFsh * estradiolBaselineRatio;
+  }
+
+  // Calculate the ratio between baseline and selected Estradiol ranges
+  const baselineEstradiolRange = baselinePeakEstradiol - baselineEstradiol;
+  const selectedEstradiolRange = selectedEstradiolPeak - selectedEstradiolBaseline;
+
+  if (baselineEstradiolRange <= 0 || selectedEstradiolRange <= 0) {
+    // If no range, return baseline FSH
+    return baselineFsh;
+  }
+
+  // Calculate the starting point of selected FSH based on the ratio
+  // of difference between baseline Estradiol and selected Estradiol at day 0
+  // This maintains the proportional relationship
+  const estradiolBaselineRatio = selectedEstradiolBaseline / baselineEstradiol;
+  const selectedFshStartingPoint = baselineFsh * estradiolBaselineRatio;
+
+  // Calculate the FSH range based on the Estradiol range ratio
+  // Using the relationship: FSH change = Estradiol change * (FSH range / Estradiol range)
+  const baselineFshRange = baselineFsh - baselineFshLowest;
+  const fshToEstradiolRatio = baselineFshRange / baselineEstradiolRange;
+
+  // Apply the same ratio to selected Estradiol range to get selected FSH range
+  const selectedFshRange = selectedEstradiolRange * fshToEstradiolRatio;
+
+  // Calculate progress within selected Estradiol range (0 to 1)
+  // When selectedEstradiolValue = selectedEstradiolBaseline, progress = 0 (FSH = starting point)
+  // When selectedEstradiolValue = selectedEstradiolPeak, progress = 1 (FSH = lowest)
+  const progress = (selectedEstradiolValue - selectedEstradiolBaseline) / selectedEstradiolRange;
+
+  // FSH decreases as Estradiol increases (inverse relationship)
+  // Starting point minus the proportional decrease
+  return selectedFshStartingPoint - (selectedFshRange * progress);
+}
+
+// Helper function to create chart data points with inverse relationship to Estradiol
 function createChartData(
-  baselineValue: number,
-  baselinePeakValue: number,
-  selectedDoseMg: number | null,
-  selectedPeakMg: number | null,
+  baselineFsh: number,
+  baselineEstradiol: number,
+  baselinePeakEstradiol: number,
+  selectedDoseEstradiol: number | null,
+  selectedPeakEstradiol: number | null,
   rePelletDays: number
 ): ChartDataPoint[] {
   const sixWeekDays = 42;
   const twelveWeekDays = 84;
 
+  // Calculate FSH values inversely from Estradiol
+  // Day 0: Estradiol at baseline, so FSH at baseline
+  const fshDay0 = calculateInverseFsh(
+    baselineEstradiol,
+    baselineEstradiol,
+    baselinePeakEstradiol,
+    baselineFsh
+  );
+
+  // 6 Week: Estradiol at peak, so FSH at lowest
+  const fshDay6 = calculateInverseFsh(
+    baselinePeakEstradiol,
+    baselineEstradiol,
+    baselinePeakEstradiol,
+    baselineFsh
+  );
+
+  // 12 Week: Estradiol still at peak, so FSH still at lowest
+  const fshDay12 = fshDay6;
+
+  // Re-pellet: Estradiol returns to baseline, so FSH returns to baseline
+  const fshRePellet = fshDay0;
+
+  // Calculate selected dose FSH values (if available)
+  // The dotted FSH line should follow the inverse relationship with the dotted Estradiol line
+  // and be proportional to baseline FSH
+  let selectedFshDay0: number | null = null;
+  let selectedFshDay6: number | null = null;
+  let selectedFshDay12: number | null = null;
+  let selectedFshRePellet: number | null = null;
+
+  if (selectedDoseEstradiol !== null && selectedPeakEstradiol !== null) {
+    // Calculate baseline FSH lowest value for reference
+    const baselineFshLowest = calculateInverseFsh(
+      baselinePeakEstradiol,
+      baselineEstradiol,
+      baselinePeakEstradiol,
+      baselineFsh
+    );
+
+    // Calculate FSH inversely from selected Estradiol values
+    // The dotted FSH should be inversely related to the dotted Estradiol line
+    // and proportional to baseline FSH
+    // Day 0: Selected Estradiol is at its baseline (low) -> FSH should be high (proportional to baseline)
+    selectedFshDay0 = calculateInverseFshFromSelected(
+      selectedDoseEstradiol,
+      selectedDoseEstradiol,
+      selectedPeakEstradiol,
+      baselineEstradiol,
+      baselinePeakEstradiol,
+      baselineFsh,
+      baselineFshLowest
+    );
+    // 6 Week: Selected Estradiol is at peak (high) -> FSH should be low (proportional)
+    selectedFshDay6 = calculateInverseFshFromSelected(
+      selectedPeakEstradiol,
+      selectedDoseEstradiol,
+      selectedPeakEstradiol,
+      baselineEstradiol,
+      baselinePeakEstradiol,
+      baselineFsh,
+      baselineFshLowest
+    );
+    // 12 Week: Selected Estradiol still at peak (high) -> FSH still at lowest
+    selectedFshDay12 = selectedFshDay6;
+    // Re-pellet: Selected Estradiol goes to 0 (very low) -> FSH should return to starting point
+    selectedFshRePellet = calculateInverseFshFromSelected(
+      0,
+      selectedDoseEstradiol,
+      selectedPeakEstradiol,
+      baselineEstradiol,
+      baselinePeakEstradiol,
+      baselineFsh,
+      baselineFshLowest
+    );
+  }
+
   return [
-    // Day 0: Baseline value and selected dose (if available)
+    // Day 0: Baseline Estradiol (low) -> Baseline FSH (high)
     {
       days: 0,
-      baselineFsh: baselineValue,
-      selectedDoseFsh: selectedDoseMg,
+      baselineFsh: fshDay0,
+      selectedDoseFsh: selectedFshDay0,
     },
-    // 6 Week Lab Draw: Peak values
+    // 6 Week Lab Draw: Peak Estradiol (high) -> Lowest FSH (low)
     {
       days: sixWeekDays,
-      baselineFsh: baselinePeakValue,
-      selectedDoseFsh: selectedPeakMg,
+      baselineFsh: fshDay6,
+      selectedDoseFsh: selectedFshDay6,
     },
-    // 12 Week Lab Draw: Still at peak
+    // 12 Week Lab Draw: Peak Estradiol (high) -> Lowest FSH (low)
     {
       days: twelveWeekDays,
-      baselineFsh: baselinePeakValue,
-      selectedDoseFsh: selectedPeakMg,
+      baselineFsh: fshDay12,
+      selectedDoseFsh: selectedFshDay12,
     },
-    // Estimated Re-pellet: goes to 0
+    // Estimated Re-pellet: Baseline Estradiol (low) -> Baseline FSH (high)
     {
       days: rePelletDays,
-      baselineFsh: 0,
-      selectedDoseFsh: 0,
+      baselineFsh: fshRePellet,
+      selectedDoseFsh: selectedFshRePellet,
     },
   ];
 }
@@ -171,6 +343,10 @@ export function PatientFshChart({
     useAppSelector((state) => state.dosingCalculator);
 
   const fshLevel = patient?.patientInfo?.clinicalData?.fshLevel;
+  const baselineEstradiol =
+    patient?.patientInfo?.clinicalData?.baselineEstradiol;
+  const postInsertionEstradiol =
+    patient?.patientInfo?.clinicalData?.postInsertionEstradiol;
   const insertionDate =
     patient?.patientInfo?.clinicalData?.insertionDate ||
     insertionDateFromRedux;
@@ -188,7 +364,7 @@ export function PatientFshChart({
     rePelletWindowStartDays,
     rePelletWindowEndDays,
   } = useMemo<ChartCalculations>(() => {
-    if (!fshLevel || !insertionDate) {
+    if (!fshLevel || !baselineEstradiol || !insertionDate) {
       return {
         chartData: [],
         xAxisTicks: [],
@@ -200,40 +376,50 @@ export function PatientFshChart({
       };
     }
 
-    // Calculate re-pellet date based on patient gender (should be MALE for this chart)
+    // Calculate re-pellet date based on patient gender
     const rePelletDays = calculateRePelletDays(patient?.gender);
 
     // Calculate re-pellet window
     const { startDays, endDays } = calculateRePelletWindow(rePelletDays);
 
-    // Calculate baseline peak value: 50% more than baseline (same as DosingChart: peakDosageMg = dosageMg * 1.5)
-    // Note: FSH doesn't have a postInsertion value, so always use 1.5x calculation
-    const baselinePeakFsh = fshLevel * 1.5;
+    // Calculate baseline Estradiol peak value: use postInsertionEstradiol if available,
+    // otherwise calculate as 50% more than baseline
+    const baselinePeakEstradiol = postInsertionEstradiol
+      ? postInsertionEstradiol
+      : baselineEstradiol * 1.5;
 
-    // Calculate selected dose values (if available) - using estradiol dose
-    const selectedDoseMg = selectedDose?.dosageMg || null;
-    const selectedPeakMg = selectedDoseMg ? selectedDoseMg * 1.5 : null; // Same 50% increase logic
+    // Calculate selected Estradiol dose values (if available)
+    const selectedDoseEstradiol = selectedDose?.dosageMg || null;
+    const selectedPeakEstradiol = selectedDoseEstradiol
+      ? selectedDoseEstradiol * 1.5
+      : null;
 
-    // Calculate the maximum peak value to determine y-axis range
-    const maxPeakValue = Math.max(
-      baselinePeakFsh,
-      selectedPeakMg || 0
-    );
+    // Calculate FSH values inversely from Estradiol
+    // Baseline FSH: starts at fshLevel (high), drops to lowest when Estradiol peaks
+    const fshBaseline = fshLevel;
 
-    // Create chart data points with both baseline and selected dose curves
+    // Create chart data points with inverse relationship to Estradiol
     const data = createChartData(
-      fshLevel,
-      baselinePeakFsh,
-      selectedDoseMg,
-      selectedPeakMg,
+      fshBaseline,
+      baselineEstradiol,
+      baselinePeakEstradiol,
+      selectedDoseEstradiol,
+      selectedPeakEstradiol,
       rePelletDays
     );
+
+    // Calculate the maximum FSH value from all data points to determine y-axis range
+    const allFshValues = data.flatMap((point) => [
+      point.baselineFsh,
+      point.selectedDoseFsh,
+    ]).filter((val): val is number => val !== null);
+    const maxFshValue = Math.max(...allFshValues, fshBaseline);
 
     // Calculate axis ticks
     const { ticks: xTicks, maxDays: maxDaysValue } =
       calculateXAxisTicks(rePelletDays);
     const { ticks: yTicks, maxDosage: maxDosageValue } =
-      calculateYAxisTicks(maxPeakValue);
+      calculateYAxisTicks(maxFshValue);
 
     return {
       chartData: data,
@@ -244,7 +430,15 @@ export function PatientFshChart({
       rePelletWindowStartDays: startDays,
       rePelletWindowEndDays: endDays,
     };
-  }, [fshLevel, insertionDate, patient?.gender, selectedDose, activeTab]);
+  }, [
+    fshLevel,
+    baselineEstradiol,
+    postInsertionEstradiol,
+    insertionDate,
+    patient?.gender,
+    selectedDose,
+    activeTab,
+  ]);
 
   // Memoize tick formatter functions
   const formatTick = useCallback((value: number): string => {
@@ -264,6 +458,8 @@ export function PatientFshChart({
     }),
     []
   );
+
+  console.log("chartData", chartData);
 
   if (!fshLevel || !insertionDate || chartData.length === 0) {
     return (
