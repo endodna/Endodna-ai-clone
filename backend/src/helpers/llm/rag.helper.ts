@@ -781,8 +781,7 @@ class RAGHelper {
         Guidelines:
         1. Present summary in **Markdown** format with clear section headers (##).
         2. Use **bold** or bullet points for important data.
-        3. **Use markdown tables** to display structured data when appropriate (e.g., medications, lab results, allergies, treatment plans, dosage history). Tables make data easier to read and compare.
-        4. Be factual and concise — avoid speculation.
+        3. Be factual and concise — avoid speculation.
         5. Extract ALL clinical information from medical records, chart notes, and patient reports.
         6. Combine information from multiple sources; use the most recent or detailed version.
         7. Calculate age accurately using patient's date of birth and current date.
