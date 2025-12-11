@@ -47,6 +47,7 @@ class BaseDosingHelper {
 class TestosteroneDosingHelper extends BaseDosingHelper {
     private T100_Config: TestosteroneDosageConfig = {
         maxDoseMg: 1700,
+        maxFemaleDoseMg: 300,
         maxPelletsCount: 17,
         t100Multiplier: 0.6,
         expectedDurationDays: 105,
@@ -1170,9 +1171,15 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             let pelletCount: number;
 
             if (isFemale) {
-                preliminaryDoseMg = Math.round(adjustedDoseMg / 12.5) * 12.5;
-                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
-                pelletCount = Math.ceil(finalDoseMg / 100);
+                preliminaryDoseMg = Math.ceil(adjustedDoseMg / 12.5) * 12.5;
+                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxFemaleDoseMg!);
+                const remainder = finalDoseMg % 12.5;
+                if (remainder < 6.25) {
+                    finalDoseMg = Math.floor(finalDoseMg / 12.5) * 12.5;
+                } else {
+                    finalDoseMg = Math.ceil(finalDoseMg / 12.5) * 12.5;
+                }
+                pelletCount = Math.round(finalDoseMg / 12.5);
             } else {
                 preliminaryDoseMg = Math.ceil(adjustedDoseMg / 100) * 100;
                 finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
@@ -1397,8 +1404,15 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
 
         const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false, patientDemographics.biologicalSex === Gender.FEMALE);
 
-        const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
-        const basePelletCount = Math.ceil(finalBaseDose / 100);
+        let finalBaseDose: number;
+        let basePelletCount: number;
+        if (patientDemographics.biologicalSex === Gender.FEMALE) {
+            finalBaseDose = baseDoseMg % 12.5 < 6.25 ? Math.floor(baseDoseMg / 12.5) * 12.5 : Math.ceil(baseDoseMg / 12.5) * 12.5;
+            basePelletCount = Math.round(baseDoseMg / 12.5);
+        } else {
+            finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
+            basePelletCount = Math.ceil(baseDoseMg / 100);
+        }
 
         const monitoringSchedules = this.getMonitoringSchedule(clinical, false);
         const supplements = this.getConditionalSupplements(patientDemographics, clinical, geneticData, false);
