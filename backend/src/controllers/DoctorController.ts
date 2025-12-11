@@ -92,6 +92,11 @@ class DoctorController {
         workPhone,
         homePhone,
         bloodType,
+        weight,
+        height,
+        clinicalData,
+        lifestyleData,
+        medicationsData,
       } = req.body as CreatePatientSchema;
 
       const result = await UserService.createUser({
@@ -127,6 +132,27 @@ class DoctorController {
           status: StatusCode.BAD_REQUEST,
           error: true,
           message: result.error,
+        });
+      }
+
+      if (result.userId && (weight !== undefined || height !== undefined || clinicalData !== undefined || lifestyleData !== undefined || medicationsData !== undefined)) {
+        let bmi: number | undefined;
+        if (weight !== undefined && height !== undefined) {
+          bmi = testosteroneDosingHelper.calculateBMI(weight, height);
+        }
+
+        await prisma.patientInfo.create({
+          data: {
+            patientId: result.userId,
+            organizationId: organizationId!,
+            weight: weight ?? null,
+            height: height ?? null,
+            bmi: bmi ?? null,
+            bloodType: bloodType ?? null,
+            clinicalData: clinicalData ? (clinicalData as Prisma.InputJsonValue) : Prisma.JsonNull,
+            lifestyleData: lifestyleData ? (lifestyleData as Prisma.InputJsonValue) : Prisma.JsonNull,
+            medicationsData: medicationsData ? (medicationsData as Prisma.InputJsonValue) : Prisma.JsonNull,
+          }
         });
       }
 
@@ -361,6 +387,12 @@ class DoctorController {
           id: true,
           firstName: true,
           lastName: true,
+          email: true,
+          middleName: true,
+          phoneNumber: true,
+          workPhoneNumber: true,
+          homePhoneNumber: true,
+          photo: true,
           status: true,
           dateOfBirth: true,
           gender: true,
@@ -487,7 +519,7 @@ class DoctorController {
     try {
       const { patientId } = req.params as unknown as PatientIdParamsSchema;
       const { userId, organizationId } = req.user!;
-      const { dateOfBirth, gender, bloodType, weight, height, clinicalData, lifestyleData, medicationsData } = req.body as UpdatePatientInfoSchema;
+      const { firstName, lastName, middleName, phoneNumber, workPhone, homePhone, dateOfBirth, gender, bloodType, weight, height, clinicalData, lifestyleData, medicationsData } = req.body as UpdatePatientInfoSchema;
 
       const user = await prisma.user.findFirst({
         where: buildOrganizationUserFilter(organizationId!, {
@@ -507,6 +539,12 @@ class DoctorController {
         });
       }
       const userUpdateData: Prisma.UserUpdateInput = {};
+      if (firstName !== undefined) userUpdateData.firstName = firstName;
+      if (lastName !== undefined) userUpdateData.lastName = lastName;
+      if (middleName !== undefined) userUpdateData.middleName = middleName;
+      if (phoneNumber !== undefined) userUpdateData.phoneNumber = phoneNumber;
+      if (workPhone !== undefined) userUpdateData.workPhoneNumber = workPhone;
+      if (homePhone !== undefined) userUpdateData.homePhoneNumber = homePhone;
       if (dateOfBirth !== undefined) userUpdateData.dateOfBirth = new Date(dateOfBirth);
       if (gender !== undefined) userUpdateData.gender = gender;
       if (bloodType !== undefined) userUpdateData.bloodType = bloodType;
@@ -571,6 +609,12 @@ class DoctorController {
           metadata: {
             patientId,
             updates: {
+              ...(firstName && { firstName }),
+              ...(lastName && { lastName }),
+              ...(middleName && { middleName }),
+              ...(phoneNumber && { phoneNumber }),
+              ...(workPhone && { workPhone }),
+              ...(homePhone && { homePhone }),
               ...(dateOfBirth && { dateOfBirth }),
               ...(gender && { gender }),
               ...(bloodType && { bloodType }),
@@ -1365,7 +1409,6 @@ class DoctorController {
           patientDNAResults: {
             where: {
               deletedAt: null,
-              isProcessed: true,
             },
             select: {
               uuid: true,
@@ -1859,6 +1902,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -1919,6 +1963,7 @@ class DoctorController {
         where: {
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -2069,6 +2114,65 @@ class DoctorController {
     }
   }
 
+  public static async deletePatientConversation(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, conversationId } = req.params as unknown as { patientId: string; conversationId: string };
+      const { organizationId, userId } = req.user!;
+
+      const conversation = await prisma.patientChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          patientId,
+          doctorId: userId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      await Promise.all([
+        prisma.patientChatConversation.update({
+          where: { id: conversationId },
+          data: { deletedAt: new Date() },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient conversation deleted`,
+          metadata: {
+            patientId,
+            conversationId,
+            action: "delete",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient conversation deleted successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Delete patient conversation failed", {
+        traceId: req.traceId,
+        method: "deletePatientConversation.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to delete patient conversation",
+      }, req);
+    }
+  }
+
   public static async getPatientConversationMessages(
     req: AuthenticatedRequest,
     res: Response,
@@ -2083,6 +2187,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -2156,6 +2261,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -2232,6 +2338,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3461,6 +3568,7 @@ The BiosAI Team`,
         where: {
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -3564,6 +3672,63 @@ The BiosAI Team`,
     }
   }
 
+  public static async deleteGeneralConversation(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+
+      const conversation = await prisma.generalChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          doctorId: userId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      await Promise.all([
+        prisma.generalChatConversation.update({
+          where: { id: conversationId },
+          data: { deletedAt: new Date() },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `General conversation deleted`,
+          metadata: {
+            conversationId,
+            action: "delete",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "General conversation deleted successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Delete general conversation failed", {
+        traceId: req.traceId,
+        method: "deleteGeneralConversation.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to delete general conversation",
+      }, req);
+    }
+  }
+
   public static async getGeneralConversationMessages(req: AuthenticatedRequest, res: Response) {
     try {
       const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
@@ -3574,6 +3739,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3638,6 +3804,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3691,6 +3858,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -4807,6 +4975,101 @@ The BiosAI Team`,
         chartNoteContent = `Dosage History ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200}:\n${chartNoteContent}`;
       }
 
+      const testosteroneDrugName = `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`;
+
+      const existingMedications = await prisma.patientActiveMedication.findMany({
+        where: {
+          patientId: patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          drugName: true,
+        },
+      });
+
+      const existingMedicationsMap = new Map(
+        existingMedications.map(med => [med.drugName.toLowerCase(), med.id])
+      );
+
+      const medicationPromises: Promise<any>[] = [];
+
+      const testosteroneMedicationId = existingMedicationsMap.get(testosteroneDrugName.toLowerCase());
+      if (testosteroneMedicationId) {
+        medicationPromises.push(
+          prisma.patientActiveMedication.update({
+            where: { id: testosteroneMedicationId },
+            data: {
+              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
+              startDate: new Date(),
+              endDate: null,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            },
+          })
+        );
+      } else {
+        medicationPromises.push(
+          prisma.patientActiveMedication.create({
+            data: {
+              patientId: patientId,
+              organizationId: organizationId!,
+              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
+              frequency: "",
+              startDate: new Date(),
+              endDate: null,
+              reason: "",
+              notes: "",
+              drugName: testosteroneDrugName,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            },
+          })
+        );
+      }
+
+      if (supplements?.length) {
+        for (const supplement of supplements) {
+          const existingMedicationId = existingMedicationsMap.get(supplement.drugName.toLowerCase());
+          if (existingMedicationId) {
+            medicationPromises.push(
+              prisma.patientActiveMedication.update({
+                where: { id: existingMedicationId },
+                data: {
+                  dosage: supplement.dosage || "",
+                  frequency: supplement.frequency || "",
+                  startDate: new Date(),
+                  endDate: null,
+                  reason: supplement.purpose || "",
+                  notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
+                  patientDosageHistoryId: patientDosageHistory.id,
+                  doctorId: userId!,
+                },
+              })
+            );
+          } else {
+            medicationPromises.push(
+              prisma.patientActiveMedication.create({
+                data: {
+                  patientId: patientId,
+                  organizationId: organizationId!,
+                  dosage: supplement.dosage || "",
+                  frequency: supplement.frequency || "",
+                  startDate: new Date(),
+                  endDate: null,
+                  reason: supplement.purpose || "",
+                  notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
+                  drugName: supplement.drugName,
+                  patientDosageHistoryId: patientDosageHistory.id,
+                  doctorId: userId!,
+                },
+              })
+            );
+          }
+        }
+      }
+
       await Promise.all([
         prisma.patientChartNote.create({
           data: {
@@ -4817,36 +5080,7 @@ The BiosAI Team`,
             organizationId: organizationId!,
           },
         }),
-        prisma.patientActiveMedication.createMany({
-          data: [
-            {
-              patientId: patientId,
-              organizationId: organizationId!,
-              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
-              frequency: "",
-              startDate: new Date(),
-              endDate: null,
-              reason: "",
-              notes: "",
-              drugName: `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`,
-              patientDosageHistoryId: patientDosageHistory.id,
-              doctorId: userId!,
-            },
-            ...supplements?.length ? supplements.map(supplement => ({
-              patientId: patientId,
-              organizationId: organizationId!,
-              dosage: supplement.dosage || "",
-              frequency: supplement.frequency || "",
-              startDate: new Date(),
-              endDate: null,
-              reason: supplement.purpose || "",
-              notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
-              drugName: supplement.drugName,
-              patientDosageHistoryId: patientDosageHistory.id,
-              doctorId: userId!,
-            })) : [],
-          ],
-        }),
+        ...medicationPromises,
         UserService.createUserAuditLog({
           userId: userId!,
           description: `Patient dosage saved: ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200}`,

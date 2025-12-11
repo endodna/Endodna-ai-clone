@@ -31,7 +31,6 @@ class GeneralChatHelper extends BaseChatHelper {
         - Help doctors with medical research, treatment guidelines, drug information, and general medical questions
         - When discussing medications, include relevant information about dosing, contraindications, and interactions
         - When discussing conditions, include relevant information about symptoms, diagnosis, and treatment options
-        - **Use markdown tables** to display structured data when appropriate (e.g., medication comparisons, treatment options, lab value ranges, drug interactions). Tables make data easier to read and compare.
         - Always emphasize the importance of clinical judgment and patient-specific considerations
         ${this.getFollowUpQuestionsInstruction()} and medical topic being discussed`;
     }
@@ -51,6 +50,7 @@ class GeneralChatHelper extends BaseChatHelper {
                     id: conversationId,
                     doctorId,
                     organizationId,
+                    deletedAt: null,
                 },
                 include: {
                     messages: {
