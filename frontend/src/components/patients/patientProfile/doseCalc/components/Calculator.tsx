@@ -3,7 +3,6 @@ import { PatientEstradiolChart } from "./PatientEstradiolChart";
 import { PatientFshChart } from "./PatientFshChart";
 import { KineticSlope } from "./KineticSlope";
 import { GENDER } from "@/components/constants/patient";
-import type { HormoneTypeKey } from "@/store/features/dosing";
 
 interface CalculatorProps {
   patient?: PatientDetail | null;
