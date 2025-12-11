@@ -1408,7 +1408,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         let basePelletCount: number;
         if (patientDemographics.biologicalSex === Gender.FEMALE) {
             finalBaseDose = baseDoseMg % 12.5 < 6.25 ? Math.floor(baseDoseMg / 12.5) * 12.5 : Math.ceil(baseDoseMg / 12.5) * 12.5;
-            basePelletCount = Math.round(baseDoseMg / 12.5);
+            finalBaseDose = Math.max(finalBaseDose, this.T100_Config.maxFemaleDoseMg!);
+            basePelletCount = Math.round(finalBaseDose / 12.5);
         } else {
             finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
             basePelletCount = Math.ceil(baseDoseMg / 100);
