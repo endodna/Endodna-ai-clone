@@ -76,6 +76,14 @@ export const API_ENDPOINTS = {
           type: "alert" | "allergy"
         ) => `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
       },
+      CHART_NOTES: {
+        CREATE: (id: string) => `/doctor/patients/${id}/chart-notes`,
+        LIST: (id: string) => `/doctor/patients/${id}/chart-notes`,
+        UPDATE: (patientId: string, chartNoteId: string) =>
+          `/doctor/patients/${patientId}/chart-notes/${chartNoteId}`,
+        DELETE: (patientId: string, chartNoteId: string) =>
+          `/doctor/patients/${patientId}/chart-notes/${chartNoteId}`,
+      },
     },
     REPORTS: {
       LIST: "/doctor/reports",

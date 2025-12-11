@@ -1143,6 +1143,36 @@ export const useCreatePatientAllergy = (
   });
 };
 
+export const useCreatePatientChartNote = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<any>,
+      Error,
+      { patientId: string; payload: { title?: string; content: string } }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<any>,
+    Error,
+    { patientId: string; payload: { title?: string; content: string } }
+  >({
+    mutationFn: ({ patientId, payload }) =>
+      doctorsApi.createPatientChartNote(patientId, payload),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
 export const useUpdatePatientAlert = (
   options?: Omit<
     UseMutationOptions<

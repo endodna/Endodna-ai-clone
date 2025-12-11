@@ -1495,6 +1495,35 @@ export const doctorsApi = {
       };
     }
   },
+
+  // Patient Chart Notes APIs
+  createPatientChartNote: async (
+    patientId: string,
+    data: {
+      title?: string;
+      content: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.CHART_NOTES.CREATE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create chart note",
+      };
+    }
+  },
 };
 
 export const api = {

@@ -22,6 +22,9 @@ const PatientProfilePage = lazy(
 const TreatmentPlanTemplatesPage = lazy(
   () => import("./pages/TreatmentPlans/TreatmentPlanTemplatesPage"),
 );
+const AIAssistantPage = lazy(
+  () => import("./pages/AIAssistant/AIAssistantPage"),
+);
 const Error404 = lazy(() => import("./pages/Error404"));
 
 const withSuspense = (
@@ -57,7 +60,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "ai-assistant",
-        Component: () => <div>AI Assistant</div>,
+        Component: withSuspense(AIAssistantPage),
       },
       {
         path: "patients",

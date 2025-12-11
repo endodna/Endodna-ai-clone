@@ -1,3 +1,4 @@
+import { AiChatActionButtons } from "@/components/chat/AiChatActionButtons";
 import { AiSummary } from "@/components/patients/patientProfile/aiSummary/AiSummary";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +10,7 @@ import { Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
+import { uuidv4 } from "zod";
 
 interface SummaryTabProps {
     readonly patientId?: string;
@@ -76,6 +78,12 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                     <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
                         {summaryData.summary.replace(/<br\s*\/?>/g, "\n\n").trim()}
                     </ReactMarkdown>
+                    {/* Action Icons for bot responses */}
+                    <AiChatActionButtons
+                        messageId={uuidv4().toString()}
+                        messageContent={summaryData.summary.replace(/<br\s*\/?>/g, "\n\n").trim()}
+                        patientId={null}
+                    />
                 </div>
 
                 {summaryData.followUpPrompts && summaryData.followUpPrompts.length > 0 && (
@@ -116,8 +124,10 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
     return (
         <div className="flex flex-col gap-4 pb-16 lg:gap-6 lg:pb-24">
             {renderSummaryCard()}
-            <div className="sticky bottom-4 w-full lg:bottom-6">
-                <AiSummary className="w-full" patientId={patientId} />
+            <div className="sticky w-full bottom-0">
+                <div className="rounded-t-3xl mb-6 shadow-[0px_20px_30px_20px_rgba(242,242,242,1)]">
+                    <AiSummary className="w-full" patientId={patientId} />
+                </div>
             </div>
         </div>
     );
