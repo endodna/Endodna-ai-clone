@@ -24,9 +24,11 @@ import {
   type HormoneTypeKey,
 } from "@/store/features/dosing";
 import { Pencil, Eye, EyeClosed, Plus, Minus, Sparkles } from "lucide-react";
+import { useSaveDosingCalculation } from "@/hooks/useDoctor";
 
 interface DoseSuggestionsProps {
   historyData?: PatientDosageHistoryEntry[] | null;
+  patientId?: string;
 }
 
 interface TierData {
@@ -64,6 +66,8 @@ interface HormoneSectionProps {
   isEditMode: boolean;
   onToggleEditMode: () => void;
   onSelectTier: () => void;
+  isChecked: boolean;
+  onToggleCheck: () => void;
 }
 
 interface HormoneSummaryRowProps {
@@ -74,6 +78,8 @@ interface HormoneSummaryRowProps {
     dosageMg: number;
   };
   onEdit: () => void;
+  isChecked: boolean;
+  onToggleCheck: () => void;
 }
 
 interface Supplement {
@@ -92,6 +98,7 @@ interface Supplement {
   durationInDays: number;
   isSuggested?: boolean;
   unit?: string;
+  purpose?: string;
 }
 
 // API Supplement structure from backend
@@ -162,10 +169,11 @@ function TierCard({
   return (
     <Card
       onClick={handleSelect}
-      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
-        ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
-        : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-        }`}
+      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
+        isSelected
+          ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+          : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
+      }`}
     >
       <CardHeader className="py-2 px-2 md:px-4">
         <CardTitle className="typo-body-2 text-foreground text-base">
@@ -233,6 +241,8 @@ function HormoneSummaryRow({
   title,
   selectedDose,
   onEdit,
+  isChecked,
+  onToggleCheck,
 }: Readonly<HormoneSummaryRowProps>) {
   const tierLabel = TIER_LABELS[selectedDose.tier] || selectedDose.tier;
   const tierTypeLabel =
@@ -241,7 +251,11 @@ function HormoneSummaryRow({
   return (
     <div className="flex items-center justify-between py-3 border-b border-muted-foreground/30">
       <div className="flex items-center gap-3 flex-1">
-        <Checkbox checked={true} className="rounded" />
+        <Checkbox
+          checked={isChecked}
+          onCheckedChange={onToggleCheck}
+          className="rounded"
+        />
         <span className="typo-body-2 text-foreground capitalize">{title}</span>
         <span className="mx-auto mr-4 typo-body-2 text-muted-foreground">
           {tierTypeLabel} - {tierLabel} |{" "}
@@ -268,6 +282,8 @@ function HormoneSection({
   isEditMode,
   onToggleEditMode,
   onSelectTier,
+  isChecked,
+  onToggleCheck,
 }: Readonly<HormoneSectionProps>) {
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);
   const hasBaseTiers =
@@ -294,6 +310,8 @@ function HormoneSection({
             dosageMg: selectedDose.dosageMg,
           }}
           onEdit={onToggleEditMode}
+          isChecked={isChecked}
+          onToggleCheck={onToggleCheck}
         />
       ) : (
         <>
@@ -328,9 +346,11 @@ function HormoneSection({
 
 export function DoseSuggestions({
   historyData,
+  patientId,
 }: Readonly<DoseSuggestionsProps>) {
   const dispatch = useAppDispatch();
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);
+  const saveDosingMutation = useSaveDosingCalculation();
   const [editModeHormones, setEditModeHormones] = useState<Set<string>>(
     new Set()
   );
@@ -341,6 +361,12 @@ export function DoseSuggestions({
     null
   );
   const [expandedSupplements, setExpandedSupplements] = useState<Set<string>>(
+    new Set()
+  );
+  const [checkedHormones, setCheckedHormones] = useState<Set<string>>(
+    new Set()
+  );
+  const [checkedSupplements, setCheckedSupplements] = useState<Set<string>>(
     new Set()
   );
   const [supplementForm, setSupplementForm] = useState({
@@ -386,13 +412,13 @@ export function DoseSuggestions({
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-              dosingCalculation: {
-                baseDoseMg: number;
-                basePelletCount: number;
-                finalDoseMg: number;
-                pelletCount: number;
-              };
-            }
+                dosingCalculation: {
+                  baseDoseMg: number;
+                  basePelletCount: number;
+                  finalDoseMg: number;
+                  pelletCount: number;
+                };
+              }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -556,7 +582,11 @@ export function DoseSuggestions({
 
   // Collect suggestions from historyData and set them in supplements state
   useEffect(() => {
-    if (!historyData || !Array.isArray(historyData) || historyData.length === 0) {
+    if (
+      !historyData ||
+      !Array.isArray(historyData) ||
+      historyData.length === 0
+    ) {
       return;
     }
 
@@ -591,50 +621,51 @@ export function DoseSuggestions({
           Array.isArray(tierData.clinicalRecommendations.supplements)
         ) {
           // Map API supplements to frontend Supplement objects
-          tierData.clinicalRecommendations.supplements.forEach(
-            (supplement) => {
-              if (typeof supplement === "object" && supplement !== null && "name" in supplement) {
-                const apiSupplement = supplement as ApiSupplement;
+          tierData.clinicalRecommendations.supplements.forEach((supplement) => {
+            if (
+              typeof supplement === "object" &&
+              supplement !== null &&
+              "name" in supplement
+            ) {
+              const apiSupplement = supplement as ApiSupplement;
 
-                collectedSuggestions.push({
-                  id: `${entry.id}-${hormoneType}-${selectedDose.tier}-${Date.now()}-${Math.random()}`,
-                  productName: apiSupplement.name || "",
-                  brand: apiSupplement.brand || "",
-                  dosage: apiSupplement.dose || "",
-                  benefits: apiSupplement.benefits || "",
-                  allergenDietaryStatus: apiSupplement.allergenDietaryStatus || "Contains soy, gluten & dairy",
-                  directions: apiSupplement.directions || "",
-                  rationale: apiSupplement.rationale || "",
-                  contraindications: apiSupplement.contraindications || "",
-                  quantity: 1,
-                  unit: apiSupplement.unit || "mg",
-                  type: "Tablets",
-                  frequency: apiSupplement.frequency || "Once Daily",
-                  durationInDays: 30,
-                  isSuggested: true
-                });
-              }
+              console.log("apiSupplement---------", apiSupplement);
+
+              collectedSuggestions.push({
+                id: `${entry.id}-${hormoneType}-${selectedDose.tier}-${Date.now()}-${Math.random()}`,
+                // @ts-ignore
+                productName: apiSupplement.name || apiSupplement.drugName || "",
+                brand: apiSupplement.brand || "",
+                dosage: apiSupplement.dose || "",
+                benefits: apiSupplement.benefits || "",
+                allergenDietaryStatus:
+                  apiSupplement.allergenDietaryStatus ||
+                  "Contains soy, gluten & dairy",
+                directions: apiSupplement.directions || "",
+                rationale: apiSupplement.rationale || "",
+                contraindications: apiSupplement.contraindications || "",
+                quantity: 1,
+                unit: apiSupplement.unit || "mg",
+                type: "Tablets",
+                frequency: apiSupplement.frequency || "Once Daily",
+                durationInDays: 30,
+                isSuggested: true,
+                purpose: apiSupplement.purpose || "",
+              });
             }
-          );
+          });
         }
       }
     };
 
+    console.log("historyData---------", historyData);
     // Loop through all historyData entries
     for (const entry of historyData) {
       // Extract suggestions from T100
-      extractSupplementsFromHormone(
-        entry,
-        "T100",
-        "testosterone_100"
-      );
+      extractSupplementsFromHormone(entry, "T100", "testosterone_100");
 
       // Extract suggestions from T200
-      extractSupplementsFromHormone(
-        entry,
-        "T200",
-        "testosterone_200"
-      );
+      extractSupplementsFromHormone(entry, "T200", "testosterone_200");
 
       // Extract suggestions from ESTRADIOL
       extractSupplementsFromHormone(entry, "ESTRADIOL", "estradiol");
@@ -646,18 +677,70 @@ export function DoseSuggestions({
     }
   }, [historyData, selectedDoses]);
 
+  // Initialize checked states when hormones/supplements become available
+  useEffect(() => {
+    const newCheckedHormones = new Set<string>();
+    const newCheckedSupplements = new Set<string>();
+
+    // Initialize checked hormones
+    if (selectedDoses.testosterone_100) {
+      newCheckedHormones.add("testosterone_100");
+    }
+    if (selectedDoses.testosterone_200) {
+      newCheckedHormones.add("testosterone_200");
+    }
+    if (selectedDoses.estradiol) {
+      newCheckedHormones.add("estradiol");
+    }
+
+    // Initialize checked supplements (all supplements checked by default)
+    supplements.forEach((supplement) => {
+      newCheckedSupplements.add(supplement.id);
+    });
+
+    setCheckedHormones(newCheckedHormones);
+    setCheckedSupplements(newCheckedSupplements);
+  }, [selectedDoses, supplements]);
+
   const hasSuggestions =
     (t100Suggestions && (t100Suggestions.base || t100Suggestions.modified)) ||
     (t200Suggestions && (t200Suggestions.base || t200Suggestions.modified)) ||
     (estradiolSuggestions &&
       (estradiolSuggestions.base || estradiolSuggestions.modified));
 
+  // Helper function to reset supplement form to default values
+  const resetSupplementForm = () => {
+    setSupplementForm({
+      rationale: "",
+      productName: "",
+      brand: "",
+      dosage: "",
+      benefits: "",
+      allergenDietaryStatus: "Contains soy, gluten & dairy",
+      directions: "",
+      contraindications: "",
+      quantity: 1,
+      type: "Tablets",
+      frequency: "Once Daily",
+      durationInDays: 30,
+    });
+    setEditingSupplementId(null);
+  };
+
+  const handleOpenAddSupplement = () => {
+    resetSupplementForm();
+    setIsAddSupplementOpen(true);
+  };
+
   const handleSaveSupplement = () => {
     if (!supplementForm.productName.trim()) {
       return; // Don't save if product name is empty
     }
 
-    const updatedSupplement: Omit<Supplement, 'id'> = { ...supplementForm, isSuggested: true };
+    const updatedSupplement: Omit<Supplement, "id"> = {
+      ...supplementForm,
+      // isSuggested: true,
+    };
 
     if (editingSupplementId) {
       // Update existing supplement
@@ -668,45 +751,25 @@ export function DoseSuggestions({
       );
     } else {
       // Add new supplement
-      setSupplements([...supplements, { ...updatedSupplement, id: Date.now().toString() }]);
+      const newSupplementId = Date.now().toString();
+      setSupplements([
+        ...supplements,
+        { ...updatedSupplement, id: newSupplementId, isSuggested: false },
+      ]);
+      // Automatically check newly added supplements
+      const newSet = new Set(checkedSupplements);
+      newSet.add(newSupplementId);
+      setCheckedSupplements(newSet);
     }
 
-    // Reset form and editing state
-    setSupplementForm({
-      rationale: "",
-      productName: "",
-      brand: "",
-      dosage: "",
-      benefits: "",
-      allergenDietaryStatus: "Contains soy, gluten & dairy",
-      directions: "",
-      contraindications: "",
-      quantity: 1,
-      type: "Tablets",
-      frequency: "Once Daily",
-      durationInDays: 30,
-    });
-    setEditingSupplementId(null);
+    // Reset form and close dialog
+    resetSupplementForm();
     setIsAddSupplementOpen(false);
   };
 
   const handleCancelSupplement = () => {
-    // Reset form and editing state without saving
-    setSupplementForm({
-      rationale: "",
-      productName: "",
-      brand: "",
-      dosage: "",
-      benefits: "",
-      allergenDietaryStatus: "Contains soy, gluten & dairy",
-      directions: "",
-      contraindications: "",
-      quantity: 1,
-      type: "Tablets",
-      frequency: "Once Daily",
-      durationInDays: 30,
-    });
-    setEditingSupplementId(null);
+    // Reset form and close dialog without saving
+    resetSupplementForm();
     setIsAddSupplementOpen(false);
   };
 
@@ -715,6 +778,87 @@ export function DoseSuggestions({
       return `${supplement.dosage} ${supplement.unit || "mg"} ${supplement.frequency || "Once Daily"}`;
     }
     return "";
+  };
+
+  const handleSaveDosages = async () => {
+    if (!patientId) {
+      console.error("Patient ID is required to save dosages");
+      return;
+    }
+
+    // Build the request payload
+    const payload: SaveDosingCalculationRequest = {
+      isOverridden: true,
+    };
+
+    // API requires selecting only one of T100 or T200
+    // Prioritize T200 if both are checked, otherwise use the one that is checked
+    const hasT100 =
+      selectedDoses.testosterone_100 && checkedHormones.has("testosterone_100");
+    const hasT200 =
+      selectedDoses.testosterone_200 && checkedHormones.has("testosterone_200");
+
+    if (hasT200 && selectedDoses.testosterone_200) {
+      // Prioritize T200 if it's checked
+      payload.T200 = {
+        tier: selectedDoses.testosterone_200.tier as DosageTier,
+      };
+    } else if (hasT100 && selectedDoses.testosterone_100) {
+      // Use T100 only if T200 is not checked
+      payload.T100 = {
+        tier: selectedDoses.testosterone_100.tier as DosageTier,
+      };
+    }
+
+    // Add ESTRADIOL tier if selected and checked
+    if (selectedDoses.estradiol && checkedHormones.has("estradiol")) {
+      payload.ESTRADIOL = {
+        tier: selectedDoses.estradiol.tier as DosageTier,
+      };
+    }
+
+    // Add checked supplements
+    const checkedSupplementList = supplements
+      .filter((supplement) => checkedSupplements.has(supplement.id))
+      .map((supplement) => {
+        // Ensure purpose is always provided - prioritize purpose, then benefits, then rationale, then productName
+        const purpose =
+          supplement.purpose ||
+          supplement.benefits ||
+          supplement.rationale ||
+          supplement.productName ||
+          "Supplement";
+
+        return {
+          drugName: supplement.productName,
+          dosage: supplement.dosage || "",
+          unit: supplement.unit || "mg",
+          frequency: supplement.frequency || "Once Daily",
+          purpose: purpose,
+          isSuggested: supplement.isSuggested ?? false,
+        };
+      });
+
+    if (checkedSupplementList.length > 0) {
+      payload.supplements = checkedSupplementList;
+    }
+
+    try {
+      const response = await saveDosingMutation.mutateAsync({
+        patientId,
+        data: payload,
+      });
+
+      if (!response.error) {
+        setIsSuccessModalOpen(true);
+      } else {
+        console.error("Failed to save dosages:", response.message);
+        // You might want to show an error toast here
+      }
+    } catch (error) {
+      console.error("Error saving dosages:", error);
+      // You might want to show an error toast here
+    }
   };
 
   const scrollToTop = () => {
@@ -759,6 +903,16 @@ export function DoseSuggestions({
               newSet.delete("testosterone_100");
               setEditModeHormones(newSet);
             }}
+            isChecked={checkedHormones.has("testosterone_100")}
+            onToggleCheck={() => {
+              const newSet = new Set(checkedHormones);
+              if (newSet.has("testosterone_100")) {
+                newSet.delete("testosterone_100");
+              } else {
+                newSet.add("testosterone_100");
+              }
+              setCheckedHormones(newSet);
+            }}
           />
         )}
 
@@ -785,6 +939,16 @@ export function DoseSuggestions({
               const newSet = new Set(editModeHormones);
               newSet.delete("testosterone_200");
               setEditModeHormones(newSet);
+            }}
+            isChecked={checkedHormones.has("testosterone_200")}
+            onToggleCheck={() => {
+              const newSet = new Set(checkedHormones);
+              if (newSet.has("testosterone_200")) {
+                newSet.delete("testosterone_200");
+              } else {
+                newSet.add("testosterone_200");
+              }
+              setCheckedHormones(newSet);
             }}
           />
         )}
@@ -813,6 +977,16 @@ export function DoseSuggestions({
               newSet.delete("estradiol");
               setEditModeHormones(newSet);
             }}
+            isChecked={checkedHormones.has("estradiol")}
+            onToggleCheck={() => {
+              const newSet = new Set(checkedHormones);
+              if (newSet.has("estradiol")) {
+                newSet.delete("estradiol");
+              } else {
+                newSet.add("estradiol");
+              }
+              setCheckedHormones(newSet);
+            }}
           />
         )}
 
@@ -825,7 +999,19 @@ export function DoseSuggestions({
               <div key={supplement.id}>
                 <div className="flex items-center justify-between py-3 border-b border-muted-foreground/30">
                   <div className="flex items-center gap-3 flex-1">
-                    <Checkbox checked={true} className="rounded" />
+                    <Checkbox
+                      checked={checkedSupplements.has(supplement.id)}
+                      onCheckedChange={() => {
+                        const newSet = new Set(checkedSupplements);
+                        if (newSet.has(supplement.id)) {
+                          newSet.delete(supplement.id);
+                        } else {
+                          newSet.add(supplement.id);
+                        }
+                        setCheckedSupplements(newSet);
+                      }}
+                      className="rounded"
+                    />
                     <span className="typo-body-2 text-foreground capitalize">
                       {supplement.productName}
                     </span>
@@ -983,21 +1169,31 @@ export function DoseSuggestions({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setIsAddSupplementOpen(true)}
+          onClick={handleOpenAddSupplement}
         >
           Add Supplement
         </Button>
         <Button
           type="submit"
           className="px-4 py-[7.5px] space-x-2 bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={() => setIsSuccessModalOpen(true)}
+          onClick={handleSaveDosages}
+          disabled={saveDosingMutation.isPending || !patientId}
         >
-          Save dosages
+          {saveDosingMutation.isPending ? "Saving..." : "Save dosages"}
         </Button>
       </div>
 
       {/* Add Supplement Modal */}
-      <Dialog open={isAddSupplementOpen} onOpenChange={setIsAddSupplementOpen}>
+      <Dialog
+        open={isAddSupplementOpen}
+        onOpenChange={(open) => {
+          setIsAddSupplementOpen(open);
+          if (!open) {
+            // Reset form when dialog is closed
+            resetSupplementForm();
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto text-sm">
           <DialogHeader>
             <label className="text-neutral-950 font-semibold text-xl">

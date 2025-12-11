@@ -100,7 +100,10 @@ export function DosingCalculatorTab({
 
         {/* Conditionally render DoseSuggestions */}
         {showDoseSuggestions && (
-          <DoseSuggestions historyData={historyResponse?.data ?? null} />
+          <DoseSuggestions
+            historyData={historyResponse?.data ?? null}
+            patientId={patientId}
+          />
         )}
       </div>
 
@@ -122,10 +125,7 @@ export function DosingCalculatorTab({
             </p>
           </div>
           <DialogFooter className="flex justify-end">
-            <Button
-              type="submit"
-              onClick={handleAgree}
-            >
+            <Button type="submit" onClick={handleAgree}>
               Agreed
             </Button>
           </DialogFooter>
