@@ -782,12 +782,12 @@ class RAGHelper {
         1. Present summary in **Markdown** format with clear section headers (##).
         2. Use **bold** or bullet points for important data.
         3. Be factual and concise — avoid speculation.
-        5. Extract ALL clinical information from medical records, chart notes, and patient reports.
-        6. Combine information from multiple sources; use the most recent or detailed version.
-        7. Calculate age accurately using patient's date of birth and current date.
-        8. If information is missing, note explicitly (e.g., "_No recent lab results available._").
-        9. Do **not** include meta-comments or transitional phrases. Start directly with summary content.
-        10. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
+        4. Extract ALL clinical information from medical records, chart notes, and patient reports.
+        5. Combine information from multiple sources; use the most recent or detailed version.
+        6. Calculate age accurately using patient's date of birth and current date.
+        7. If information is missing, note explicitly (e.g., "_No recent lab results available._").
+        8. Do **not** include meta-comments or transitional phrases. Start directly with summary content.
+        9. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
         
         Include this disclaimer at the end:
         ---
