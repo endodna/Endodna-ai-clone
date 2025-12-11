@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
+import { useAppSelector } from "@/store/hooks";
 import {
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   ReferenceLine,
+  Line,
+  ComposedChart,
 } from "recharts";
 import {
   ChartContainer,
@@ -20,11 +22,13 @@ interface PatientFshChartProps {
   patient?: PatientDetail | null;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  activeTab?: string;
 }
 
 interface ChartDataPoint {
   days: number;
-  fsh: number;
+  baselineFsh: number;
+  selectedDoseFsh: number | null;
 }
 
 interface ChartCalculations {
@@ -66,21 +70,39 @@ function calculateRePelletWindow(rePelletDays: number): {
 // Helper function to create chart data points with curve similar to DosingChart
 function createChartData(
   baselineValue: number,
-  peakValue: number,
+  baselinePeakValue: number,
+  selectedDoseMg: number | null,
+  selectedPeakMg: number | null,
   rePelletDays: number
 ): ChartDataPoint[] {
   const sixWeekDays = 42;
   const twelveWeekDays = 84;
 
   return [
-    // Day 0: Baseline value (equivalent to dosageMg in DosingChart)
-    { days: 0, fsh: baselineValue },
-    // 6 Week Lab Draw: Peak value (50% more, equivalent to peakDosageMg in DosingChart)
-    { days: sixWeekDays, fsh: peakValue },
+    // Day 0: Baseline value and selected dose (if available)
+    {
+      days: 0,
+      baselineFsh: baselineValue,
+      selectedDoseFsh: selectedDoseMg,
+    },
+    // 6 Week Lab Draw: Peak values
+    {
+      days: sixWeekDays,
+      baselineFsh: baselinePeakValue,
+      selectedDoseFsh: selectedPeakMg,
+    },
     // 12 Week Lab Draw: Still at peak
-    { days: twelveWeekDays, fsh: peakValue },
+    {
+      days: twelveWeekDays,
+      baselineFsh: baselinePeakValue,
+      selectedDoseFsh: selectedPeakMg,
+    },
     // Estimated Re-pellet: goes to 0
-    { days: rePelletDays, fsh: 0 },
+    {
+      days: rePelletDays,
+      baselineFsh: 0,
+      selectedDoseFsh: 0,
+    },
   ];
 }
 
@@ -143,10 +165,19 @@ export function PatientFshChart({
   patient,
   xAxisLabel = "Weeks Since Pellet Insertion",
   yAxisLabel = "FSH, mIU/mL",
+  activeTab,
 }: Readonly<PatientFshChartProps>) {
+  const { selectedDoses, insertionDate: insertionDateFromRedux } =
+    useAppSelector((state) => state.dosingCalculator);
+
   const fshLevel = patient?.patientInfo?.clinicalData?.fshLevel;
   const insertionDate =
-    patient?.patientInfo?.clinicalData?.insertionDate;
+    patient?.patientInfo?.clinicalData?.insertionDate ||
+    insertionDateFromRedux;
+
+  // Get selected estradiol dose (only show if estradiol tab is active)
+  const selectedDose =
+    activeTab === "estradiol" ? selectedDoses.estradiol : null;
 
   const {
     chartData,
@@ -175,18 +206,34 @@ export function PatientFshChart({
     // Calculate re-pellet window
     const { startDays, endDays } = calculateRePelletWindow(rePelletDays);
 
-    // Calculate peak value: 50% more than baseline (same as DosingChart: peakDosageMg = dosageMg * 1.5)
+    // Calculate baseline peak value: 50% more than baseline (same as DosingChart: peakDosageMg = dosageMg * 1.5)
     // Note: FSH doesn't have a postInsertion value, so always use 1.5x calculation
-    const peakFsh = fshLevel * 1.5;
+    const baselinePeakFsh = fshLevel * 1.5;
 
-    // Create chart data points with curve similar to DosingChart
-    const data = createChartData(fshLevel, peakFsh, rePelletDays);
+    // Calculate selected dose values (if available) - using estradiol dose
+    const selectedDoseMg = selectedDose?.dosageMg || null;
+    const selectedPeakMg = selectedDoseMg ? selectedDoseMg * 1.5 : null; // Same 50% increase logic
+
+    // Calculate the maximum peak value to determine y-axis range
+    const maxPeakValue = Math.max(
+      baselinePeakFsh,
+      selectedPeakMg || 0
+    );
+
+    // Create chart data points with both baseline and selected dose curves
+    const data = createChartData(
+      fshLevel,
+      baselinePeakFsh,
+      selectedDoseMg,
+      selectedPeakMg,
+      rePelletDays
+    );
 
     // Calculate axis ticks
     const { ticks: xTicks, maxDays: maxDaysValue } =
       calculateXAxisTicks(rePelletDays);
     const { ticks: yTicks, maxDosage: maxDosageValue } =
-      calculateYAxisTicks(peakFsh);
+      calculateYAxisTicks(maxPeakValue);
 
     return {
       chartData: data,
@@ -197,7 +244,7 @@ export function PatientFshChart({
       rePelletWindowStartDays: startDays,
       rePelletWindowEndDays: endDays,
     };
-  }, [fshLevel, insertionDate, patient?.gender]);
+  }, [fshLevel, insertionDate, patient?.gender, selectedDose, activeTab]);
 
   // Memoize tick formatter functions
   const formatTick = useCallback((value: number): string => {
@@ -206,8 +253,12 @@ export function PatientFshChart({
 
   const chartConfig = useMemo(
     () => ({
-      fsh: {
-        label: "FSH (mIU/mL)",
+      baselineFsh: {
+        label: "Baseline FSH (mIU/mL)",
+        color: "hsl(var(--primary))",
+      },
+      selectedDoseFsh: {
+        label: "Selected Dose FSH (mg)",
         color: "hsl(var(--primary))",
       },
     }),
@@ -231,9 +282,9 @@ export function PatientFshChart({
         className="w-full h-[180px] aspect-auto"
       >
         <ResponsiveContainer>
-          <AreaChart accessibilityLayer data={chartData}>
+          <ComposedChart accessibilityLayer data={chartData}>
             <defs>
-              <linearGradient id="colorFsh" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorBaselineFsh" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="hsl(var(--primary))"
@@ -258,7 +309,6 @@ export function PatientFshChart({
               stroke="hsl(var(--muted-foreground))"
             />
             <YAxis
-              dataKey="fsh"
               type="number"
               domain={[0, maxDosage]}
               ticks={yAxisTicks}
@@ -293,17 +343,29 @@ export function PatientFshChart({
               strokeWidth={1.5}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
+            {/* Baseline line - solid */}
             <Area
               type="monotone"
-              dataKey="fsh"
+              dataKey="baselineFsh"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
-              strokeDasharray="5 5"
-              fill="url(#colorFsh)"
+              fill="url(#colorBaselineFsh)"
               dot={{ fill: "hsl(var(--primary))", r: 2 }}
               activeDot={{ r: 4 }}
             />
-          </AreaChart>
+            {/* Selected dose line - dotted (only if selected dose exists) */}
+            {selectedDose && (
+              <Line
+                type="monotone"
+                dataKey="selectedDoseFsh"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: "hsl(var(--primary))", r: 2 }}
+                activeDot={{ r: 4 }}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>

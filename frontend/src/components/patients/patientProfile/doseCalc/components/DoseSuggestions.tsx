@@ -25,10 +25,13 @@ import {
 } from "@/store/features/dosing";
 import { Pencil, Eye, EyeClosed, Plus, Minus, Sparkles } from "lucide-react";
 import { useSaveDosingCalculation } from "@/hooks/useDoctor";
+import { GENDER } from "@/components/constants/patient";
 
 interface DoseSuggestionsProps {
   historyData?: PatientDosageHistoryEntry[] | null;
   patientId?: string;
+  activeTab?: string;
+  patient?: PatientDetail | null;
 }
 
 interface TierData {
@@ -169,11 +172,10 @@ function TierCard({
   return (
     <Card
       onClick={handleSelect}
-      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
-        isSelected
-          ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
-          : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-      }`}
+      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
+        ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+        : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
+        }`}
     >
       <CardHeader className="py-2 px-2 md:px-4">
         <CardTitle className="typo-body-2 text-foreground text-base">
@@ -347,6 +349,8 @@ function HormoneSection({
 export function DoseSuggestions({
   historyData,
   patientId,
+  activeTab,
+  patient,
 }: Readonly<DoseSuggestionsProps>) {
   const dispatch = useAppDispatch();
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);
@@ -412,13 +416,13 @@ export function DoseSuggestions({
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-                dosingCalculation: {
-                  baseDoseMg: number;
-                  basePelletCount: number;
-                  finalDoseMg: number;
-                  pelletCount: number;
-                };
-              }
+              dosingCalculation: {
+                baseDoseMg: number;
+                basePelletCount: number;
+                finalDoseMg: number;
+                pelletCount: number;
+              };
+            }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -701,6 +705,33 @@ export function DoseSuggestions({
     setCheckedHormones(newCheckedHormones);
     setCheckedSupplements(newCheckedSupplements);
   }, [selectedDoses, supplements]);
+
+  // Sync activeTab with checkedHormones for male patients
+  useEffect(() => {
+    const patientGender = patient?.gender?.toUpperCase();
+
+    // Only apply this logic for male patients
+    if (patientGender !== GENDER.MALE || !activeTab) {
+      return;
+    }
+
+    // Update checkedHormones based on activeTab
+    setCheckedHormones((prevCheckedHormones) => {
+      const newCheckedHormones = new Set(prevCheckedHormones);
+
+      if (activeTab === "testosterone-t100") {
+        // Check Testosterone (100) and uncheck Testosterone (200)
+        newCheckedHormones.add("testosterone_100");
+        newCheckedHormones.delete("testosterone_200");
+      } else if (activeTab === "testosterone-t200") {
+        // Check Testosterone (200) and uncheck Testosterone (100)
+        newCheckedHormones.add("testosterone_200");
+        newCheckedHormones.delete("testosterone_100");
+      }
+
+      return newCheckedHormones;
+    });
+  }, [activeTab, patient?.gender]);
 
   const hasSuggestions =
     (t100Suggestions && (t100Suggestions.base || t100Suggestions.modified)) ||

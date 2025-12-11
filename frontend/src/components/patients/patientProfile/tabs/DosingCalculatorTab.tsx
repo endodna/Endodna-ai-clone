@@ -162,6 +162,8 @@ export function DosingCalculatorTab({
           <DoseSuggestions
             historyData={historyResponse?.data ?? null}
             patientId={patientId}
+            activeTab={activeTab}
+            patient={patient}
           />
         )}
       </div>

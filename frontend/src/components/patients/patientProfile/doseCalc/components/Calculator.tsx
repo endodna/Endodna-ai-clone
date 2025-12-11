@@ -31,24 +31,41 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
               />
             </>
           ) : (
-            // For females: Show Estradiol and FSH charts
+            // For females: Show charts based on active tab
             <>
-              <PatientTestosteroneChart
-                patient={patient}
-                xAxisLabel="Weeks Since Pellet Insertion"
-                yAxisLabel="Testosterone, ng/dL"
-                activeTab={activeTab}
-              />
-              <PatientEstradiolChart
-                patient={patient}
-                xAxisLabel="Weeks Since Pellet Insertion"
-                yAxisLabel="Estradiol (E2), pg/mL"
-              />
-              <PatientFshChart
-                patient={patient}
-                xAxisLabel="Weeks Since Pellet Insertion"
-                yAxisLabel="FSH, mIU/mL"
-              />
+              {activeTab === "testosterone-t100" ? (
+                // If Testosterone tab is selected, show only PatientTestosteroneChart
+                <PatientTestosteroneChart
+                  patient={patient}
+                  xAxisLabel="Weeks Since Pellet Insertion"
+                  yAxisLabel="Testosterone, ng/dL"
+                  activeTab={activeTab}
+                />
+              ) : activeTab === "estradiol" ? (
+                // If Estradiol tab is selected, show PatientEstradiolChart and PatientFshChart
+                <>
+                  <PatientEstradiolChart
+                    patient={patient}
+                    xAxisLabel="Weeks Since Pellet Insertion"
+                    yAxisLabel="Estradiol (E2), pg/mL"
+                    activeTab={activeTab}
+                  />
+                  <PatientFshChart
+                    patient={patient}
+                    xAxisLabel="Weeks Since Pellet Insertion"
+                    yAxisLabel="FSH, mIU/mL"
+                    activeTab={activeTab}
+                  />
+                </>
+              ) : (
+                // Default: Show PatientTestosteroneChart if no tab is selected
+                <PatientTestosteroneChart
+                  patient={patient}
+                  xAxisLabel="Weeks Since Pellet Insertion"
+                  yAxisLabel="Testosterone, ng/dL"
+                  activeTab={activeTab}
+                />
+              )}
             </>
           )}
         </div>

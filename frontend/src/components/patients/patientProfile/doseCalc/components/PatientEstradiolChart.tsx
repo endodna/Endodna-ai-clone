@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
+import { useAppSelector } from "@/store/hooks";
 import {
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   ReferenceLine,
+  Line,
+  ComposedChart,
 } from "recharts";
 import {
   ChartContainer,
@@ -20,11 +22,13 @@ interface PatientEstradiolChartProps {
   patient?: PatientDetail | null;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  activeTab?: string;
 }
 
 interface ChartDataPoint {
   days: number;
-  estradiol: number;
+  baselineEstradiol: number;
+  selectedDoseEstradiol: number | null;
 }
 
 interface ChartCalculations {
@@ -66,21 +70,39 @@ function calculateRePelletWindow(rePelletDays: number): {
 // Helper function to create chart data points with curve similar to DosingChart
 function createChartData(
   baselineValue: number,
-  peakValue: number,
+  baselinePeakValue: number,
+  selectedDoseMg: number | null,
+  selectedPeakMg: number | null,
   rePelletDays: number
 ): ChartDataPoint[] {
   const sixWeekDays = 42;
   const twelveWeekDays = 84;
 
   return [
-    // Day 0: Baseline value (equivalent to dosageMg in DosingChart)
-    { days: 0, estradiol: baselineValue },
-    // 6 Week Lab Draw: Peak value (50% more, equivalent to peakDosageMg in DosingChart)
-    { days: sixWeekDays, estradiol: peakValue },
+    // Day 0: Baseline value and selected dose (if available)
+    {
+      days: 0,
+      baselineEstradiol: baselineValue,
+      selectedDoseEstradiol: selectedDoseMg,
+    },
+    // 6 Week Lab Draw: Peak values
+    {
+      days: sixWeekDays,
+      baselineEstradiol: baselinePeakValue,
+      selectedDoseEstradiol: selectedPeakMg,
+    },
     // 12 Week Lab Draw: Still at peak
-    { days: twelveWeekDays, estradiol: peakValue },
+    {
+      days: twelveWeekDays,
+      baselineEstradiol: baselinePeakValue,
+      selectedDoseEstradiol: selectedPeakMg,
+    },
     // Estimated Re-pellet: goes to 0
-    { days: rePelletDays, estradiol: 0 },
+    {
+      days: rePelletDays,
+      baselineEstradiol: 0,
+      selectedDoseEstradiol: 0,
+    },
   ];
 }
 
@@ -143,14 +165,23 @@ export function PatientEstradiolChart({
   patient,
   xAxisLabel = "Weeks Since Pellet Insertion",
   yAxisLabel = "Estradiol (E2), pg/mL",
+  activeTab,
 }: Readonly<PatientEstradiolChartProps>) {
+  const { selectedDoses, insertionDate: insertionDateFromRedux } =
+    useAppSelector((state) => state.dosingCalculator);
+
   const baselineEstradiol =
     patient?.patientInfo?.clinicalData?.baselineEstradiol;
   const postInsertionEstradiol =
     patient?.patientInfo?.clinicalData?.postInsertionEstradiol;
   const insertionDate =
-    patient?.patientInfo?.clinicalData?.insertionDate;
-  
+    patient?.patientInfo?.clinicalData?.insertionDate ||
+    insertionDateFromRedux;
+
+  // Get selected estradiol dose (only show if estradiol tab is active)
+  const selectedDose =
+    activeTab === "estradiol" ? selectedDoses.estradiol : null;
+
   const {
     chartData,
     xAxisTicks,
@@ -178,16 +209,28 @@ export function PatientEstradiolChart({
     // Calculate re-pellet window
     const { startDays, endDays } = calculateRePelletWindow(rePelletDays);
 
-    // Calculate peak value: use postInsertionEstradiol if available,
+    // Calculate baseline peak value: use postInsertionEstradiol if available,
     // otherwise calculate as 50% more than baseline (same as DosingChart: peakDosageMg = dosageMg * 1.5)
-    const peakEstradiol = postInsertionEstradiol
+    const baselinePeakEstradiol = postInsertionEstradiol
       ? postInsertionEstradiol
       : baselineEstradiol * 1.5;
 
-    // Create chart data points with curve similar to DosingChart
+    // Calculate selected dose values (if available)
+    const selectedDoseMg = selectedDose?.dosageMg || null;
+    const selectedPeakMg = selectedDoseMg ? selectedDoseMg * 1.5 : null; // Same 50% increase logic
+
+    // Calculate the maximum peak value to determine y-axis range
+    const maxPeakValue = Math.max(
+      baselinePeakEstradiol,
+      selectedPeakMg || 0
+    );
+
+    // Create chart data points with both baseline and selected dose curves
     const data = createChartData(
       baselineEstradiol,
-      peakEstradiol,
+      baselinePeakEstradiol,
+      selectedDoseMg,
+      selectedPeakMg,
       rePelletDays
     );
 
@@ -195,7 +238,7 @@ export function PatientEstradiolChart({
     const { ticks: xTicks, maxDays: maxDaysValue } =
       calculateXAxisTicks(rePelletDays);
     const { ticks: yTicks, maxDosage: maxDosageValue } =
-      calculateYAxisTicks(peakEstradiol);
+      calculateYAxisTicks(maxPeakValue);
 
     return {
       chartData: data,
@@ -211,6 +254,8 @@ export function PatientEstradiolChart({
     postInsertionEstradiol,
     insertionDate,
     patient?.gender,
+    selectedDose,
+    activeTab,
   ]);
 
   // Memoize tick formatter functions
@@ -220,8 +265,12 @@ export function PatientEstradiolChart({
 
   const chartConfig = useMemo(
     () => ({
-      estradiol: {
-        label: "Estradiol (pg/mL)",
+      baselineEstradiol: {
+        label: "Baseline Estradiol (pg/mL)",
+        color: "hsl(var(--primary))",
+      },
+      selectedDoseEstradiol: {
+        label: "Selected Dose Estradiol (mg)",
         color: "hsl(var(--primary))",
       },
     }),
@@ -247,9 +296,9 @@ export function PatientEstradiolChart({
         className="w-full h-[180px] aspect-auto"
       >
         <ResponsiveContainer>
-          <AreaChart accessibilityLayer data={chartData}>
+          <ComposedChart accessibilityLayer data={chartData}>
             <defs>
-              <linearGradient id="colorEstradiol" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorBaselineEstradiol" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="hsl(var(--primary))"
@@ -274,7 +323,6 @@ export function PatientEstradiolChart({
               stroke="hsl(var(--muted-foreground))"
             />
             <YAxis
-              dataKey="estradiol"
               type="number"
               domain={[0, maxDosage]}
               ticks={yAxisTicks}
@@ -309,17 +357,29 @@ export function PatientEstradiolChart({
               strokeWidth={1.5}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
+            {/* Baseline line - solid */}
             <Area
               type="monotone"
-              dataKey="estradiol"
+              dataKey="baselineEstradiol"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
-              strokeDasharray="5 5"
-              fill="url(#colorEstradiol)"
+              fill="url(#colorBaselineEstradiol)"
               dot={{ fill: "hsl(var(--primary))", r: 2 }}
               activeDot={{ r: 4 }}
             />
-          </AreaChart>
+            {/* Selected dose line - dotted (only if selected dose exists) */}
+            {selectedDose && (
+              <Line
+                type="monotone"
+                dataKey="selectedDoseEstradiol"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: "hsl(var(--primary))", r: 2 }}
+                activeDot={{ r: 4 }}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
