@@ -90,6 +90,25 @@ interface Supplement {
   type: string;
   frequency: string;
   durationInDays: number;
+  isSuggested?: boolean;
+  unit?: string;
+}
+
+// API Supplement structure from backend
+interface ApiSupplement {
+  name: string;
+  dose: string;
+  unit?: string;
+  frequency?: string;
+  timing?: string;
+  purpose?: string;
+  isCore?: boolean;
+  brand?: string;
+  benefits?: string;
+  allergenDietaryStatus?: string;
+  directions?: string;
+  rationale?: string;
+  contraindications?: string;
 }
 
 // Runtime constants matching DosageTier enum values
@@ -143,11 +162,10 @@ function TierCard({
   return (
     <Card
       onClick={handleSelect}
-      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
-        isSelected
-          ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
-          : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-      }`}
+      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
+        ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+        : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
+        }`}
     >
       <CardHeader className="py-2 px-2 md:px-4">
         <CardTitle className="typo-body-2 text-foreground text-base">
@@ -368,13 +386,13 @@ export function DoseSuggestions({
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-                dosingCalculation: {
-                  baseDoseMg: number;
-                  basePelletCount: number;
-                  finalDoseMg: number;
-                  pelletCount: number;
-                };
-              }
+              dosingCalculation: {
+                baseDoseMg: number;
+                basePelletCount: number;
+                finalDoseMg: number;
+                pelletCount: number;
+              };
+            }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -536,6 +554,98 @@ export function DoseSuggestions({
     dispatch,
   ]);
 
+  // Collect suggestions from historyData and set them in supplements state
+  useEffect(() => {
+    if (!historyData || !Array.isArray(historyData) || historyData.length === 0) {
+      return;
+    }
+
+    const collectedSuggestions: Supplement[] = [];
+
+    // Helper function to extract suggestions from a hormone type
+    const extractSupplementsFromHormone = (
+      entry: PatientDosageHistoryEntry,
+      hormoneType: "T100" | "T200" | "ESTRADIOL",
+      hormoneTypeKey: HormoneTypeKey
+    ) => {
+      const entryData = entry.data;
+      const hormoneData = entryData[hormoneType];
+
+      if (!hormoneData?.dosingSuggestions) return;
+
+      const dosingSuggestions = hormoneData.dosingSuggestions as Record<
+        string,
+        {
+          clinicalRecommendations?: {
+            supplements?: ApiSupplement[];
+          };
+        }
+      >;
+
+      // Get the selected tier for this hormone type
+      const selectedDose = selectedDoses[hormoneTypeKey];
+      if (selectedDose?.tier) {
+        const tierData = dosingSuggestions[selectedDose.tier];
+        if (
+          tierData?.clinicalRecommendations?.supplements &&
+          Array.isArray(tierData.clinicalRecommendations.supplements)
+        ) {
+          // Map API supplements to frontend Supplement objects
+          tierData.clinicalRecommendations.supplements.forEach(
+            (supplement) => {
+              if (typeof supplement === "object" && supplement !== null && "name" in supplement) {
+                const apiSupplement = supplement as ApiSupplement;
+
+                collectedSuggestions.push({
+                  id: `${entry.id}-${hormoneType}-${selectedDose.tier}-${Date.now()}-${Math.random()}`,
+                  productName: apiSupplement.name || "",
+                  brand: apiSupplement.brand || "",
+                  dosage: apiSupplement.dose || "",
+                  benefits: apiSupplement.benefits || "",
+                  allergenDietaryStatus: apiSupplement.allergenDietaryStatus || "Contains soy, gluten & dairy",
+                  directions: apiSupplement.directions || "",
+                  rationale: apiSupplement.rationale || "",
+                  contraindications: apiSupplement.contraindications || "",
+                  quantity: 1,
+                  unit: apiSupplement.unit || "mg",
+                  type: "Tablets",
+                  frequency: apiSupplement.frequency || "Once Daily",
+                  durationInDays: 30,
+                  isSuggested: true
+                });
+              }
+            }
+          );
+        }
+      }
+    };
+
+    // Loop through all historyData entries
+    for (const entry of historyData) {
+      // Extract suggestions from T100
+      extractSupplementsFromHormone(
+        entry,
+        "T100",
+        "testosterone_100"
+      );
+
+      // Extract suggestions from T200
+      extractSupplementsFromHormone(
+        entry,
+        "T200",
+        "testosterone_200"
+      );
+
+      // Extract suggestions from ESTRADIOL
+      extractSupplementsFromHormone(entry, "ESTRADIOL", "estradiol");
+    }
+
+    // Set collected suggestions in supplements state
+    if (collectedSuggestions.length > 0) {
+      setSupplements(collectedSuggestions);
+    }
+  }, [historyData, selectedDoses]);
+
   const hasSuggestions =
     (t100Suggestions && (t100Suggestions.base || t100Suggestions.modified)) ||
     (t200Suggestions && (t200Suggestions.base || t200Suggestions.modified)) ||
@@ -547,32 +657,18 @@ export function DoseSuggestions({
       return; // Don't save if product name is empty
     }
 
-    const updatedSupplement: Supplement = {
-      id: editingSupplementId || Date.now().toString(),
-      productName: supplementForm.productName,
-      brand: supplementForm.brand,
-      dosage: supplementForm.dosage || "Dosage Value",
-      benefits: supplementForm.benefits,
-      allergenDietaryStatus: supplementForm.allergenDietaryStatus,
-      directions: supplementForm.directions,
-      rationale: supplementForm.rationale,
-      contraindications: supplementForm.contraindications,
-      quantity: supplementForm.quantity,
-      type: supplementForm.type,
-      frequency: supplementForm.frequency,
-      durationInDays: supplementForm.durationInDays,
-    };
+    const updatedSupplement: Omit<Supplement, 'id'> = { ...supplementForm, isSuggested: true };
 
     if (editingSupplementId) {
       // Update existing supplement
       setSupplements(
         supplements.map((s) =>
-          s.id === editingSupplementId ? updatedSupplement : s
+          s.id === editingSupplementId ? { ...updatedSupplement, id: s.id } : s
         )
       );
     } else {
       // Add new supplement
-      setSupplements([...supplements, updatedSupplement]);
+      setSupplements([...supplements, { ...updatedSupplement, id: Date.now().toString() }]);
     }
 
     // Reset form and editing state
@@ -616,9 +712,9 @@ export function DoseSuggestions({
 
   const getDosageDisplay = (supplement: Supplement) => {
     if (supplement.dosage && supplement.dosage !== "Dosage Value") {
-      return supplement.dosage;
+      return `${supplement.dosage} ${supplement.unit || "mg"} ${supplement.frequency || "Once Daily"}`;
     }
-    return "Dosage Value";
+    return "";
   };
 
   const scrollToTop = () => {
