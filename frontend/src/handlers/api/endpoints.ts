@@ -65,10 +65,16 @@ export const API_ENDPOINTS = {
         CREATE: (id: string, type: "alert" | "allergy" = "alert") =>
           `/doctor/patients/${id}/alerts/${type}`,
         LIST: (id: string) => `/doctor/patients/${id}/alerts`,
-        UPDATE: (patientId: string, alertId: string, type: "alert" | "allergy") =>
-          `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
-        DELETE: (patientId: string, alertId: string, type: "alert" | "allergy") =>
-          `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
+        UPDATE: (
+          patientId: string,
+          alertId: string,
+          type: "alert" | "allergy"
+        ) => `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
+        DELETE: (
+          patientId: string,
+          alertId: string,
+          type: "alert" | "allergy"
+        ) => `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
       },
     },
     REPORTS: {
@@ -85,6 +91,8 @@ export const API_ENDPOINTS = {
           `/doctor/patients/${patientId}/conversations/${conversationId}/messages`,
         UPDATE_TITLE: (patientId: string, conversationId: string) =>
           `/doctor/patients/${patientId}/conversations/${conversationId}/title`,
+        DELETE: (patientId: string, conversationId: string) =>
+          `/doctor/patients/${patientId}/conversations/${conversationId}`,
         ALL_CONVERSATIONS: "/doctor/conversations/patients",
       },
       GENERAL: {

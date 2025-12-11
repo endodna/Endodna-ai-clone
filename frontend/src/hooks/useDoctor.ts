@@ -389,7 +389,7 @@ export const useCreatePatientConversation = (
     UseMutationOptions<
       ApiResponse<PatientChatConversation>,
       Error,
-      { patientId: string }
+      { patientId: string; chatType?: string }
     >,
     "mutationFn"
   >
@@ -398,10 +398,10 @@ export const useCreatePatientConversation = (
   return useMutation<
     ApiResponse<PatientChatConversation>,
     Error,
-    { patientId: string }
+    { patientId: string; chatType?: string }
   >({
-    mutationFn: ({ patientId }) =>
-      doctorsApi.createPatientConversation(patientId),
+    mutationFn: ({ patientId, chatType }) =>
+      doctorsApi.createPatientConversation(patientId, chatType),
     onSuccess: (response, variables) => {
       if (!response.error) {
         // Invalidate patient-specific conversations
@@ -478,6 +478,49 @@ export const useUpdatePatientConversationTitle = (
         // Invalidate all patient conversations (for sidebar)
         queryClient.invalidateQueries({
           queryKey: queryKeys.doctor.chat.patient.allPatients(),
+        });
+      }
+    },
+    ...options,
+  });
+};
+
+export const useDeletePatientConversation = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<null>,
+      Error,
+      { patientId: string; conversationId: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<null>,
+    Error,
+    { patientId: string; conversationId: string }
+  >({
+    mutationFn: ({ patientId, conversationId }) =>
+      doctorsApi.deletePatientConversation(patientId, conversationId),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        // Invalidate patient-specific conversations
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.chat.patient.conversations(
+            variables.patientId
+          ),
+        });
+        // Invalidate all patient conversations (for sidebar)
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.chat.patient.allPatients(),
+        });
+        // Invalidate conversation messages if any
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.chat.patient.conversationMessages(
+            variables.patientId,
+            variables.conversationId
+          ),
         });
       }
     },

@@ -308,7 +308,6 @@ export function ReportsList({
           <h3 className="text-foreground/80 text-2xl font-semibold">Reports</h3>
           <Button
             variant="secondary"
-            // className="bg-neutral-100 text-neutral-900 font-medium text-sm"
             onClick={() => {
               setShowWelcomeSection(true);
               setIsSheetOpen(true);
@@ -749,6 +748,7 @@ export function ReportsList({
                   }
                 }}
                 existingConversationId={conversationId}
+                chatType="DNA_ANALYSIS"
               />
             </div>
           </div>

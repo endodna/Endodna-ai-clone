@@ -521,11 +521,13 @@ export const doctorsApi = {
   },
 
   createPatientConversation: async (
-    patientId: string
+    patientId: string,
+    chatType?: string
   ): Promise<ApiResponse<PatientChatConversation>> => {
     try {
       const response = await apiClient.post(
         getEndpoint(API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATIONS, patientId),
+        chatType ? { chatType } : {},
         {
           timeout: 60000, // AI summary generation can take longer on first load
         }
@@ -627,6 +629,31 @@ export const doctorsApi = {
     }
   },
 
+  deletePatientConversation: async (
+    patientId: string,
+    conversationId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.PATIENT.DELETE,
+          patientId,
+          conversationId
+        )
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to delete conversation",
+      };
+    }
+  },
+
   getGeneralConversations: async (): Promise<
     ApiResponse<GeneralChatConversation[]>
   > => {
@@ -653,7 +680,8 @@ export const doctorsApi = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATIONS,
-        payload ?? {
+        payload ?? {},
+        {
           timeout: 60000, // AI summary generation can take longer on first load
         }
       );
@@ -1289,7 +1317,11 @@ export const doctorsApi = {
   ): Promise<ApiResponse<PatientAlert>> => {
     try {
       const response = await apiClient.post(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE, patientId, "alert"),
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE,
+          patientId,
+          "alert"
+        ),
         data
       );
       return response.data;
@@ -1319,7 +1351,11 @@ export const doctorsApi = {
   ): Promise<ApiResponse<PatientAllergy>> => {
     try {
       const response = await apiClient.post(
-        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE, patientId, "allergy"),
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE,
+          patientId,
+          "allergy"
+        ),
         data
       );
       return response.data;

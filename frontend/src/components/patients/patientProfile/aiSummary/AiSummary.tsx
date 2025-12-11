@@ -66,6 +66,7 @@ interface AiSummaryProps {
     type: "patient" | "general"
   ) => void;
   readonly existingConversationId?: string | null;
+  readonly chatType?: string;
 }
 
 const MODEL_OPTIONS = [
@@ -107,6 +108,7 @@ export function AiSummary({
   disableChatModal = false,
   onConversationCreated,
   existingConversationId,
+  chatType,
 }: Readonly<AiSummaryProps>) {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
@@ -258,6 +260,7 @@ export function AiSummary({
           // This ensures a fresh conversation starts
           const createResponse = await createPatientConversation.mutateAsync({
             patientId,
+            chatType,
           });
           if (createResponse.error || !createResponse.data) {
             toast.error(

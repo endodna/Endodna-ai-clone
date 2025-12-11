@@ -188,7 +188,7 @@ export function AddMedicationModal({
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
-                            <label htmlFor="reason" className="typo-body-2  text-foreground">Reason *</label>
+                            <label htmlFor="reason" className="typo-body-2  text-foreground">Rationale *</label>
                             <Input
                                 id="reason"
                                 placeholder="e.g: Pain management"

@@ -16,6 +16,7 @@ import {
   useGetPatientConversations,
   useGetAllPatientConversations,
   useUpdatePatientConversationTitle,
+  useDeletePatientConversation,
 } from "@/hooks/useDoctor";
 import { useAppDispatch } from "@/store/hooks";
 import { selectGlobalConversation } from "@/store/features/chat";
@@ -44,6 +45,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const [conversationToDelete, setConversationToDelete] = useState<{
     id: string;
     title: string;
+    patientId: string;
   } | null>(null);
 
   // Always fetch patient conversations only
@@ -72,6 +74,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     ? isLoadingPatientChats
     : isLoadingAllPatientChats;
   const updatePatientConversationTitle = useUpdatePatientConversationTitle();
+  const deletePatientConversation = useDeletePatientConversation();
 
   const filteredChats = conversations;
 
@@ -137,10 +140,19 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
   const handleDeleteClick = (
     e: React.MouseEvent,
     conversationId: string,
-    conversationTitle: string
+    conversationTitle: string,
+    conversationPatientId?: string
   ) => {
     e.stopPropagation();
-    setConversationToDelete({ id: conversationId, title: conversationTitle });
+    const patientIdToUse = conversationPatientId || patientId;
+    if (!patientIdToUse) {
+      return;
+    }
+    setConversationToDelete({
+      id: conversationId,
+      title: conversationTitle,
+      patientId: patientIdToUse,
+    });
     setDeleteDialogOpen(true);
   };
 
@@ -148,10 +160,17 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
     if (!conversationToDelete) {
       return;
     }
-    console.log("Delete conversation:", conversationToDelete.id);
 
-    setDeleteDialogOpen(false);
-    setConversationToDelete(null);
+    try {
+      await deletePatientConversation.mutateAsync({
+        patientId: conversationToDelete.patientId,
+        conversationId: conversationToDelete.id,
+      });
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
+    } catch (error) {
+      // Error is handled by the mutation
+    }
   };
 
   if (isLoading) {
@@ -336,7 +355,12 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) =>
-                                handleDeleteClick(e, item.id, item.title)
+                                handleDeleteClick(
+                                  e,
+                                  item.id,
+                                  item.title,
+                                  (item as any).patient?.id
+                                )
                               }
                               className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                             >
@@ -360,7 +384,7 @@ export function ChatsHistory({ patientId }: Readonly<ChatsHistoryProps>) {
         onOpenChange={setDeleteDialogOpen}
         conversationTitle={conversationToDelete?.title}
         onConfirm={handleConfirmDelete}
-        isDeleting={false}
+        isDeleting={deletePatientConversation.isPending}
       />
     </div>
   );
