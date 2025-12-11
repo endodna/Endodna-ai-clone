@@ -3,7 +3,7 @@ import { PatientProfileBreadcrumb } from "@/components/patients/patientProfile/P
 import { TabNavigation, type TabConfig } from "@/components/patients/patientProfile/TabNavigation";
 import { DnaResultsTab } from "@/components/patients/patientProfile/tabs/DnaResultsTab";
 import { MedicationsTab } from "@/components/patients/patientProfile/tabs/MedicationsTab";
-import { NotesTab } from "@/components/patients/patientProfile/tabs/NotesTab";
+import { ChartTab } from "@/components/patients/patientProfile/tabs/ChartTab";
 import { SummaryTab } from "@/components/patients/patientProfile/tabs/SummaryTab";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useGetPatientById } from "@/hooks/useDoctor";
@@ -11,6 +11,7 @@ import { DosingCalculatorTab } from "@/components/patients/patientProfile/tabs/D
 import { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { resetDosingCalculator } from "@/store/features/dosing";
+import { LabsTab } from "@/components/patients/patientProfile/tabs/LabsTab";
 
 interface TabProps {
   patientId?: string;
@@ -21,8 +22,9 @@ const TABS: TabConfig<TabProps>[] = [
   { id: "summary", label: "Summary", Content: SummaryTab },
   { id: "dna-results", label: "DNA Results", Content: DnaResultsTab },
   { id: "medications", label: "Medications", Content: MedicationsTab },
+  { id: "labs", label: "Labs", Content: LabsTab },
   { id: "dosing-calculator", label: "Dosing Calculator", Content: DosingCalculatorTab },
-  { id: "notes", label: "Notes", Content: NotesTab },
+  { id: "chart", label: "Chart", Content: ChartTab },
 ];
 
 export default function PatientProfilePage() {

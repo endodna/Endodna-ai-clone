@@ -61,6 +61,15 @@ export const API_ENDPOINTS = {
       GOALS: (id: string) => `/doctor/patients/${id}/goals`,
       GOALS_DETAIL: (patientId: string, goalId: string) =>
         `/doctor/patients/${patientId}/goals/${goalId}`,
+      ALERTS: {
+        CREATE: (id: string, type: "alert" | "allergy" = "alert") =>
+          `/doctor/patients/${id}/alerts/${type}`,
+        LIST: (id: string) => `/doctor/patients/${id}/alerts`,
+        UPDATE: (patientId: string, alertId: string, type: "alert" | "allergy") =>
+          `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
+        DELETE: (patientId: string, alertId: string, type: "alert" | "allergy") =>
+          `/doctor/patients/${patientId}/alerts/${alertId}/${type}`,
+      },
     },
     REPORTS: {
       LIST: "/doctor/reports",

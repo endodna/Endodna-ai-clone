@@ -1091,7 +1091,10 @@ export const doctorsApi = {
   },
 
   // Get Dosing History using Post API
-  getDosingHistoryPostApi: async (patientId: string, gender: string): Promise<any> => {
+  getDosingHistoryPostApi: async (
+    patientId: string,
+    gender: string
+  ): Promise<any> => {
     try {
       if (gender.toLowerCase() === "male") {
         const [result100, result200] = await Promise.allSettled([
@@ -1101,51 +1104,54 @@ export const doctorsApi = {
         const t100 = result100.status === "fulfilled" ? result100.value : null;
         const t200 = result200.status === "fulfilled" ? result200.value : null;
         const result = {
-          data: [{
-            data: {
-              "T100": { dosingSuggestions: t100?.data || {} },
+          data: [
+            {
+              data: {
+                T100: { dosingSuggestions: t100?.data || {} },
+              },
+              type: "T100",
             },
-            type: "T100"
-          },
-          {
-            data: {
-              "T200": { dosingSuggestions: t200?.data || {} },
+            {
+              data: {
+                T200: { dosingSuggestions: t200?.data || {} },
+              },
+              type: "T200",
             },
-            type: "T200"
-          }],
+          ],
           error: false,
           message: "Dosing history fetched successfully",
-        }
+        };
         return result;
-      }
-      else if (gender.toLowerCase() === "female") {
+      } else if (gender.toLowerCase() === "female") {
         const [result100, estradiol] = await Promise.allSettled([
           doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
           doctorsApi.calculateEstradiolDosing(patientId),
         ]);
         const t100 = result100.status === "fulfilled" ? result100.value : null;
-        const estradiolRes = estradiol.status === "fulfilled" ? estradiol.value : null;
+        const estradiolRes =
+          estradiol.status === "fulfilled" ? estradiol.value : null;
 
         const result = {
-          data: [{
-            data: {
-              "ESTRADIOL": { dosingSuggestions: estradiolRes?.data || {} },
+          data: [
+            {
+              data: {
+                ESTRADIOL: { dosingSuggestions: estradiolRes?.data || {} },
+              },
+              type: "ESTRADIOL",
             },
-            type: "ESTRADIOL"
-          },
-          {
-            data: {
-              "T100": { dosingSuggestions: t100?.data || {} },
+            {
+              data: {
+                T100: { dosingSuggestions: t100?.data || {} },
+              },
+              type: "T100",
             },
-            type: "T100"
-          }],
+          ],
           error: false,
           message: "Dosing history fetched successfully",
-        }
+        };
         return result;
       }
-    }
-    catch (error: unknown) {
+    } catch (error: unknown) {
       return {
         data: null,
         error: true,
@@ -1243,6 +1249,213 @@ export const doctorsApi = {
           error.response?.data?.message ||
           error.message ||
           "Failed to update goal",
+      };
+    }
+  },
+
+  deletePatientGoal: async (
+    patientId: string,
+    goalId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL,
+          patientId,
+          goalId
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete goal"),
+      };
+    }
+  },
+
+  // Patient Alert APIs
+  createPatientAlert: async (
+    patientId: string,
+    data: {
+      description: string;
+      severity: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAlert>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE, patientId, "alert"),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create alert",
+      };
+    }
+  },
+
+  // Patient Allergy APIs
+  createPatientAllergy: async (
+    patientId: string,
+    data: {
+      allergen: string;
+      reactionType: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAllergy>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE, patientId, "allergy"),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create allergy",
+      };
+    }
+  },
+
+  updatePatientAlert: async (
+    patientId: string,
+    alertId: string,
+    data: {
+      description?: string;
+      severity?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAlert>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.UPDATE,
+          patientId,
+          alertId,
+          "alert"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update alert",
+      };
+    }
+  },
+
+  updatePatientAllergy: async (
+    patientId: string,
+    allergyId: string,
+    data: {
+      allergen?: string;
+      reactionType?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAllergy>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.UPDATE,
+          patientId,
+          allergyId,
+          "allergy"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update allergy",
+      };
+    }
+  },
+
+  deletePatientAlert: async (
+    patientId: string,
+    alertId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.DELETE,
+          patientId,
+          alertId,
+          "alert"
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete alert"),
+      };
+    }
+  },
+
+  deletePatientAllergy: async (
+    patientId: string,
+    allergyId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.DELETE,
+          patientId,
+          allergyId,
+          "allergy"
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete allergy"),
       };
     }
   },

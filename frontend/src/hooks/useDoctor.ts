@@ -988,3 +988,215 @@ export const useUpdatePatientGoal = (
     ...options,
   });
 };
+
+export const useDeletePatientGoal = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<null>,
+      Error,
+      { patientId: string; goalId: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<null>,
+    Error,
+    { patientId: string; goalId: string }
+  >({
+    mutationFn: ({ patientId, goalId }) =>
+      doctorsApi.deletePatientGoal(patientId, goalId),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.goals.list(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+// Patient Alert hooks
+export const useCreatePatientAlert = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAlert>,
+      Error,
+      CreatePatientAlertVariables
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PatientAlert>,
+    Error,
+    CreatePatientAlertVariables
+  >({
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.createPatientAlert(patientId, data),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+// Patient Allergy hooks
+export const useCreatePatientAllergy = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAllergy>,
+      Error,
+      CreatePatientAllergyVariables
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PatientAllergy>,
+    Error,
+    CreatePatientAllergyVariables
+  >({
+    mutationFn: ({ patientId, data }) =>
+      doctorsApi.createPatientAllergy(patientId, data),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+export const useUpdatePatientAlert = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAlert>,
+      Error,
+      UpdatePatientAlertVariables
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PatientAlert>,
+    Error,
+    UpdatePatientAlertVariables
+  >({
+    mutationFn: ({ patientId, alertId, data }) =>
+      doctorsApi.updatePatientAlert(patientId, alertId, data),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+export const useUpdatePatientAllergy = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<PatientAllergy>,
+      Error,
+      UpdatePatientAllergyVariables
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<PatientAllergy>,
+    Error,
+    UpdatePatientAllergyVariables
+  >({
+    mutationFn: ({ patientId, allergyId, data }) =>
+      doctorsApi.updatePatientAllergy(patientId, allergyId, data),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+export const useDeletePatientAlert = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<null>,
+      Error,
+      { patientId: string; alertId: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<null>,
+    Error,
+    { patientId: string; alertId: string }
+  >({
+    mutationFn: ({ patientId, alertId }) =>
+      doctorsApi.deletePatientAlert(patientId, alertId),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};
+
+export const useDeletePatientAllergy = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<null>,
+      Error,
+      { patientId: string; allergyId: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ApiResponse<null>,
+    Error,
+    { patientId: string; allergyId: string }
+  >({
+    mutationFn: ({ patientId, allergyId }) =>
+      doctorsApi.deletePatientAllergy(patientId, allergyId),
+    onSuccess: (response, variables) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.patients.detail(variables.patientId),
+        });
+        return response;
+      }
+    },
+    ...options,
+  });
+};

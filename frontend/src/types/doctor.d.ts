@@ -370,6 +370,60 @@ interface PatientMedication {
   createdAt?: string | Date;
 }
 
+interface PatientAlert {
+  uuid: string;
+  id: string;
+  description: string;
+  severity?: string | null;
+  notes?: string | null;
+}
+
+interface PatientAllergy {
+  uuid: string;
+  id: string;
+  allergen: string;
+  reactionType?: string | null;
+  notes?: string | null;
+}
+
+interface CreatePatientAlertVariables {
+  patientId: string;
+  data: {
+    description: string;
+    severity: string;
+    notes?: string;
+  };
+}
+
+interface CreatePatientAllergyVariables {
+  patientId: string;
+  data: {
+    allergen: string;
+    reactionType: string;
+    notes?: string;
+  };
+}
+
+interface UpdatePatientAlertVariables {
+  patientId: string;
+  alertId: string;
+  data: {
+    description?: string;
+    severity?: string;
+    notes?: string;
+  };
+}
+
+interface UpdatePatientAllergyVariables {
+  patientId: string;
+  allergyId: string;
+  data: {
+    allergen?: string;
+    reactionType?: string;
+    notes?: string;
+  };
+}
+
 interface CreatePatientMedicationPayload {
   drugName: string;
   dosage: string;
