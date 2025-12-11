@@ -93,6 +93,8 @@ export const queryKeys = {
       all: () => [...queryKeys.doctor.all, "dosing"] as const,
       history: (patientId: string) =>
         [...queryKeys.doctor.dosing.all(), "history", patientId] as const,
+      historyPost: (patientId: string) =>
+        [...queryKeys.doctor.dosing.all(), "history-post", patientId] as const,
     },
   },
   misc: {

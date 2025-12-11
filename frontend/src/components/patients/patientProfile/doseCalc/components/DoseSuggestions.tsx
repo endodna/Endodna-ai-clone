@@ -32,6 +32,14 @@ interface DoseSuggestionsProps {
   patientId?: string;
   activeTab?: string;
   patient?: PatientDetail | null;
+  latestSupplements?: Array<{
+    drugName?: string;
+    dosage?: string;
+    unit?: string;
+    frequency?: string;
+    purpose?: string;
+    isSuggested?: boolean;
+  }>;
 }
 
 interface TierData {
@@ -351,6 +359,7 @@ export function DoseSuggestions({
   patientId,
   activeTab,
   patient,
+  latestSupplements,
 }: Readonly<DoseSuggestionsProps>) {
   const dispatch = useAppDispatch();
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);

@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useGetDosingHistory } from "@/hooks/useDoctor";
+import { useGetDosingHistory, usePostDosingHistory } from "@/hooks/useDoctor";
 import { AlertCircle, Lock } from "lucide-react";
 import { Calculator } from "../doseCalc/components/Calculator";
 import { DoseSuggestions } from "../doseCalc/components/DoseSuggestions";
@@ -31,9 +31,38 @@ export function DosingCalculatorTab({
     isLoading,
     isError,
     error,
-  } = useGetDosingHistory(patientId ?? "", patient?.gender || "", {
+  } = usePostDosingHistory(patientId ?? "", patient?.gender || "", {
     enabled: Boolean(patientId),
   });
+
+  const {
+    data: getHistoryResponse,
+  } = useGetDosingHistory(patientId ?? "", {
+    enabled: Boolean(patientId),
+  });
+
+  // Extract supplements from the latest record in getHistoryResponse
+  const latestSupplements = useMemo(() => {
+    if (
+      !getHistoryResponse ||
+      !Array.isArray(getHistoryResponse) ||
+      getHistoryResponse.length === 0
+    ) {
+      return [];
+    }
+
+    // Sort by createdAt (descending) to get the latest record first
+    const sorted = [...getHistoryResponse].sort((a, b) => {
+      const dateA = a.data?.createdAt || a.createdAt;
+      const dateB = b.data?.createdAt || b.createdAt;
+      if (!dateA || !dateB) return 0;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+
+    // Get supplements from the latest record
+    const latestRecord = sorted[0];
+    return latestRecord?.data?.supplements || [];
+  }, [getHistoryResponse]);
 
   // Calculate available tabs based on history data
   const tabs = useMemo(() => {
@@ -97,7 +126,8 @@ export function DosingCalculatorTab({
     setShowDisclaimer(false);
   };
 
-  console.log("historyResponse", historyResponse);
+  console.log("=== historyResponse", historyResponse);
+  console.log("=== getHistoryResponse", getHistoryResponse);
 
   if (isLoading) {
     return (
@@ -164,6 +194,7 @@ export function DosingCalculatorTab({
             patientId={patientId}
             activeTab={activeTab}
             patient={patient}
+            latestSupplements={latestSupplements}
           />
         )}
       </div>

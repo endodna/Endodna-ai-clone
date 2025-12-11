@@ -796,7 +796,7 @@ export const useSaveDosingCalculation = (
   });
 };
 
-export const useGetDosingHistory = (
+export const usePostDosingHistory = (
   patientId: string,
   gender: string,
   options?: Omit<
@@ -805,9 +805,28 @@ export const useGetDosingHistory = (
   >
 ) => {
   return useQuery<ApiResponse<DosingHistoryResponse>, Error>({
-    queryKey: queryKeys.doctor.dosing.history(patientId),
+    queryKey: queryKeys.doctor.dosing.historyPost(patientId),
     // queryFn: () => doctorsApi.getDosingHistory(patientId),
     queryFn: () => doctorsApi.getDosingHistoryPostApi(patientId, gender),
+    enabled: Boolean(patientId),
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    ...options,
+  });
+};
+
+export const useGetDosingHistory = (
+  patientId: string,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<DosingHistoryResponse>, Error>,
+    "queryKey" | "queryFn"
+  >
+) => {
+  return useQuery<ApiResponse<DosingHistoryResponse>, Error>({
+    queryKey: queryKeys.doctor.dosing.history(patientId),
+    queryFn: () => doctorsApi.getDosingHistory(patientId),
+    // queryFn: () => doctorsApi.getDosingHistoryPostApi(patientId, gender),
     enabled: Boolean(patientId),
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
