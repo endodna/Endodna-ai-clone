@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
+import { useAppSelector } from "@/store/hooks";
 import {
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   ReferenceLine,
+  Line,
+  ComposedChart,
 } from "recharts";
 import {
   ChartContainer,
@@ -15,16 +17,19 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { GENDER } from "@/components/constants/patient";
+import type { HormoneTypeKey } from "@/store/features/dosing";
 
 interface PatientTestosteroneChartProps {
   patient?: PatientDetail | null;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  activeTab?: string;
 }
 
 interface ChartDataPoint {
   days: number;
-  testosterone: number;
+  baselineTestosterone: number;
+  selectedDoseTestosterone: number | null;
 }
 
 interface ChartCalculations {
@@ -66,21 +71,39 @@ function calculateRePelletWindow(rePelletDays: number): {
 // Helper function to create chart data points with curve similar to DosingChart
 function createChartData(
   baselineValue: number,
-  peakValue: number,
+  baselinePeakValue: number,
+  selectedDoseMg: number | null,
+  selectedPeakMg: number | null,
   rePelletDays: number
 ): ChartDataPoint[] {
   const sixWeekDays = 42;
   const twelveWeekDays = 84;
 
   return [
-    // Day 0: Baseline value
-    { days: 0, testosterone: baselineValue },
-    // 6 Week Lab Draw: Peak value
-    { days: sixWeekDays, testosterone: peakValue },
+    // Day 0: Baseline value and selected dose (if available)
+    {
+      days: 0,
+      baselineTestosterone: baselineValue,
+      selectedDoseTestosterone: selectedDoseMg,
+    },
+    // 6 Week Lab Draw: Peak values
+    {
+      days: sixWeekDays,
+      baselineTestosterone: baselinePeakValue,
+      selectedDoseTestosterone: selectedPeakMg,
+    },
     // 12 Week Lab Draw: Still at peak
-    { days: twelveWeekDays, testosterone: peakValue },
+    {
+      days: twelveWeekDays,
+      baselineTestosterone: baselinePeakValue,
+      selectedDoseTestosterone: selectedPeakMg,
+    },
     // Estimated Re-pellet: goes to 0
-    { days: rePelletDays, testosterone: 0 },
+    {
+      days: rePelletDays,
+      baselineTestosterone: 0,
+      selectedDoseTestosterone: 0,
+    },
   ];
 }
 
@@ -100,17 +123,40 @@ function calculateXAxisTicks(rePelletDays: number): {
   return { ticks, maxDays: maxDaysValue };
 }
 
-// Helper function to calculate Y-axis ticks with fixed max of 1200
-function calculateYAxisTicks(): {
+// Helper function to calculate Y-axis ticks (same logic as DosingChart)
+function calculateYAxisTicks(peakValue: number): {
   ticks: number[];
   maxDosage: number;
 } {
-  const maxDosageValue = 1200;
-  const yTickInterval = 300; // Nice intervals: 0, 300, 600, 900, 1200
+  const targetTicks = 5;
+  // Calculate with 10% padding (same as DosingChart)
+  const maxDosageValue = Math.ceil(peakValue * 1.1);
+
+  // Determine appropriate interval for uniform spacing
+  let yTickInterval = Math.ceil(maxDosageValue / targetTicks);
+
+  // Round to nice numbers (50, 100, 200, 500, 1000, etc.)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(yTickInterval)));
+  const normalized = yTickInterval / magnitude;
+
+  if (normalized <= 1) {
+    yTickInterval = magnitude;
+  } else if (normalized <= 2) {
+    yTickInterval = 2 * magnitude;
+  } else if (normalized <= 5) {
+    yTickInterval = 5 * magnitude;
+  } else {
+    yTickInterval = 10 * magnitude;
+  }
 
   const ticks: number[] = [];
   for (let i = 0; i <= maxDosageValue; i += yTickInterval) {
     ticks.push(i);
+  }
+
+  // Ensure the last tick includes max value
+  if (ticks[ticks.length - 1] < maxDosageValue) {
+    ticks.push(Math.ceil(maxDosageValue / yTickInterval) * yTickInterval);
   }
 
   return { ticks, maxDosage: maxDosageValue };
@@ -120,13 +166,33 @@ export function PatientTestosteroneChart({
   patient,
   xAxisLabel = "Weeks Since Pellet Insertion",
   yAxisLabel = "Testosterone, ng/dL",
+  activeTab,
 }: Readonly<PatientTestosteroneChartProps>) {
+  const { selectedDoses, insertionDate: insertionDateFromRedux } =
+    useAppSelector((state) => state.dosingCalculator);
+
   const baselineFreeTestosterone =
     patient?.patientInfo?.clinicalData?.baselineFreeTestosterone;
   const postInsertionTotalTestosterone =
     patient?.patientInfo?.clinicalData?.postInsertionTotalTestosterone;
   const insertionDate =
-    patient?.patientInfo?.clinicalData?.insertionDate;
+    patient?.patientInfo?.clinicalData?.insertionDate ||
+    insertionDateFromRedux;
+
+  // Map tab ID to hormone type key to get selected dose
+  const getHormoneTypeKey = (tabId: string): HormoneTypeKey | null => {
+    switch (tabId) {
+      case "testosterone-t100":
+        return "testosterone_100";
+      case "testosterone-t200":
+        return "testosterone_200";
+      default:
+        return null;
+    }
+  };
+
+  const hormoneTypeKey = activeTab ? getHormoneTypeKey(activeTab) : null;
+  const selectedDose = hormoneTypeKey ? selectedDoses[hormoneTypeKey] : null;
 
   const {
     chartData,
@@ -155,23 +221,38 @@ export function PatientTestosteroneChart({
     // Calculate re-pellet window
     const { startDays, endDays } = calculateRePelletWindow(rePelletDays);
 
-    // Calculate peak value: use postInsertionTotalTestosterone if available,
+    // Calculate baseline peak value: use postInsertionTotalTestosterone if available,
     // otherwise calculate as 50% more than baseline (similar to DosingChart logic)
-    const peakTestosterone = postInsertionTotalTestosterone
+    const baselinePeakTestosterone = postInsertionTotalTestosterone
       ? postInsertionTotalTestosterone
       : baselineFreeTestosterone * 1.5;
 
-    // Create chart data points with curve similar to DosingChart
+    // Calculate selected dose values (if available)
+    // The selected dose is in mg, we'll use it directly for the curve
+    const selectedDoseMg = selectedDose?.dosageMg || null;
+    const selectedPeakMg = selectedDoseMg ? selectedDoseMg * 1.5 : null; // Same 50% increase logic
+
+    // Calculate the maximum peak value to determine y-axis range
+    // Use the higher of baseline peak or selected dose peak
+    const maxPeakValue = Math.max(
+      baselinePeakTestosterone,
+      selectedPeakMg || 0
+    );
+
+    // Create chart data points with both baseline and selected dose curves
     const data = createChartData(
       baselineFreeTestosterone,
-      peakTestosterone,
+      baselinePeakTestosterone,
+      selectedDoseMg,
+      selectedPeakMg,
       rePelletDays
     );
 
     // Calculate axis ticks
     const { ticks: xTicks, maxDays: maxDaysValue } =
       calculateXAxisTicks(rePelletDays);
-    const { ticks: yTicks, maxDosage: maxDosageValue } = calculateYAxisTicks();
+    const { ticks: yTicks, maxDosage: maxDosageValue } =
+      calculateYAxisTicks(maxPeakValue);
 
     return {
       chartData: data,
@@ -187,6 +268,8 @@ export function PatientTestosteroneChart({
     postInsertionTotalTestosterone,
     insertionDate,
     patient?.gender,
+    selectedDose,
+    activeTab,
   ]);
 
   // Memoize tick formatter functions
@@ -196,8 +279,12 @@ export function PatientTestosteroneChart({
 
   const chartConfig = useMemo(
     () => ({
-      testosterone: {
-        label: "Testosterone (ng/dL)",
+      baselineTestosterone: {
+        label: "Baseline Testosterone (ng/dL)",
+        color: "hsl(var(--primary))",
+      },
+      selectedDoseTestosterone: {
+        label: "Selected Dose Testosterone (mg)",
         color: "hsl(var(--primary))",
       },
     }),
@@ -221,9 +308,9 @@ export function PatientTestosteroneChart({
         className="w-full h-[180px] aspect-auto"
       >
         <ResponsiveContainer>
-          <AreaChart accessibilityLayer data={chartData}>
+          <ComposedChart accessibilityLayer data={chartData}>
             <defs>
-              <linearGradient id="colorTestosterone" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorBaselineTestosterone" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="hsl(var(--primary))"
@@ -248,7 +335,6 @@ export function PatientTestosteroneChart({
               stroke="hsl(var(--muted-foreground))"
             />
             <YAxis
-              dataKey="testosterone"
               type="number"
               domain={[0, maxDosage]}
               ticks={yAxisTicks}
@@ -283,17 +369,29 @@ export function PatientTestosteroneChart({
               strokeWidth={1.5}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
+            {/* Baseline line - solid */}
             <Area
               type="monotone"
-              dataKey="testosterone"
+              dataKey="baselineTestosterone"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
-              strokeDasharray="5 5"
-              fill="url(#colorTestosterone)"
+              fill="url(#colorBaselineTestosterone)"
               dot={{ fill: "hsl(var(--primary))", r: 2 }}
               activeDot={{ r: 4 }}
             />
-          </AreaChart>
+            {/* Selected dose line - dotted (only if selected dose exists) */}
+            {selectedDose && (
+              <Line
+                type="monotone"
+                dataKey="selectedDoseTestosterone"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: "hsl(var(--primary))", r: 2 }}
+                activeDot={{ r: 4 }}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>

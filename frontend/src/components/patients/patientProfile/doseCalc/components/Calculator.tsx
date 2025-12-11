@@ -27,11 +27,18 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                 patient={patient}
                 xAxisLabel="Weeks Since Pellet Insertion"
                 yAxisLabel="Testosterone, ng/dL"
+                activeTab={activeTab}
               />
             </>
           ) : (
             // For females: Show Estradiol and FSH charts
             <>
+              <PatientTestosteroneChart
+                patient={patient}
+                xAxisLabel="Weeks Since Pellet Insertion"
+                yAxisLabel="Testosterone, ng/dL"
+                activeTab={activeTab}
+              />
               <PatientEstradiolChart
                 patient={patient}
                 xAxisLabel="Weeks Since Pellet Insertion"
