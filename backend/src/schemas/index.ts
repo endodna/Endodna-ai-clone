@@ -91,6 +91,37 @@ export const createDoctorSchema = z
   .strict();
 export type CreateDoctorSchema = z.infer<typeof createDoctorSchema>;
 
+const clinicalDataSchema = z.object({
+  shbgLevel: z.number().optional(),
+  baselineTotalTestosterone: z.number().optional(),
+  baselineFreeTestosterone: z.number().optional(),
+  postInsertionTotalTestosterone: z.number().optional(),
+  insertionDate: z.coerce.date().transform((val) => val.toISOString()).optional(),
+  baselineEstradiol: z.number().optional(),
+  postInsertionEstradiol: z.number().optional(),
+  vitaminDLevel: z.number().optional(),
+  hematocrit: z.number().optional(),
+  currentPSA: z.number().optional(),
+  previousPSA: z.number().optional(),
+  monthsBetweenPSA: z.number().optional(),
+  prostateSymptomsIpss: z.number().optional(),
+  fshLevel: z.number().optional(),
+  symptomSeverity: z.number().optional(),
+}).strict().optional();
+
+const lifestyleDataSchema = z.object({
+  smokingStatus: z.enum(["never", "former", "current"]).optional(),
+  exerciseLevel: z.enum(["sedentary", "light", "moderate", "vigorous"]).optional(),
+}).strict().optional();
+
+const medicationsDataSchema = z.object({
+  opiods: z.boolean().optional(),
+  opiodsList: z.array(z.string()).optional(),
+  adhdStimulants: z.boolean().optional(),
+  adhdStimulantsList: z.array(z.string()).optional(),
+  otherMedicationsList: z.array(z.string()).optional(),
+}).strict().optional();
+
 export const createPatientSchema = z
   .object({
     email: z.string().email("Invalid email format").toLowerCase().trim(),
@@ -111,6 +142,11 @@ export const createPatientSchema = z
     phoneNumber: z.string().optional(),
     workPhone: z.string().optional(),
     homePhone: z.string().optional(),
+    weight: z.number().positive("Weight must be a positive number").optional(),
+    height: z.number().positive("Height must be a positive number").optional(),
+    clinicalData: clinicalDataSchema,
+    lifestyleData: lifestyleDataSchema,
+    medicationsData: medicationsDataSchema,
   })
   .strict();
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
@@ -441,41 +477,13 @@ export const reportIdParamsSchema = z.object({
 }).strict();
 export type ReportIdParamsSchema = z.infer<typeof reportIdParamsSchema>;
 
-const smokingStatusEnum = z.enum(["never", "former", "current"]);
-const exerciseLevelEnum = z.enum(["sedentary", "light", "moderate", "vigorous"]);
-
-const clinicalDataSchema = z.object({
-  shbgLevel: z.number().optional(),
-  baselineTotalTestosterone: z.number().optional(),
-  baselineFreeTestosterone: z.number().optional(),
-  postInsertionTotalTestosterone: z.number().optional(),
-  insertionDate: z.coerce.date().transform((val) => val.toISOString()).optional(),
-  baselineEstradiol: z.number().optional(),
-  postInsertionEstradiol: z.number().optional(),
-  vitaminDLevel: z.number().optional(),
-  hematocrit: z.number().optional(),
-  currentPSA: z.number().optional(),
-  previousPSA: z.number().optional(),
-  monthsBetweenPSA: z.number().optional(),
-  prostateSymptomsIpss: z.number().optional(),
-  fshLevel: z.number().optional(),
-  symptomSeverity: z.number().optional(),
-}).strict().optional();
-
-const lifestyleDataSchema = z.object({
-  smokingStatus: smokingStatusEnum.optional(),
-  exerciseLevel: exerciseLevelEnum.optional(),
-}).strict().optional();
-
-const medicationsDataSchema = z.object({
-  opiods: z.boolean().optional(),
-  opiodsList: z.array(z.string()).optional(),
-  adhdStimulants: z.boolean().optional(),
-  adhdStimulantsList: z.array(z.string()).optional(),
-  otherMedicationsList: z.array(z.string()).optional(),
-}).strict().optional();
-
 export const updatePatientInfoSchema = z.object({
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  middleName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  workPhone: z.string().optional(),
+  homePhone: z.string().optional(),
   dateOfBirth: z.coerce.date().transform((val) => val.toISOString()).optional(),
   gender: z.string().optional(),
   bloodType: z.string().optional(),
@@ -487,6 +495,12 @@ export const updatePatientInfoSchema = z.object({
 }).strict().refine(
   (data) => {
     return (
+      data.firstName !== undefined ||
+      data.lastName !== undefined ||
+      data.middleName !== undefined ||
+      data.phoneNumber !== undefined ||
+      data.workPhone !== undefined ||
+      data.homePhone !== undefined ||
       data.dateOfBirth !== undefined ||
       data.gender !== undefined ||
       data.bloodType !== undefined ||

@@ -156,6 +156,11 @@ doctorRouter.get(
   validateParams(conversationIdParamsSchema),
   DoctorController.getPatientConversationMessages,
 );
+doctorRouter.delete(
+  "/patients/:patientId/conversations/:conversationId",
+  validateParams(conversationIdParamsSchema),
+  DoctorController.deletePatientConversation,
+);
 doctorRouter.post(
   "/patients/:patientId/conversations/:conversationId/messages",
   validateParams(conversationIdParamsSchema),
@@ -195,6 +200,12 @@ doctorRouter.post(
   validate(sendGeneralMessageSchema),
   DoctorController.sendGeneralConversationMessage,
 );
+doctorRouter.delete(
+  "/conversations/:conversationId",
+  validateParams(generalConversationIdParamsSchema),
+  DoctorController.deleteGeneralConversation,
+);
+
 doctorRouter.patch(
   "/conversations/:conversationId/title",
   validateParams(generalConversationIdParamsSchema),

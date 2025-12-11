@@ -66,7 +66,6 @@ class PatientChatHelper extends BaseChatHelper {
         ${this.getCommonGuidelinesPrompt()}
         ${toolUsageInstructions}
         - When you have the information you need, provide a clear and helpful response
-        - **Use markdown tables** to display structured data when appropriate (e.g., medications, lab results, allergies, treatment plans, dosage history, genetic variants). Tables make data easier to read and compare.
         - Reference specific data points from the tools when relevant
         ${this.getFollowUpQuestionsInstruction()} and patient information`;
     }
@@ -277,6 +276,7 @@ class PatientChatHelper extends BaseChatHelper {
                     patientId,
                     doctorId,
                     organizationId,
+                    deletedAt: null,
                 },
                 include: {
                     messages: {

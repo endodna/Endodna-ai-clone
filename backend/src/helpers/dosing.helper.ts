@@ -40,7 +40,7 @@ import {
 class BaseDosingHelper {
     public calculateBMI(weight: number, height: number): number {
         height = height / 100;
-        return weight / (height * height);
+        return parseFloat((weight / (height * height)).toFixed(2));
     }
 }
 

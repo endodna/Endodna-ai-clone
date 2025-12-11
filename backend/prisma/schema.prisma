@@ -195,11 +195,11 @@ model User {
 
 model PatientInfo {
   id              String       @id @unique @default(uuid())
-  weight          Int?
-  height          Int?
+  weight          Float?
+  height          Float?
   age             Int?
   bloodType       String?
-  bmi             Int?
+  bmi             Float?
   prefilledData   Json?
   clinicalData    Json?
   lifestyleData   Json?
@@ -660,14 +660,15 @@ enum ChatMessageRole {
 }
 
 model PatientChatConversation {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   patientId      String
   doctorId       String
   organizationId Int
-  type           ChatType @default(GENERAL)
+  type           ChatType  @default(GENERAL)
   title          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   patient      User                 @relation("Patient", fields: [patientId], references: [id], onDelete: Cascade)
   doctor       User                 @relation("Doctor", fields: [doctorId], references: [id], onDelete: Cascade)
@@ -699,13 +700,14 @@ model PatientChatMessage {
 }
 
 model GeneralChatConversation {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   doctorId       String
   organizationId Int
-  type           ChatType @default(GENERAL)
+  type           ChatType  @default(GENERAL)
   title          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   doctor       User                 @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
