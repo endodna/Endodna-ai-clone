@@ -90,7 +90,6 @@ export function OldDosingCalculatorTab({ patientId, patient }: Readonly<DosingCa
     // Load dosing history
     const { data: historyResponse, isLoading: isLoadingHistory } = useGetDosingHistory(
         patientId ?? "",
-        patient?.gender || "",
         { enabled: Boolean(patientId) }
     );
     const historyData = historyResponse?.data ?? [];

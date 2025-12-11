@@ -359,7 +359,6 @@ export function DoseSuggestions({
   patientId,
   activeTab,
   patient,
-  latestSupplements,
 }: Readonly<DoseSuggestionsProps>) {
   const dispatch = useAppDispatch();
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);

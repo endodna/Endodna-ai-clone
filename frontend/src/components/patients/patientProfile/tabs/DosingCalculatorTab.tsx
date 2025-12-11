@@ -127,7 +127,7 @@ export function DosingCalculatorTab({
   };
 
   console.log("=== historyResponse", historyResponse);
-  console.log("=== getHistoryResponse", getHistoryResponse);
+  console.log("=== getHistoryResponse", getHistoryResponse, latestSupplements);
 
   if (isLoading) {
     return (
@@ -194,7 +194,6 @@ export function DosingCalculatorTab({
             patientId={patientId}
             activeTab={activeTab}
             patient={patient}
-            latestSupplements={latestSupplements}
           />
         )}
       </div>
