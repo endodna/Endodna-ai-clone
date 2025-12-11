@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 interface KineticSlopeProps {
   patient?: PatientDetail | null;
   historyData?: PatientDosageHistoryEntry[] | null;
+  activeTab?: string;
+  onTabChange?: (tabId: string) => void;
 }
 
 interface KineticSlopeContentProps {
@@ -269,7 +271,7 @@ function KineticSlopeContent({ patient, activeTab }: Readonly<KineticSlopeConten
   );
 }
 
-export function KineticSlope({ patient, historyData }: Readonly<KineticSlopeProps>) {
+export function KineticSlope({ patient, historyData, activeTab: activeTabProp, onTabChange }: Readonly<KineticSlopeProps>) {
   // Calculate available suggestions from historyData
   const { t100Suggestions, t200Suggestions, estradiolSuggestions } =
     useMemo(() => {
@@ -450,19 +452,28 @@ export function KineticSlope({ patient, historyData }: Readonly<KineticSlopeProp
     return tabsList;
   }, [patient?.gender, hasT100Suggestions, hasT200Suggestions, hasEstradiolSuggestions]);
 
-  // Set default active tab
-  const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id || "");
+  // Use activeTab from props if provided, otherwise manage internally
+  const [internalActiveTab, setInternalActiveTab] = useState<string>(tabs[0]?.id || "");
+  const activeTab = activeTabProp !== undefined ? activeTabProp : internalActiveTab;
 
-  // Update active tab when tabs change
+  // Update internal active tab when tabs change (only if not controlled by parent)
   useEffect(() => {
-    if (tabs.length > 0 && tabs[0]?.id) {
-      setActiveTab(tabs[0].id);
+    if (activeTabProp === undefined && tabs.length > 0 && tabs[0]?.id) {
+      setInternalActiveTab(tabs[0].id);
     }
-  }, [tabs]);
+  }, [tabs, activeTabProp]);
+
+  const handleTabChange = (tabId: string) => {
+    if (onTabChange) {
+      onTabChange(tabId);
+    } else {
+      setInternalActiveTab(tabId);
+    }
+  };
 
   return (
-    <div className="max-w-[490px] w-full space-y-4 md:space-y-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <div className="max-w-[490px] w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center justify-between mb-4">
           <p className="typo-body-1 text-foreground">Kinetic Slope</p>
           <TabsList className="bg-muted-foreground/10 h-auto p-1">

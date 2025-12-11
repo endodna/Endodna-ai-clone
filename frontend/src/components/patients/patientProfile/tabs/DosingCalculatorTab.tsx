@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import { AlertCircle, Lock } from "lucide-react";
 import { Calculator } from "../doseCalc/components/Calculator";
 import { DoseSuggestions } from "../doseCalc/components/DoseSuggestions";
 import { TreatmentPlan } from "../doseCalc/components/TreatmentPlan";
+import { GENDER } from "@/components/constants/patient";
 
 interface DosingCalculatorTabProps {
   readonly patientId?: string;
@@ -33,6 +34,60 @@ export function DosingCalculatorTab({
   } = useGetDosingHistory(patientId ?? "", patient?.gender || "", {
     enabled: Boolean(patientId),
   });
+
+  // Calculate available tabs based on history data
+  const tabs = useMemo(() => {
+    if (
+      !historyResponse?.data ||
+      !Array.isArray(historyResponse.data) ||
+      historyResponse.data.length === 0
+    ) {
+      return [];
+    }
+
+    const historyData = historyResponse.data;
+    const patientGender = patient?.gender?.toUpperCase();
+    const tabsList: Array<{ id: string; label: string }> = [];
+
+    // Helper to check if suggestions exist
+    const hasSuggestions = (hormoneType: "T100" | "T200" | "ESTRADIOL") => {
+      return historyData.some((entry) => {
+        const entryData = entry.data;
+        const hormoneData = entryData[hormoneType];
+        return hormoneData?.dosingSuggestions !== undefined;
+      });
+    };
+
+    if (patientGender === GENDER.MALE) {
+      // For male patients: Testosterone (100) & Testosterone (200)
+      if (hasSuggestions("T100")) {
+        tabsList.push({ id: "testosterone-t100", label: "Testosterone (100)" });
+      }
+      if (hasSuggestions("T200")) {
+        tabsList.push({ id: "testosterone-t200", label: "Testosterone (200)" });
+      }
+    } else {
+      // For female patients: Testosterone (100) & Estradiol
+      if (hasSuggestions("T100")) {
+        tabsList.push({ id: "testosterone-t100", label: "Testosterone" });
+      }
+      if (hasSuggestions("ESTRADIOL")) {
+        tabsList.push({ id: "estradiol", label: "Estradiol" });
+      }
+    }
+
+    return tabsList;
+  }, [historyResponse?.data, patient?.gender]);
+
+  // Manage active tab state
+  const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id || "");
+
+  // Update active tab when tabs change
+  useEffect(() => {
+    if (tabs.length > 0 && tabs[0]?.id && !tabs.find((t) => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   useEffect(() => {
     setShowDisclaimer(true);
@@ -76,7 +131,12 @@ export function DosingCalculatorTab({
   return (
     <>
       <div className="rounded-lg bg-primary-foreground p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-        <Calculator patient={patient} historyData={historyResponse?.data ?? null} />
+        <Calculator
+          patient={patient}
+          historyData={historyResponse?.data ?? null}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
         <TreatmentPlan historyData={historyResponse?.data ?? null} />
 
         {/* Action Buttons */}
@@ -87,8 +147,8 @@ export function DosingCalculatorTab({
           <Button
             variant={showDoseSuggestions ? "secondary" : "outline"}
             className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
-                ? "bg-muted text-muted-foreground opacity-60"
-                : ""
+              ? "bg-muted text-muted-foreground opacity-60"
+              : ""
               }`}
             onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
           >

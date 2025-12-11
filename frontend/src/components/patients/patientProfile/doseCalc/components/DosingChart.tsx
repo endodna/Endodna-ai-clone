@@ -16,11 +16,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { GENDER } from "@/components/constants/patient";
+import type { HormoneTypeKey } from "@/store/features/dosing";
 
 interface DosingChartProps {
   patient?: PatientDetail | null;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  hormoneTypeKey?: HormoneTypeKey;
+  maxYAxis?: number;
 }
 
 interface ChartDataPoint {
@@ -102,12 +105,13 @@ function calculateXAxisTicks(rePelletDays: number): {
 }
 
 // Helper function to calculate Y-axis ticks
-function calculateYAxisTicks(peakDosageMg: number): {
+function calculateYAxisTicks(peakDosageMg: number, maxYAxis?: number): {
   ticks: number[];
   maxDosage: number;
 } {
   const targetTicks = 5;
-  const maxDosageValue = Math.ceil(peakDosageMg * 1.1); // Add 10% padding
+  // Use provided maxYAxis if available, otherwise calculate with 10% padding
+  const maxDosageValue = maxYAxis !== undefined ? maxYAxis : Math.ceil(peakDosageMg * 1.1);
 
   // Determine appropriate interval for uniform spacing
   let yTickInterval = Math.ceil(maxDosageValue / targetTicks);
@@ -143,10 +147,17 @@ export function DosingChart({
   patient,
   xAxisLabel = "Days",
   yAxisLabel = "Dosage (mg)",
+  hormoneTypeKey,
+  maxYAxis,
 }: Readonly<DosingChartProps>) {
-  const { selectedDose, insertionDate } = useAppSelector(
+  const { selectedDoses, selectedDose, insertionDate } = useAppSelector(
     (state) => state.dosingCalculator
   );
+
+  // Use the specific hormoneTypeKey's selectedDose if provided, otherwise fall back to selectedDose
+  const activeSelectedDose = hormoneTypeKey
+    ? selectedDoses[hormoneTypeKey] || null
+    : selectedDose;
 
   const {
     chartData,
@@ -157,7 +168,7 @@ export function DosingChart({
     rePelletWindowStartDays,
     rePelletWindowEndDays,
   } = useMemo<ChartCalculations>(() => {
-    if (!selectedDose || !insertionDate) {
+    if (!activeSelectedDose || !insertionDate) {
       return {
         chartData: [],
         xAxisTicks: [],
@@ -169,7 +180,7 @@ export function DosingChart({
       };
     }
 
-    const dosageMg = selectedDose.dosageMg;
+    const dosageMg = activeSelectedDose.dosageMg;
     const peakDosageMg = dosageMg * 1.5; // 50% more
 
     // Calculate re-pellet date based on patient gender
@@ -185,7 +196,7 @@ export function DosingChart({
     const { ticks: xTicks, maxDays: maxDaysValue } =
       calculateXAxisTicks(rePelletDays);
     const { ticks: yTicks, maxDosage: maxDosageValue } =
-      calculateYAxisTicks(peakDosageMg);
+      calculateYAxisTicks(peakDosageMg, maxYAxis);
 
     return {
       chartData: data,
@@ -196,7 +207,7 @@ export function DosingChart({
       rePelletWindowStartDays: startDays,
       rePelletWindowEndDays: endDays,
     };
-  }, [selectedDose, insertionDate, patient?.gender]);
+  }, [activeSelectedDose, insertionDate, patient?.gender, maxYAxis]);
 
   // Memoize tick formatter functions
   const formatTick = useCallback((value: number): string => {
@@ -213,7 +224,7 @@ export function DosingChart({
     []
   );
 
-  if (!selectedDose || !insertionDate || chartData.length === 0) {
+  if (!activeSelectedDose || !insertionDate || chartData.length === 0) {
     return (
       <div className="w-full flex items-center justify-center border border-muted-foreground/20 rounded-lg">
         <p className="typo-body-2 text-muted-foreground">
