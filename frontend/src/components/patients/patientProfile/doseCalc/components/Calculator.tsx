@@ -3,9 +3,10 @@ import { KineticSlope } from "./KineticSlope";
 
 interface CalculatorProps {
   patient?: PatientDetail | null;
+  historyData?: PatientDosageHistoryEntry[] | null;
 }
 
-export function Calculator({ patient }: Readonly<CalculatorProps>) {
+export function Calculator({ patient, historyData }: Readonly<CalculatorProps>) {
   return (
     <div className="w-full space-y-4 md:space-y-6">
       <h3 className="typo-h4 text-foreground">Calculator</h3>
@@ -23,7 +24,7 @@ export function Calculator({ patient }: Readonly<CalculatorProps>) {
           />
         </div>
         <div className="w-full md:w-1/2 flex items-center min-h-[384px]">
-          <KineticSlope patient={patient} />
+          <KineticSlope patient={patient} historyData={historyData} />
         </div>
       </div>
     </div>

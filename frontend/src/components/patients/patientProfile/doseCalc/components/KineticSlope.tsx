@@ -1,5 +1,5 @@
 import { GENDER } from "@/components/constants/patient";
-import { setInsertionDate } from "@/store/features/dosing";
+import { setInsertionDate, type HormoneTypeKey } from "@/store/features/dosing";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatDate } from "@/utils/date.utils";
 import { useEffect, useMemo, useState } from "react";
@@ -17,15 +17,35 @@ import { cn } from "@/lib/utils";
 
 interface KineticSlopeProps {
   patient?: PatientDetail | null;
+  historyData?: PatientDosageHistoryEntry[] | null;
 }
 
 interface KineticSlopeContentProps {
   patient?: PatientDetail | null;
+  activeTab?: string;
 }
 
-function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
-  const { selectedDose, insertionDate: insertionDateFromRedux } =
+function KineticSlopeContent({ patient, activeTab }: Readonly<KineticSlopeContentProps>) {
+  const { selectedDoses, insertionDate: insertionDateFromRedux } =
     useAppSelector((state) => state.dosingCalculator);
+
+  // Map tab ID to hormone type key
+  const getHormoneTypeKey = (tabId: string): HormoneTypeKey | null => {
+    switch (tabId) {
+      case "testosterone-t100":
+        return "testosterone_100";
+      case "testosterone-t200":
+        return "testosterone_200";
+      case "estradiol":
+        return "estradiol";
+      default:
+        return null;
+    }
+  };
+
+  // Get the selected dose for the active tab
+  const hormoneTypeKey = activeTab ? getHormoneTypeKey(activeTab) : null;
+  const selectedDose = hormoneTypeKey ? selectedDoses[hormoneTypeKey] : null;
   const dispatch = useAppDispatch();
   const updatePatientInfo = useUpdatePatientInfo();
   const [isOpen, setIsOpen] = useState(false);
@@ -249,24 +269,186 @@ function KineticSlopeContent({ patient }: Readonly<KineticSlopeContentProps>) {
   );
 }
 
-export function KineticSlope({ patient }: Readonly<KineticSlopeProps>) {
-  // Determine tabs based on patient gender
+export function KineticSlope({ patient, historyData }: Readonly<KineticSlopeProps>) {
+  // Calculate available suggestions from historyData
+  const { t100Suggestions, t200Suggestions, estradiolSuggestions } =
+    useMemo(() => {
+      if (
+        !historyData ||
+        !Array.isArray(historyData) ||
+        historyData.length === 0
+      ) {
+        return {
+          t100Suggestions: null,
+          t200Suggestions: null,
+          estradiolSuggestions: null,
+        };
+      }
+
+      // Helper function to extract base and modified suggestions from dosingSuggestions object
+      const extractSuggestions = (
+        dosingSuggestions: Record<string, unknown> | undefined
+      ): { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } => {
+        if (!dosingSuggestions) {
+          return { base: null, modified: null };
+        }
+
+        const baseResult: Record<string, { dosageMg: number; pelletsCount: number }> = {};
+        const modifiedResult: Record<string, { dosageMg: number; pelletsCount: number }> = {};
+
+        const TIER_ORDER = [
+          "conservative",
+          "standard",
+          "aggressive",
+          "high_performance",
+        ];
+
+        for (const tier of TIER_ORDER) {
+          const tierData = dosingSuggestions[tier] as
+            | {
+              dosingCalculation: {
+                baseDoseMg: number;
+                basePelletCount: number;
+                finalDoseMg: number;
+                pelletCount: number;
+              };
+            }
+            | undefined;
+
+          if (tierData?.dosingCalculation) {
+            const { baseDoseMg, basePelletCount, finalDoseMg, pelletCount } =
+              tierData.dosingCalculation;
+
+            // Base tiers
+            if (baseDoseMg !== undefined && basePelletCount !== undefined) {
+              baseResult[tier] = {
+                dosageMg: baseDoseMg,
+                pelletsCount: basePelletCount,
+              };
+            }
+
+            // Modified tiers
+            if (finalDoseMg !== undefined && pelletCount !== undefined) {
+              modifiedResult[tier] = {
+                dosageMg: finalDoseMg,
+                pelletsCount: pelletCount,
+              };
+            }
+          }
+        }
+
+        return {
+          base: Object.keys(baseResult).length > 0 ? baseResult : null,
+          modified:
+            Object.keys(modifiedResult).length > 0 ? modifiedResult : null,
+        };
+      };
+
+      // Helper function to merge suggestions from multiple entries
+      const mergeSuggestions = (
+        existing: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null,
+        newSuggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null }
+      ): { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } => {
+        if (!existing) {
+          return newSuggestions;
+        }
+
+        const mergedBase: Record<string, { dosageMg: number; pelletsCount: number }> = {
+          ...(existing.base || {}),
+          ...(newSuggestions.base || {}),
+        };
+
+        const mergedModified: Record<string, { dosageMg: number; pelletsCount: number }> = {
+          ...(existing.modified || {}),
+          ...(newSuggestions.modified || {}),
+        };
+
+        return {
+          base: Object.keys(mergedBase).length > 0 ? mergedBase : null,
+          modified:
+            Object.keys(mergedModified).length > 0 ? mergedModified : null,
+        };
+      };
+
+      // Loop through all entries and aggregate suggestions separately for T100, T200, and ESTRADIOL
+      let t100Suggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
+      let t200Suggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
+      let estradiolSuggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
+
+      for (const entry of historyData) {
+        const { data: entryData } = entry;
+
+        // Extract T100 suggestions separately
+        if (entryData.T100?.dosingSuggestions) {
+          const t100EntrySuggestions = extractSuggestions(
+            entryData.T100.dosingSuggestions
+          );
+          t100Suggestions = mergeSuggestions(
+            t100Suggestions,
+            t100EntrySuggestions
+          );
+        }
+
+        // Extract T200 suggestions separately
+        if (entryData.T200?.dosingSuggestions) {
+          const t200EntrySuggestions = extractSuggestions(
+            entryData.T200.dosingSuggestions
+          );
+          t200Suggestions = mergeSuggestions(
+            t200Suggestions,
+            t200EntrySuggestions
+          );
+        }
+
+        // Extract estradiol suggestions
+        if (entryData.ESTRADIOL?.dosingSuggestions) {
+          const estradiolEntrySuggestions = extractSuggestions(
+            entryData.ESTRADIOL.dosingSuggestions
+          );
+          estradiolSuggestions = mergeSuggestions(
+            estradiolSuggestions,
+            estradiolEntrySuggestions
+          );
+        }
+      }
+
+      return { t100Suggestions, t200Suggestions, estradiolSuggestions };
+    }, [historyData]);
+
+  // Check which suggestions are available
+  const hasT100Suggestions =
+    t100Suggestions && (t100Suggestions.base || t100Suggestions.modified);
+  const hasT200Suggestions =
+    t200Suggestions && (t200Suggestions.base || t200Suggestions.modified);
+  const hasEstradiolSuggestions =
+    estradiolSuggestions &&
+    (estradiolSuggestions.base || estradiolSuggestions.modified);
+
+  // Determine tabs based on patient gender and available suggestions
   const tabs = useMemo(() => {
     const patientGender = patient?.gender?.toUpperCase();
+    const tabsList: Array<{ id: string; label: string }> = [];
 
     if (patientGender === GENDER.MALE) {
-      return [
-        { id: "testosterone-t100", label: "Testosterone (T100)" },
-        { id: "testosterone-t200", label: "Testosterone (T200)" },
-      ];
+      // For male patients: Testosterone (100) & Testosterone (200)
+      if (hasT100Suggestions) {
+        tabsList.push({ id: "testosterone-t100", label: "Testosterone (100)" });
+      }
+      if (hasT200Suggestions) {
+        tabsList.push({ id: "testosterone-t200", label: "Testosterone (200)" });
+      }
+    } else {
+      // For female patients: Testosterone (100) & Estradiol
+      if (hasT100Suggestions) {
+        tabsList.push({ id: "testosterone-t100", label: "Testosterone" });
+      }
+      if (hasEstradiolSuggestions) {
+        tabsList.push({ id: "estradiol", label: "Estradiol" });
+      }
     }
 
-    // Default: show both testosterone and estradiol for female or unknown gender
-    return [
-      { id: "testosterone", label: "Testosterone" },
-      { id: "estradiol", label: "Estradiol" },
-    ];
-  }, [patient?.gender]);
+    return tabsList;
+  }, [patient?.gender, hasT100Suggestions, hasT200Suggestions, hasEstradiolSuggestions]);
 
   // Set default active tab
   const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id || "");
@@ -297,7 +479,7 @@ export function KineticSlope({ patient }: Readonly<KineticSlopeProps>) {
         </div>
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-0">
-            <KineticSlopeContent patient={patient} />
+            <KineticSlopeContent patient={patient} activeTab={tab.id} />
           </TabsContent>
         ))}
       </Tabs>

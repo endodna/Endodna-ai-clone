@@ -76,7 +76,7 @@ export function DosingCalculatorTab({
   return (
     <>
       <div className="rounded-lg bg-primary-foreground p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-        <Calculator patient={patient} />
+        <Calculator patient={patient} historyData={historyResponse?.data ?? null} />
         <TreatmentPlan historyData={historyResponse?.data ?? null} />
 
         {/* Action Buttons */}
@@ -86,11 +86,10 @@ export function DosingCalculatorTab({
           </Button>
           <Button
             variant={showDoseSuggestions ? "secondary" : "outline"}
-            className={`w-full sm:w-auto rounded-lg ${
-              showDoseSuggestions
+            className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
                 ? "bg-muted text-muted-foreground opacity-60"
                 : ""
-            }`}
+              }`}
             onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
           >
             <Lock className="h-4 w-4 mr-2" />
