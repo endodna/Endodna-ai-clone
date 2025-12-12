@@ -740,8 +740,9 @@ export function DoseSuggestions({
     // Helper function to create a unique key for deduplication
     const getUniqueKey = (supplement: Supplement): string => {
       const productName = (supplement.productName || "").toLowerCase().trim();
-      const dosage = (supplement.dosage || "").toLowerCase().trim();
-      return `${productName}-${dosage}`;
+      // const dosage = (supplement.dosage || "").toLowerCase().trim();
+      // return `${productName}-${dosage}`;
+      return `${productName}`;
     };
 
     // Collect all hormone types that have GET supplements

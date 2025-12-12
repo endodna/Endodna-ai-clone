@@ -111,19 +111,26 @@ export function DosingCalculatorTab({
     return tabsList;
   }, [historyResponse?.data, patient?.gender]);
 
+  // Helper to get preferred tab (T200 if available, otherwise first tab)
+  const getPreferredTabId = useMemo(() => {
+    if (tabs.length === 0) return "";
+    const t200Tab = tabs.find((t) => t.id === "testosterone-t200");
+    return t200Tab?.id || tabs[0]?.id || "";
+  }, [tabs]);
+
   // Manage active tab state
-  const [activeTab, setActiveTab] = useState<string>(tabs[0]?.id || "");
+  const [activeTab, setActiveTab] = useState<string>(getPreferredTabId);
 
   // Update active tab when tabs change
   useEffect(() => {
     if (
       tabs.length > 0 &&
-      tabs[0]?.id &&
+      getPreferredTabId &&
       !tabs.find((t) => t.id === activeTab)
     ) {
-      setActiveTab(tabs[0].id);
+      setActiveTab(getPreferredTabId);
     }
-  }, [tabs, activeTab]);
+  }, [tabs, activeTab, getPreferredTabId]);
 
   // Log when activeTab changes
   useEffect(() => {
@@ -195,11 +202,10 @@ export function DosingCalculatorTab({
           </Button>
           <Button
             variant={showDoseSuggestions ? "secondary" : "outline"}
-            className={`w-full sm:w-auto rounded-lg ${
-              showDoseSuggestions
-                ? "bg-muted text-muted-foreground opacity-60"
-                : ""
-            }`}
+            className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
+              ? "bg-muted text-muted-foreground opacity-60"
+              : ""
+              }`}
             onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
           >
             <Lock className="h-4 w-4 mr-2" />
