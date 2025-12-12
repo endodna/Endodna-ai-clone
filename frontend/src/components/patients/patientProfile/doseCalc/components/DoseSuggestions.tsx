@@ -736,12 +736,6 @@ export function DoseSuggestions({
       });
     }
 
-    // Merge both sources (POST API supplements first to maintain priority)
-    const allSupplements = [
-      ...collectedSuggestions,
-      ...latestSupplementsConverted,
-    ];
-
     // Helper function to create a unique key for deduplication
     const getUniqueKey = (supplement: Supplement): string => {
       const productName = (supplement.productName || "").toLowerCase().trim();
@@ -749,13 +743,42 @@ export function DoseSuggestions({
       return `${productName}-${dosage}`;
     };
 
+    // Collect all hormone types that have GET supplements
+    // If GET API has supplements for a hormone, exclude ALL POST supplements for that same hormone
+    // This ensures GET data (which includes edits) completely replaces POST data for that hormone
+    const hormonesWithGetSupplements = new Set<HormoneTypeKey>();
+    latestSupplementsConverted.forEach((supplement) => {
+      if (supplement.hormoneTypeKey) {
+        hormonesWithGetSupplements.add(supplement.hormoneTypeKey);
+      }
+    });
+
+    // Filter POST supplements: exclude all supplements for hormones that have GET supplements
+    // This prevents showing old POST data when GET data (with edits) exists for that hormone
+    const filteredPostSupplements = collectedSuggestions.filter(
+      (supplement) => {
+        // If supplement has no hormoneTypeKey, keep it (legacy supplements)
+        if (!supplement.hormoneTypeKey) {
+          return true;
+        }
+        // Exclude POST supplements for hormones that have GET supplements
+        return !hormonesWithGetSupplements.has(supplement.hormoneTypeKey);
+      }
+    );
+
+    // Merge both sources (GET API supplements first to maintain priority)
+    const allSupplements = [
+      ...latestSupplementsConverted,
+      ...filteredPostSupplements,
+    ];
+
     // Deduplicate supplements based on productName and dosage
-    // Since POST API supplements come first in allSupplements, they have priority
+    // Since GET API supplements come first in allSupplements, they have priority
     const uniqueSupplementsMap = new Map<string, Supplement>();
 
     allSupplements.forEach((supplement) => {
       const key = getUniqueKey(supplement);
-      // Only add if not already present (first occurrence wins, which is POST API)
+      // Only add if not already present (first occurrence wins, which is GET API)
       if (!uniqueSupplementsMap.has(key)) {
         uniqueSupplementsMap.set(key, supplement);
       }

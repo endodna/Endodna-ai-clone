@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,7 @@ import {
   Phone,
   User,
 } from "lucide-react";
+import { toast } from "sonner";
 import { InfoRow } from "../components/InfoRow";
 import { formatDate, calculateAge } from "@/utils/date.utils";
 
@@ -36,6 +38,8 @@ export function PatientInfoSection({
   isCollapsed,
   onToggleCollapse,
 }: Readonly<PatientInfoSectionProps>) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
   const dob = dateOfBirth ? formatDate(dateOfBirth, "MM/DD/YYYY") : "";
   const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
   let dobDisplay: string | null = null;
@@ -49,6 +53,20 @@ export function PatientInfoSection({
   const genderDisplay = gender
     ? gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()
     : null;
+
+  const handleCopy = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      toast.success("Copied to clipboard");
+      setTimeout(() => {
+        setCopiedField(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      toast.error("Failed to copy");
+    }
+  };
 
   return (
     <div className="space-y-4 px-4 pb-4 pt-4 md:px-6 md:pt-6 md:pb-4">
@@ -85,27 +103,51 @@ export function PatientInfoSection({
                 )}
               </Button>
             </div>
-            <p className="text-foreground/80 flex items-center gap-2 font-semibold text-sm">
-              {patientId && (
-                <>
-                  <span>
-                    {patientId.slice(0, 5) + "..." + patientId.slice(-5)}
-                  </span>
-                </>
-              )}
-              {email && (
-                <>
-                  <span>•</span>
-                  <span>{email}</span>
-                </>
-              )}
-            </p>
           </div>
         </div>
       </div>
 
       {!isCollapsed && (
         <div className="space-y-4">
+          {(patientId || email) && (
+            <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
+              <div className="flex items-center gap-2">
+                {patientId && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(patientId, "patientId")}
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    title="Click to copy patient ID"
+                  >
+                    {copiedField === "patientId" ? (
+                      <span className="text-primary">Copied!</span>
+                    ) : (
+                      <span>
+                        {patientId.slice(0, 5) + "..." + patientId.slice(-5)}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {patientId && email && (
+                  <span className="text-muted-foreground">•</span>
+                )}
+                {email && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(email, "email")}
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    title="Click to copy email"
+                  >
+                    {copiedField === "email" ? (
+                      <span className="text-primary">Copied!</span>
+                    ) : (
+                      <span>{email}</span>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <InfoRow icon={Calendar} label="DOB:" value={dobDisplay} />
           <InfoRow icon={User} label="Gender:" value={genderDisplay} />
           <InfoRow icon={Phone} label="Phone:" value={phoneNumber} />
