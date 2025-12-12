@@ -357,7 +357,7 @@ class PatientChatHelper extends BaseChatHelper {
                 totalLatencyMs += result.latencyMs;
 
                 const assistantContent: any[] = [];
-                if (result.text) {
+                if (result.text && result.text.trim().length > 0) {
                     assistantContent.push({ type: "text", text: result.text });
                 }
                 if (result.toolCalls && result.toolCalls.length > 0) {
@@ -372,10 +372,13 @@ class PatientChatHelper extends BaseChatHelper {
                     });
                 }
 
-                messages.push({
-                    role: "assistant",
-                    content: assistantContent,
-                });
+                // Only add assistant message if it has content (text or tool calls)
+                if (assistantContent.length > 0) {
+                    messages.push({
+                        role: "assistant",
+                        content: assistantContent,
+                    });
+                }
 
                 if (!result.toolCalls || result.toolCalls.length === 0) {
                     finalResponse = result.text;

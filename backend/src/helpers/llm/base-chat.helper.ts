@@ -132,31 +132,69 @@ export abstract class BaseChatHelper {
                 continue;
             }
 
-            messages.unshift({
-                role: bedrockRole,
-                content: msg.content,
-            });
+            if (msg.content && msg.content.trim().length > 0) {
+                messages.unshift({
+                    role: bedrockRole,
+                    content: msg.content,
+                });
+            }
 
             currentTokens += messageTokens;
         }
 
         const lastMessageRole = messages.length > 0 ? messages[messages.length - 1].role : null;
 
-        if (lastMessageRole === "assistant" || messages.length === 0) {
-            messages.push({
-                role: "user",
-                content: newMessage,
-            });
-        } else if (lastMessageRole === "user") {
-            messages[messages.length - 1] = {
-                role: "user",
-                content: newMessage,
-            };
+        if (newMessage && newMessage.trim().length > 0) {
+            if (lastMessageRole === "assistant" || messages.length === 0) {
+                messages.push({
+                    role: "user",
+                    content: newMessage,
+                });
+            } else if (lastMessageRole === "user") {
+                messages[messages.length - 1] = {
+                    role: "user",
+                    content: newMessage,
+                };
+            }
         }
 
         return { messages };
     }
 
+    protected filterEmptyMessages(messages: Array<{ role: string; content: string | any[] }>): Array<{ role: string; content: string | any[] }> {
+        const filtered: Array<{ role: string; content: string | any[] }> = [];
+
+        for (let i = 0; i < messages.length; i++) {
+            const msg = messages[i];
+            const isLastMessage = i === messages.length - 1;
+            const isAssistant = msg.role === "assistant";
+
+            let isEmpty = false;
+            if (typeof msg.content === "string") {
+                isEmpty = !msg.content || msg.content.trim().length === 0;
+            } else if (Array.isArray(msg.content)) {
+                if (msg.content.length === 0) {
+                    isEmpty = true;
+                } else {
+                    const hasNonEmptyText = msg.content.some((item: any) =>
+                        item?.type === "text" && item?.text && item.text.trim().length > 0
+                    );
+                    const hasToolUse = msg.content.some((item: any) =>
+                        item?.type === "tool_use" || item?.type === "tool_result"
+                    );
+                    isEmpty = !hasNonEmptyText && !hasToolUse;
+                }
+            } else {
+                isEmpty = true;
+            }
+
+            if (!isEmpty || (isLastMessage && isAssistant)) {
+                filtered.push(msg);
+            }
+        }
+
+        return filtered;
+    }
     protected async generateAIResponse(params: {
         systemPrompt: string;
         messages: Array<{ role: string; content: string | any[] }>;
@@ -177,9 +215,11 @@ export abstract class BaseChatHelper {
         temperature: number;
         traceId?: string;
     }) {
+        const filteredMessages = this.filterEmptyMessages(params.messages);
+
         return await bedrockHelper.generateChatCompletion({
             systemPrompt: params.systemPrompt,
-            messages: params.messages as any,
+            messages: filteredMessages as any,
             tools: params.tools,
             organizationId: params.organizationId,
             doctorId: params.doctorId,
