@@ -133,6 +133,13 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         [DosageTier.HIGH_PERFORMANCE]: 15,
     }
 
+    private t100FemaleDosageTiersMapping: Record<DosageTier, number> = {
+        [DosageTier.CONSERVATIVE]: 0.75,
+        [DosageTier.STANDARD]: 1.0,
+        [DosageTier.AGGRESSIVE]: 1.25,
+        [DosageTier.HIGH_PERFORMANCE]: 1.5,
+    }
+
     private t200DosageTiersMapping: Record<DosageTier, number> = {
         [DosageTier.CONSERVATIVE]: 11,
         [DosageTier.STANDARD]: 15,
@@ -177,9 +184,15 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
     private calculateBaseT100Dose(
         weight: number,
         tier: DosageTier,
-        calculationBreakdown: DosageCalculationBreakdown[]
+        calculationBreakdown: DosageCalculationBreakdown[],
+        isFemale: boolean
     ): { baseDoseMg: number; baseDurationDays: number } {
-        const baseDoseMg = weight * this.t100DosageTiersMapping[tier] * this.T100_Config.t100Multiplier!;
+        let baseDoseMg: number;
+        if (isFemale) {
+            baseDoseMg = weight * this.t100FemaleDosageTiersMapping[tier];
+        } else {
+            baseDoseMg = weight * this.t100DosageTiersMapping[tier] * this.T100_Config.t100Multiplier!;
+        }
         const baseDurationDays = this.T100_Config.expectedDurationDays;
 
         calculationBreakdown.push({
@@ -225,10 +238,12 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         calculationBreakdown: DosageCalculationBreakdown[],
         isT200: boolean
     ): { multiplier: number; adjustedDoseMg: number } {
+
         let shbgMultiplier = 1;
 
         if (shbgLevel && shbgLevel > 50) {
-            shbgMultiplier = 1.1;
+            // TODO: Implement SHBG modifier for high SHBG
+            shbgMultiplier = 1;
             const dose = adjustedDoseMg * shbgMultiplier;
             calculationBreakdown.push({
                 step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
@@ -1351,7 +1366,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         const calculationBreakdown: DosageCalculationBreakdown[] = [];
         const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
 
-        const { baseDoseMg, baseDurationDays } = this.calculateBaseT100Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown);
+        const { baseDoseMg, baseDurationDays } = this.calculateBaseT100Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown, patientDemographics.biologicalSex === Gender.FEMALE);
         let expectedDuration = baseDurationDays;
 
         let durationWarning = false;
@@ -1408,7 +1423,6 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         let basePelletCount: number;
         if (patientDemographics.biologicalSex === Gender.FEMALE) {
             finalBaseDose = baseDoseMg % 12.5 < 6.25 ? Math.floor(baseDoseMg / 12.5) * 12.5 : Math.ceil(baseDoseMg / 12.5) * 12.5;
-            finalBaseDose = Math.max(finalBaseDose, this.T100_Config.maxFemaleDoseMg!);
             basePelletCount = Math.round(finalBaseDose / 12.5);
         } else {
             finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;

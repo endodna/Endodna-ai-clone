@@ -538,6 +538,17 @@ class DoctorController {
           message: "Patient not found",
         });
       }
+
+      const existingPatientInfo = await prisma.patientInfo.findUnique({
+        where: {
+          patientId: patientId,
+        },
+        select: {
+          weight: true,
+          height: true,
+        },
+      });
+
       const userUpdateData: Prisma.UserUpdateInput = {};
       if (firstName !== undefined) userUpdateData.firstName = firstName;
       if (lastName !== undefined) userUpdateData.lastName = lastName;
@@ -551,10 +562,17 @@ class DoctorController {
 
       const patientInfoUpdateData: Prisma.PatientInfoUpdateInput = {};
       let bmi: number | undefined;
+
+      const finalWeight = weight !== undefined ? weight : existingPatientInfo?.weight ?? undefined;
+      const finalHeight = height !== undefined ? height : existingPatientInfo?.height ?? undefined;
+
       if (weight !== undefined) patientInfoUpdateData.weight = weight;
       if (height !== undefined) patientInfoUpdateData.height = height;
-      if (weight !== undefined && height !== undefined) bmi = testosteroneDosingHelper.calculateBMI(weight, height);
-      patientInfoUpdateData.bmi = bmi;
+
+      if (finalWeight !== undefined && finalHeight !== undefined && finalWeight !== null && finalHeight !== null) {
+        bmi = testosteroneDosingHelper.calculateBMI(finalWeight, finalHeight);
+        patientInfoUpdateData.bmi = bmi;
+      }
       if (bloodType !== undefined) patientInfoUpdateData.bloodType = bloodType;
       if (clinicalData !== undefined) {
         patientInfoUpdateData.clinicalData = clinicalData as Prisma.InputJsonValue;
@@ -588,8 +606,8 @@ class DoctorController {
             create: {
               patientId: patientId,
               organizationId: organizationId!,
-              weight: weight ?? null,
-              height: height ?? null,
+              weight: finalWeight ?? null,
+              height: finalHeight ?? null,
               bmi: bmi ?? null,
               bloodType: bloodType ?? null,
               clinicalData: clinicalData ? (clinicalData as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -4619,15 +4637,28 @@ The BiosAI Team`,
           baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
           baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
           postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
           insertionDate: clinicalData?.insertionDate,
           baselineEstradiol: clinicalData?.baselineEstradiol,
           postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
           vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
           hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
           currentPSA: clinicalData?.currentPSA,
           previousPSA: clinicalData?.previousPSA,
           monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
           prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
         },
         lifeStyleFactors: {
           smokingStatus: lifeStyleFactors?.smokingStatus,
@@ -4728,15 +4759,28 @@ The BiosAI Team`,
           baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
           baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
           postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
           insertionDate: clinicalData?.insertionDate,
           baselineEstradiol: clinicalData?.baselineEstradiol,
           postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
           vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
           hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
           currentPSA: clinicalData?.currentPSA,
           previousPSA: clinicalData?.previousPSA,
           monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
           prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
         },
         tier: DosageTier.STANDARD,
         geneticData: {
@@ -4857,15 +4901,28 @@ The BiosAI Team`,
           baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
           baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
           postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
           insertionDate: clinicalData?.insertionDate,
           baselineEstradiol: clinicalData?.baselineEstradiol,
           postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
           vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
           hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
           currentPSA: clinicalData?.currentPSA,
           previousPSA: clinicalData?.previousPSA,
           monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
           prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
         },
         lifeStyleFactors: {
           smokingStatus: lifeStyleFactors?.smokingStatus,
