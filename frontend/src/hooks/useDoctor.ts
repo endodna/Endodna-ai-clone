@@ -607,6 +607,48 @@ export const useUpdateGeneralConversationTitle = (
   });
 };
 
+// AI Assistant specific hooks (simplified APIs for AI Assistant page)
+export const useCreateAiAssistantConversation = (
+  options?: Omit<
+    UseMutationOptions<ApiResponse<GeneralChatConversation>, Error, void>,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<ApiResponse<GeneralChatConversation>, Error, void>({
+    mutationFn: () => doctorsApi.createAiAssistantConversation(),
+    onSuccess: (response) => {
+      if (!response.error) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.doctor.chat.general.conversations(),
+        });
+      }
+    },
+    ...options,
+  });
+};
+
+export const useSendAiAssistantConversationMessage = (
+  options?: Omit<
+    UseMutationOptions<
+      ApiResponse<SendChatMessageResponse>,
+      Error,
+      { conversationId: string; message: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  return useMutation<
+    ApiResponse<SendChatMessageResponse>,
+    Error,
+    { conversationId: string; message: string }
+  >({
+    mutationFn: ({ conversationId, message }) =>
+      doctorsApi.sendAiAssistantConversationMessage(conversationId, message),
+    ...options,
+  });
+};
+
 // DNA/Genetics hooks
 export const useGetPatientGenetics = (
   patientId: string,

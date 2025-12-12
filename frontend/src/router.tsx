@@ -13,27 +13,25 @@ const DashboardLayout = lazy(() => import("./Layouts/DashboardLayout"));
 const ResetPasswordForm = lazy(() => import("./pages/Auth/ResetPassword"));
 const ForgotPasswordForm = lazy(() => import("./pages/Auth/ForgotPassword"));
 const AcceptInvitation = lazy(() => import("./pages/Auth/AcceptInvitation"));
-const PatientListPage = lazy(
-  () => import("./pages/Patients/PatientListPage"),
-);
+const PatientListPage = lazy(() => import("./pages/Patients/PatientListPage"));
 const PatientProfilePage = lazy(
-  () => import("./pages/Patients/PatientProfilePage"),
+  () => import("./pages/Patients/PatientProfilePage")
 );
 const TreatmentPlanTemplatesPage = lazy(
-  () => import("./pages/TreatmentPlans/TreatmentPlanTemplatesPage"),
+  () => import("./pages/TreatmentPlans/TreatmentPlanTemplatesPage")
 );
-const AIAssistantPage = lazy(
-  () => import("./pages/AIAssistant/AIAssistantPage"),
+const AiAssistantPage = lazy(
+  () => import("./pages/AiAssistant/AiAssistantPage")
 );
+
 const Error404 = lazy(() => import("./pages/Error404"));
 
-const withSuspense = (
-  Component: LazyExoticComponent<ComponentType<object>>,
-) => () => (
-  <Suspense fallback={<Loading />}>
-    <Component />
-  </Suspense>
-);
+const withSuspense =
+  (Component: LazyExoticComponent<ComponentType<object>>) => () => (
+    <Suspense fallback={<Loading />}>
+      <Component />
+    </Suspense>
+  );
 
 export const router = createBrowserRouter([
   {
@@ -60,7 +58,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "ai-assistant",
-        Component: withSuspense(AIAssistantPage),
+        Component: withSuspense(AiAssistantPage),
       },
       {
         path: "patients",
