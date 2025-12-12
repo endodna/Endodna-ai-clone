@@ -869,7 +869,6 @@ class RAGHelper {
         ### Active Conditions  
         ### Medications  
         ### Allergies  
-        ### Treatment Plans  
         ### Recent Labs and Key Findings  
         ### Kinetic Slope Calculation
         (MUST be included if kinetic slope information is found in chart notes - place this section after "Recent Labs and Key Findings" and before "Clinical Notes")
