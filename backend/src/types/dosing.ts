@@ -352,6 +352,7 @@ export interface EstradiolDosageParams {
     clinical: DosageClinicalParams;
     tier: DosageTier
     geneticData: DosageGeneticDataParams
+    medications: TestosteroneDosageMedicationsParams;
 }
 
 export interface EstradiolDosageResult {

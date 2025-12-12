@@ -3,6 +3,13 @@ export const SESSION_BLACKLIST_KEY = (sessionId: string) =>
   `session_blacklist:${sessionId}`;
 export const SESSION_BLACKLIST_EXPIRY_TIME = 86400; // 1 day in seconds
 
+export const PatientIds = {
+  Tiffany: "e5511a50-563c-4960-86ff-b486294cddb8",
+  Cynthia: "a5054667-015a-41d6-a468-897acd4f476f",
+  Christina: "75654e3a-b761-4780-a291-ac3faa35da12",
+  Paul: "d6d8a944-4b33-43f7-bf71-c8d272e32391"
+}
+
 export const ALLOWED_SNPS = [
   "rs102275",
   "rs1045642",

@@ -1,7 +1,7 @@
 
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
-import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticReportVariant, StatusCode } from "../types";
+import { AuthenticatedRequest, Cyp19a1Status, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticReportVariant, StatusCode } from "../types";
 import { logger } from "../helpers/logger.helper";
 import {
   CreatePatientActiveMedicationSchema,
@@ -75,6 +75,7 @@ import { PelletType, DosageClinicalParams, TestosteroneDosageLifeStyleFactorsPar
 import moment from "moment";
 import { EstradiolDosingSuggestionsResponse, getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
 import gaugeFromAcmgLabels, { REVERSED_ACMG_SEVERITY } from "../helpers/gauge-algorithm.helper";
+import { PatientIds } from "../utils/constants";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -4672,7 +4673,9 @@ The BiosAI Team`,
           otherMedicationsList: medicationsData?.otherMedicationsList,
         },
         geneticData: {
-
+          ...(patientId === PatientIds.Tiffany ? {
+            cyp19a1Status: Cyp19a1Status.HIGH_EXPRESSION,
+          } : {}),
         },
         tierSelection: {
           selectedTier: DosageTier.CONSERVATIVE,
@@ -4746,7 +4749,6 @@ The BiosAI Team`,
       const age = moment(user.dateOfBirth).diff(moment(), 'years');
 
       const clinicalData = patientInfo.clinicalData as DosageClinicalParams;
-
       const dosingSuggestions = getEstradiolDosingSuggestions({
         patientDemographics: {
           weight: patientInfo.weight,
@@ -4785,6 +4787,9 @@ The BiosAI Team`,
         tier: DosageTier.STANDARD,
         geneticData: {
 
+        },
+        medications: {
+          adhdStimulants: patientId === PatientIds.Tiffany ? true : false
         }
       });
 

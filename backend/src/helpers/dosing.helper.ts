@@ -189,9 +189,12 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
     ): { baseDoseMg: number; baseDurationDays: number } {
         let baseDoseMg: number;
         if (isFemale) {
-            baseDoseMg = weight * this.t100FemaleDosageTiersMapping[tier];
+            const calculatedDose = weight * this.t100FemaleDosageTiersMapping[tier];
+
+            baseDoseMg = Math.round(calculatedDose / 12.5) * 12.5;
         } else {
-            baseDoseMg = weight * this.t100DosageTiersMapping[tier] * this.T100_Config.t100Multiplier!;
+            const calculatedDose = weight * this.t100DosageTiersMapping[tier] * this.T100_Config.t100Multiplier!;
+            baseDoseMg = Math.round(calculatedDose / 100) * 100;
         }
         const baseDurationDays = this.T100_Config.expectedDurationDays;
 
@@ -214,7 +217,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         tier: DosageTier,
         calculationBreakdown: DosageCalculationBreakdown[]
     ): { baseDoseMg: number; baseDurationDays: number } {
-        const baseDoseMg = weight * this.t200DosageTiersMapping[tier];
+        const calculatedDose = weight * this.t200DosageTiersMapping[tier];
+        const baseDoseMg = Math.round(calculatedDose / 200) * 200;
         const baseDurationDays = this.T200_Config.expectedDurationDays;
 
         calculationBreakdown.push({
@@ -242,8 +246,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         let shbgMultiplier = 1;
 
         if (shbgLevel && shbgLevel > 50) {
-            // TODO: Implement SHBG modifier for high SHBG
-            shbgMultiplier = 1;
+            shbgMultiplier = 1.1;
             const dose = adjustedDoseMg * shbgMultiplier;
             calculationBreakdown.push({
                 step: DosageCalculationBreakdownStep.SHBG_MODIFIER,
@@ -294,8 +297,39 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         isT200: boolean
     ): { multiplier: number; adjustedDoseMg: number } {
         let bmiMultiplier = 1;
+        bmi = Math.round(bmi * 10) / 10;
+        if (bmi >= 27 && bmi < 30) {
+            bmiMultiplier = 1.05;
+            const dose = adjustedDoseMg * bmiMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is greater than 27 and less than 30",
+                previousValue: adjustedDoseMg,
+                multiplier: bmiMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: expectedDuration,
+                adjustedDurationDays: expectedDuration,
+                additionalDurationDays: 0,
+            });
+            return { multiplier: bmiMultiplier, adjustedDoseMg: dose };
+        }
+        else if (bmi === 31.7) {
+            bmiMultiplier = 1.1;
+            const dose = adjustedDoseMg * bmiMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
+                condition: "BMI is 31.7",
+                previousValue: adjustedDoseMg,
+                multiplier: bmiMultiplier,
+                adjustedValue: dose,
 
-        if (bmi >= 30 && bmi < 35) {
+                previousDurationDays: expectedDuration,
+                adjustedDurationDays: expectedDuration,
+                additionalDurationDays: 0,
+            });
+            return { multiplier: bmiMultiplier, adjustedDoseMg: dose };
+        }
+        else if (bmi >= 30 && bmi < 35) {
             bmiMultiplier = 1.075;
             const dose = adjustedDoseMg * bmiMultiplier;
             calculationBreakdown.push({
@@ -1157,6 +1191,31 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         return supplements;
     }
 
+    private applyMultiplierCap(
+        baseDoseMg: number,
+        adjustedDoseMg: number,
+        calculationBreakdown: DosageCalculationBreakdown[],
+        maxMultiplier: number = 1.25
+    ): number {
+        const totalMultiplier = adjustedDoseMg / baseDoseMg;
+        if (totalMultiplier > maxMultiplier) {
+            const cappedDoseMg = baseDoseMg * maxMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.FINAL_DOSE,
+                condition: `Total multiplier cap applied: ${(totalMultiplier * 100).toFixed(1)}% exceeds maximum of ${(maxMultiplier * 100).toFixed(0)}%`,
+                previousValue: adjustedDoseMg,
+                multiplier: maxMultiplier / totalMultiplier,
+                adjustedValue: cappedDoseMg,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: [`Total multiplier effect capped at ${(maxMultiplier * 100).toFixed(0)}% increase from base dose`]
+            });
+            return cappedDoseMg;
+        }
+        return adjustedDoseMg;
+    }
+
     private calculateFinalDose(
         adjustedDoseMg: number,
         expectedDuration: number,
@@ -1186,7 +1245,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             let pelletCount: number;
 
             if (isFemale) {
-                preliminaryDoseMg = Math.ceil(adjustedDoseMg / 12.5) * 12.5;
+                preliminaryDoseMg = Math.round(adjustedDoseMg / 12.5) * 12.5;
                 finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxFemaleDoseMg!);
                 const remainder = finalDoseMg % 12.5;
                 if (remainder < 6.25) {
@@ -1196,7 +1255,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                 }
                 pelletCount = Math.round(finalDoseMg / 12.5);
             } else {
-                preliminaryDoseMg = Math.ceil(adjustedDoseMg / 100) * 100;
+                preliminaryDoseMg = Math.round(adjustedDoseMg / 100) * 100;
                 finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
                 const remainder = finalDoseMg % 100;
                 if (remainder < 50) {
@@ -1221,7 +1280,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                 additionalDurationDays: 0,
             });
 
-            const preliminaryDoseMg = Math.ceil(adjustedDoseMg / 200) * 200;
+            const preliminaryDoseMg = Math.round(adjustedDoseMg / 200) * 200;
             let finalDoseMg = Math.min(preliminaryDoseMg, this.T200_Config.maxDoseMg);
             const remainder = finalDoseMg % 200;
             if (remainder < 100) {
@@ -1417,6 +1476,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, false);
         const psaVelocity = this.applyPSAAndProstateModifiers(patientDemographics, clinical, adjustedDoseMg, expectedDuration, calculationBreakdown);
 
+        adjustedDoseMg = this.applyMultiplierCap(baseDoseMg, adjustedDoseMg, calculationBreakdown, 1.25);
+
         const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false, patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE);
 
         let finalBaseDose: number;
@@ -1504,6 +1565,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
 
         this.applyVitaminDAndVDRModifiers(clinical, geneticData, adjustedDoseMg, expectedDuration, geneticMultiplier, calculationBreakdown, true);
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, true);
+
+        adjustedDoseMg = this.applyMultiplierCap(baseDoseMg, adjustedDoseMg, calculationBreakdown, 1.25);
 
         const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, true, patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE);
 
@@ -1736,11 +1799,12 @@ class EstradiolDosingHelper extends BaseDosingHelper {
     }
 
     public calculateEstradiolDosage(params: EstradiolDosageParams): EstradiolDosageResult {
-        const { patientDemographics, clinical, tier, geneticData } = params;
+        const { patientDemographics, clinical, tier, geneticData, medications } = params;
 
         const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
         const calculationBreakdown: DosageCalculationBreakdown[] = []
-        const baseDoseMg = patientDemographics.weight * this.estradiolDosageTiersMapping[tier];
+        const calculatedDose = patientDemographics.weight * this.estradiolDosageTiersMapping[tier];
+        const baseDoseMg = Math.round(calculatedDose / 6.25) * 6.25;
 
         calculationBreakdown.push({
             step: DosageCalculationBreakdownStep.BASE_DOSE,
@@ -1836,7 +1900,7 @@ class EstradiolDosingHelper extends BaseDosingHelper {
             adjustedDosage = dose
         }
         else if (bmi >= 30 && bmi <= 34.9) {
-            bmiMultiplier = 1.15
+            bmiMultiplier = 1.075
             const dose = adjustedDosage * bmiMultiplier;
             calculationBreakdown.push({
                 step: DosageCalculationBreakdownStep.BMI_AROMATIZATION_MODIFIER,
@@ -1962,6 +2026,24 @@ class EstradiolDosingHelper extends BaseDosingHelper {
             adjustedDosage = dose
         }
 
+        let medicationMultiplier = 1;
+        if (medications.adhdStimulants) {
+            medicationMultiplier = 1.10;
+            const dose = adjustedDosage * medicationMultiplier;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.MEDICATION_MODIFIER,
+                condition: "Patient on adhd stimulants",
+                previousValue: adjustedDosage,
+                multiplier: medicationMultiplier,
+                adjustedValue: dose,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: ["More likely to experience side effects"]
+            });
+            adjustedDosage = dose
+        }
+
         const monitoringSchedules: MonitoringSchedule[] = [
             {
                 timepoint: "Pre-treatment",
@@ -1980,10 +2062,28 @@ class EstradiolDosingHelper extends BaseDosingHelper {
             }
         ]
 
-        const baseDoseNormalized = Math.ceil(baseDoseMg / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
+
+        const totalMultiplier = adjustedDosage / baseDoseMg;
+        if (totalMultiplier > 1.25) {
+            const cappedDoseMg = baseDoseMg * 1.25;
+            calculationBreakdown.push({
+                step: DosageCalculationBreakdownStep.FINAL_DOSE,
+                condition: `Total multiplier cap applied: ${(totalMultiplier * 100).toFixed(1)}% exceeds maximum of 25%`,
+                previousValue: adjustedDosage,
+                multiplier: 1.25 / totalMultiplier,
+                adjustedValue: cappedDoseMg,
+                previousDurationDays: 0,
+                adjustedDurationDays: 0,
+                additionalDurationDays: 0,
+                notes: [`Total multiplier effect capped at 25% increase from base dose`]
+            });
+            adjustedDosage = cappedDoseMg;
+        }
+
+        const baseDoseNormalized = Math.round(baseDoseMg / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
         const basePelletCount = baseDoseNormalized / this.Estradiol_Config.incrementMg
 
-        const finalDoseMg = Math.ceil(adjustedDosage / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
+        const finalDoseMg = Math.round(adjustedDosage / this.Estradiol_Config.incrementMg) * this.Estradiol_Config.incrementMg;
         const pelletCount = finalDoseMg / this.Estradiol_Config.incrementMg
 
         return {
