@@ -76,7 +76,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             },
             {
                 name: "DIM",
-                dose: "200 - 300",
+                dose: "350",
                 unit: "mg",
                 frequency: "Daily",
                 purpose: "Estrogen metabolism support",
@@ -116,7 +116,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             },
             {
                 name: "DIM",
-                dose: "200 - 300",
+                dose: "350",
                 unit: "mg",
                 frequency: "Daily",
                 purpose: "Estrogen metabolism support",
@@ -337,7 +337,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                     "DIM supplementation",
                     "Monitor estradio at follow-up"
                 ] : [
-                    "DIM supplementation 200 - 300mg daily",
+                    "DIM supplementation 350mg daily",
                     "Monitor estradiol at 6 week follow-up"
                 ],
                 previousDurationDays: expectedDuration,
@@ -361,7 +361,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                     "Monitor estradiol closely"
                 ] : [
                     "Aromatase inhibitor (anastrozole) 0.5mg 2x/week",
-                    "DIM supplementation 300mg daily",
+                    "DIM supplementation 350mg daily",
                     "Monitor estradiol closely at all follow-ups"
                 ],
                 previousDurationDays: expectedDuration,
@@ -663,7 +663,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                 ] : [
                     "Zinc 30mg daily.",
                     "Saw palmetto 320mg daily.",
-                    "DIM 200-300mg daily.",
+                    "DIM 350mg daily.",
                 ]
             });
         }
@@ -797,7 +797,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             const alerts: string[] = ["Elevated baseline Estradiol - high aromatase activity suspected."];
             const recommendations: string[] = isT200 ? [
                 "DIM supplementation from day 1",
-            ] : ["DIM supplementation 200-300mg daily from day 1"];
+            ] : ["DIM supplementation 350mg daily from day 1"];
             const monitoring: string[] = ["Check Estradiol at 6-week follow-up"];
             const strongRecommendations: string[] = [];
 
@@ -834,7 +834,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
                 "Continue DIM supplementation",
             ] : [
                 "Inititate anastrozole 0.5mg twice weekly",
-                "Continue or add DIM supplementation 300mg daily",
+                "Continue or add DIM supplementation 350mg daily",
             ];
             const urgentMonitoring: string[] = [];
 
@@ -1067,7 +1067,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             if (bmi >= 35) {
                 supplements.push({
                     name: "Anastrozole + DIM",
-                    dose: "0.5mg 2x/week + 300mg daily",
+                    dose: "0.5mg 2x/week + 500mg daily",
                     unit: "",
                     frequency: "",
                     purpose: "Aromatase inhibition",
@@ -1076,7 +1076,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             else if (bmi >= 30) {
                 supplements.push({
                     name: "DIM",
-                    dose: "300",
+                    dose: "350",
                     unit: "mg",
                     frequency: "Daily",
                     purpose: "Enhanced estrogen metabolism"
@@ -1135,7 +1135,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             else if (bmi >= 30) {
                 supplements.push({
                     name: "DIM",
-                    dose: "300",
+                    dose: "350",
                     unit: "mg",
                     frequency: "Daily",
                     purpose: "Enhanced estrogen metabolism"
