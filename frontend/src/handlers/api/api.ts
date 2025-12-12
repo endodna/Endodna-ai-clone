@@ -1177,7 +1177,17 @@ export const doctorsApi = {
     gender: string
   ): Promise<any> => {
     try {
-      if (gender.toLowerCase() === "male") {
+      const normalizedGender = gender?.toLowerCase() || "";
+      
+      if (!normalizedGender) {
+        return {
+          data: null,
+          error: true,
+          message: "Patient gender is required to fetch dosing history",
+        };
+      }
+
+      if (normalizedGender === "male") {
         const [result100, result200] = await Promise.allSettled([
           doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
           doctorsApi.calculateTestosteroneDosing(patientId, "T200"),
@@ -1203,7 +1213,7 @@ export const doctorsApi = {
           message: "Dosing history fetched successfully",
         };
         return result;
-      } else if (gender.toLowerCase() === "female") {
+      } else if (normalizedGender === "female") {
         const [result100, estradiol] = await Promise.allSettled([
           doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
           doctorsApi.calculateEstradiolDosing(patientId),
@@ -1231,6 +1241,12 @@ export const doctorsApi = {
           message: "Dosing history fetched successfully",
         };
         return result;
+      } else {
+        return {
+          data: null,
+          error: true,
+          message: `Invalid gender value: ${gender}. Expected 'male' or 'female'.`,
+        };
       }
     } catch (error: unknown) {
       return {

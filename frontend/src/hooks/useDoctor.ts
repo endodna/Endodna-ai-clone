@@ -850,7 +850,7 @@ export const usePostDosingHistory = (
     queryKey: queryKeys.doctor.dosing.historyPost(patientId),
     // queryFn: () => doctorsApi.getDosingHistory(patientId),
     queryFn: () => doctorsApi.getDosingHistoryPostApi(patientId, gender),
-    enabled: Boolean(patientId),
+    enabled: Boolean(patientId) && Boolean(gender),
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
     retry: 1,

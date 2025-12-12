@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,14 +25,17 @@ export function DosingCalculatorTab({
   patient,
 }: Readonly<DosingCalculatorTabProps>) {
   const [showDoseSuggestions, setShowDoseSuggestions] = useState(true);
-  const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  // Track the last patientId we showed the disclaimer for
+  const lastShownPatientIdRef = useRef<string | undefined>(undefined);
+
   const {
     data: historyResponse,
     isLoading,
     isError,
     error,
   } = usePostDosingHistory(patientId ?? "", patient?.gender || "", {
-    enabled: Boolean(patientId),
+    enabled: Boolean(patientId) && Boolean(patient?.gender),
   });
 
   const { data: getHistoryResponse } = useGetDosingHistory(patientId ?? "", {
@@ -147,9 +150,27 @@ export function DosingCalculatorTab({
     }
   }, [activeTab, tabs, patient?.gender, latestSupplements]);
 
+  // Reset disclaimer tracking when patientId changes
   useEffect(() => {
-    setShowDisclaimer(true);
+    if (patientId !== lastShownPatientIdRef.current) {
+      lastShownPatientIdRef.current = undefined;
+      setShowDisclaimer(false);
+    }
   }, [patientId]);
+
+  // Show disclaimer only when data has loaded successfully and we haven't shown it for this patientId yet
+  useEffect(() => {
+    if (
+      !isLoading &&
+      !isError &&
+      historyResponse &&
+      patientId &&
+      lastShownPatientIdRef.current !== patientId
+    ) {
+      setShowDisclaimer(true);
+      lastShownPatientIdRef.current = patientId;
+    }
+  }, [isLoading, isError, historyResponse, patientId]);
 
   const handleAgree = () => {
     setShowDisclaimer(false);
