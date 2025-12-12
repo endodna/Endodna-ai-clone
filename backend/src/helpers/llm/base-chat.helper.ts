@@ -21,9 +21,9 @@ export interface BuildMessagesResult {
 }
 
 export abstract class BaseChatHelper {
-    protected readonly MAX_OUTPUT_TOKENS = 4096;
+    protected readonly MAX_OUTPUT_TOKENS = 2048;
     protected readonly MAX_INPUT_TOKENS = 200000;
-    protected readonly TEMPERATURE = 0.6;
+    protected readonly TEMPERATURE = 0.5;
     protected readonly TOKEN_OVERHEAD = 10;
     protected readonly RESERVED_TOKENS_BUFFER = 1000;
 
@@ -159,7 +159,16 @@ export abstract class BaseChatHelper {
 
     protected async generateAIResponse(params: {
         systemPrompt: string;
-        messages: Array<{ role: string; content: string }>;
+        messages: Array<{ role: string; content: string | any[] }>;
+        tools?: Array<{
+            name: string;
+            description: string;
+            input_schema: {
+                type: string;
+                properties: Record<string, any>;
+                required?: string[];
+            };
+        }>;
         organizationId: number;
         doctorId: string;
         patientId?: string;
@@ -171,6 +180,7 @@ export abstract class BaseChatHelper {
         return await bedrockHelper.generateChatCompletion({
             systemPrompt: params.systemPrompt,
             messages: params.messages as any,
+            tools: params.tools,
             organizationId: params.organizationId,
             doctorId: params.doctorId,
             patientId: params.patientId,
@@ -193,6 +203,7 @@ export abstract class BaseChatHelper {
         outputTokens: number;
         latencyMs: number;
         method: string;
+        toolCallsUsed?: string[];
     }) {
         logger.info("Chat message sent successfully", {
             traceId: params.traceId,
@@ -205,6 +216,10 @@ export abstract class BaseChatHelper {
             inputTokens: params.inputTokens,
             outputTokens: params.outputTokens,
             latencyMs: params.latencyMs,
+            ...(params.toolCallsUsed && {
+                toolCallsUsed: params.toolCallsUsed,
+                toolCallsCount: params.toolCallsUsed.length,
+            }),
             method: params.method,
         });
     }

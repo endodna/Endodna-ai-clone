@@ -2,7 +2,6 @@ import { DNAResultStatus, Priority, Status } from "@prisma/client";
 import { logger } from "../helpers/logger.helper";
 import s3Helper from "../helpers/aws/s3.helper";
 import { prisma } from "../lib/prisma";
-import { ALLOWED_SNPS_SET } from "../utils/constants";
 import { TempusActions } from "../types";
 import ragHelper from "../helpers/llm/rag.helper";
 import emailHelper from "../helpers/email.helper";
@@ -43,11 +42,13 @@ interface ProcessDNAFileParams {
 }
 
 class TempusService {
+    private allowedSNPS: Map<string, { id: number; rsId: string; }> = new Map();
+
     private isSNPAllowed(snpName: string): boolean {
-        return ALLOWED_SNPS_SET.has(snpName);
+        return this.allowedSNPS.has(snpName);
     }
 
-    async processDNAFile(params: ProcessDNAFileParams): Promise<void> {
+    async processDNAFile(params: ProcessDNAFileParams, allowIsProcessed: boolean = false): Promise<void> {
         const { bucket, key, traceId } = params;
         let parsedFile: ParsedDNAFile | null = null;
 
@@ -62,6 +63,7 @@ class TempusService {
             const fileBuffer = await s3Helper.downloadFile(bucket, key, traceId);
             const fileContent = fileBuffer.toString("utf-8");
 
+            await this.getAllowedSNPS();
             parsedFile = this.parseDNAFile(fileContent);
 
             if (!parsedFile.sampleId || parsedFile.sampleId.trim() === "") {
@@ -119,7 +121,7 @@ class TempusService {
                 });
             }
 
-            if (dnaResultKit.isProcessed) {
+            if (dnaResultKit.isProcessed && !allowIsProcessed) {
                 logger.info("DNA result kit already processed", {
                     traceId,
                     dnaResultKitId: dnaResultKit.id,
@@ -158,6 +160,8 @@ class TempusService {
                         status: DNAResultStatus.DATA_DELIVERED,
                         fileMetadata: {
                             ...existingFileMetadata,
+                            bucket: bucket,
+                            key: key,
                             totalSNPs: parsedFile.totalRows,
                             processingDate: parsedFile.header.processingDate,
                             gsgtVersion: parsedFile.header.gsgtVersion,
@@ -290,7 +294,20 @@ class TempusService {
         }
     }
 
-    private parseDNAFile(content: string): ParsedDNAFile {
+    async getAllowedSNPS() {
+        const snps = await prisma.masterSNP.findMany({
+            select: {
+                id: true,
+                rsId: true,
+            },
+        });
+        for (const snp of snps) {
+            this.allowedSNPS.set(snp.rsId, { id: snp.id, rsId: snp.rsId });
+        }
+
+    }
+
+    parseDNAFile(content: string): ParsedDNAFile {
         const lines = content.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
 
         const header: DNAFileHeader = {};
@@ -402,7 +419,7 @@ class TempusService {
             dnaResultKitId,
             totalRecords: data.length,
             batchSize: BATCH_SIZE,
-            allowedSNPsCount: ALLOWED_SNPS_SET.size,
+            allowedSNPsCount: this.allowedSNPS.size,
             method: "TempusService.createDNABreakdownRecords",
         });
 
@@ -427,6 +444,7 @@ class TempusService {
                     }
 
                     return {
+                        masterSNPId: this.allowedSNPS.get(row.snpName)?.id || null,
                         patientDNAResultId: dnaResultKitId,
                         snpName: row.snpName,
                         chromosome: row.chromosome,

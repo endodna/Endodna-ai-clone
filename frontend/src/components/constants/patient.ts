@@ -35,3 +35,12 @@ export const GENDER_OPTIONS = [
  * Maximum upload file size in MB
  */
 export const MAX_UPLOAD_FILE_SIZE_MB = 999;
+
+export const GENDER = {
+  MALE: "MALE",
+  FEMALE: "FEMALE",
+  OTHER: "OTHER",
+  PREFER_NOT_TO_SAY: "PREFER_NOT_TO_SAY",
+} as const;
+
+export type GenderType = typeof GENDER[keyof typeof GENDER];

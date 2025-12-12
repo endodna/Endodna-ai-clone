@@ -25,17 +25,21 @@ import {
   createGeneralConversationSchema,
   sendGeneralMessageSchema,
   generalConversationIdParamsSchema,
+  createPatientConversationSchema,
   createPatientAddressSchema,
   updatePatientAddressSchema,
   addressIdParamsSchema,
   dnaKitResultIdParamsSchema,
   updatePatientGeneticsStatusSchema,
   getReportsSchema,
-  createReportSchema,
+  // createReportSchema,
   updateReportSchema,
   reportIdParamsSchema,
   calculatePatientTestosteroneDosingSuggestionsSchema,
   savePatientDosageSchema,
+  createPatientGoalSchema,
+  updatePatientGoalSchema,
+  goalIdParamsSchema,
 } from "../../schemas";
 import DoctorController from "../../controllers/DoctorController";
 import { uploadMultiple } from "../../middlewares/FileUpload";
@@ -117,6 +121,11 @@ doctorRouter.get(
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientGenetics,
 );
+doctorRouter.get(
+  "/patients/:patientId/genetics/reports",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientGeneticReports,
+);
 doctorRouter.post(
   "/patients/:patientId/lab-orders",
   validateParams(patientIdParamsSchema),
@@ -139,12 +148,18 @@ doctorRouter.get(
 doctorRouter.post(
   "/patients/:patientId/conversations",
   validateParams(patientIdParamsSchema),
+  validate(createPatientConversationSchema),
   DoctorController.createPatientConversation,
 );
 doctorRouter.get(
   "/patients/:patientId/conversations/:conversationId/messages",
   validateParams(conversationIdParamsSchema),
   DoctorController.getPatientConversationMessages,
+);
+doctorRouter.delete(
+  "/patients/:patientId/conversations/:conversationId",
+  validateParams(conversationIdParamsSchema),
+  DoctorController.deletePatientConversation,
 );
 doctorRouter.post(
   "/patients/:patientId/conversations/:conversationId/messages",
@@ -185,6 +200,12 @@ doctorRouter.post(
   validate(sendGeneralMessageSchema),
   DoctorController.sendGeneralConversationMessage,
 );
+doctorRouter.delete(
+  "/conversations/:conversationId",
+  validateParams(generalConversationIdParamsSchema),
+  DoctorController.deleteGeneralConversation,
+);
+
 doctorRouter.patch(
   "/conversations/:conversationId/title",
   validateParams(generalConversationIdParamsSchema),
@@ -270,22 +291,22 @@ doctorRouter.get(
   validateQuery(getReportsSchema),
   DoctorController.getReports,
 );
-doctorRouter.post(
-  "/reports",
-  validate(createReportSchema),
-  DoctorController.createReport,
-);
+// doctorRouter.post(
+//   "/reports",
+//   validate(createReportSchema),
+//   DoctorController.createReport,
+// );
 doctorRouter.put(
   "/reports/:reportId",
   validateParams(reportIdParamsSchema),
   validate(updateReportSchema),
   DoctorController.updateReport,
 );
-doctorRouter.delete(
-  "/reports/:reportId",
-  validateParams(reportIdParamsSchema),
-  DoctorController.deleteReport,
-);
+// doctorRouter.delete(
+//   "/reports/:reportId",
+//   validateParams(reportIdParamsSchema),
+//   DoctorController.deleteReport,
+// );
 
 // Dosing Routes
 doctorRouter.post(
@@ -311,6 +332,30 @@ doctorRouter.get(
   "/patients/:patientId/dosing",
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientDosageHistory,
+);
+
+// Patient Goal Routes
+doctorRouter.get(
+  "/patients/:patientId/goals",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientGoals,
+);
+doctorRouter.post(
+  "/patients/:patientId/goals",
+  validateParams(patientIdParamsSchema),
+  validate(createPatientGoalSchema),
+  DoctorController.createPatientGoal,
+);
+doctorRouter.delete(
+  "/patients/:patientId/goals/:goalId",
+  validateParams(goalIdParamsSchema),
+  DoctorController.deletePatientGoal,
+);
+doctorRouter.put(
+  "/patients/:patientId/goals/:goalId",
+  validateParams(goalIdParamsSchema),
+  validate(updatePatientGoalSchema),
+  DoctorController.updatePatientGoal,
 );
 
 export default doctorRouter;

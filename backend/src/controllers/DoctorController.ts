@@ -1,7 +1,7 @@
 
 import { Response } from "express";
 import { sendResponse } from "../helpers/response.helper";
-import { AuthenticatedRequest, StatusCode } from "../types";
+import { AuthenticatedRequest, PatientGeneticReport, PatientGeneticReportResponse, PatientGeneticReportVariant, StatusCode } from "../types";
 import { logger } from "../helpers/logger.helper";
 import {
   CreatePatientActiveMedicationSchema,
@@ -38,6 +38,9 @@ import {
   UpdatePatientInfoSchema,
   CalculatePatientTestosteroneDosingSuggestionsSchema,
   SavePatientDosageSchema,
+  CreatePatientGoalSchema,
+  UpdatePatientGoalSchema,
+  GoalIdParamsSchema,
 } from "../schemas";
 import { UserService } from "../services/user.service";
 import {
@@ -70,7 +73,8 @@ import { markPatientInfoOutdated } from "../helpers/patient-info.helper";
 import { testosteroneDosingHelper } from "../helpers/dosing.helper";
 import { PelletType, DosageClinicalParams, TestosteroneDosageLifeStyleFactorsParams, TestosteroneDosageMedicationsParams, TestosteroneDosageParams, DosageTier } from "../types";
 import moment from "moment";
-import { getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
+import { EstradiolDosingSuggestionsResponse, getEstradiolDosingSuggestions, getTestosteroneDosingSuggestions } from "../services/dosing.service";
+import gaugeFromAcmgLabels, { REVERSED_ACMG_SEVERITY } from "../helpers/gauge-algorithm.helper";
 
 class DoctorController {
   public static async createPatient(req: AuthenticatedRequest, res: Response) {
@@ -88,6 +92,11 @@ class DoctorController {
         workPhone,
         homePhone,
         bloodType,
+        weight,
+        height,
+        clinicalData,
+        lifestyleData,
+        medicationsData,
       } = req.body as CreatePatientSchema;
 
       const result = await UserService.createUser({
@@ -123,6 +132,27 @@ class DoctorController {
           status: StatusCode.BAD_REQUEST,
           error: true,
           message: result.error,
+        });
+      }
+
+      if (result.userId && (weight !== undefined || height !== undefined || clinicalData !== undefined || lifestyleData !== undefined || medicationsData !== undefined)) {
+        let bmi: number | undefined;
+        if (weight !== undefined && height !== undefined) {
+          bmi = testosteroneDosingHelper.calculateBMI(weight, height);
+        }
+
+        await prisma.patientInfo.create({
+          data: {
+            patientId: result.userId,
+            organizationId: organizationId!,
+            weight: weight ?? null,
+            height: height ?? null,
+            bmi: bmi ?? null,
+            bloodType: bloodType ?? null,
+            clinicalData: clinicalData ? (clinicalData as Prisma.InputJsonValue) : Prisma.JsonNull,
+            lifestyleData: lifestyleData ? (lifestyleData as Prisma.InputJsonValue) : Prisma.JsonNull,
+            medicationsData: medicationsData ? (medicationsData as Prisma.InputJsonValue) : Prisma.JsonNull,
+          }
         });
       }
 
@@ -357,6 +387,12 @@ class DoctorController {
           id: true,
           firstName: true,
           lastName: true,
+          email: true,
+          middleName: true,
+          phoneNumber: true,
+          workPhoneNumber: true,
+          homePhoneNumber: true,
+          photo: true,
           status: true,
           dateOfBirth: true,
           gender: true,
@@ -483,7 +519,7 @@ class DoctorController {
     try {
       const { patientId } = req.params as unknown as PatientIdParamsSchema;
       const { userId, organizationId } = req.user!;
-      const { dateOfBirth, gender, bloodType, weight, height, clinicalData, lifestyleData, medicationsData } = req.body as UpdatePatientInfoSchema;
+      const { firstName, lastName, middleName, phoneNumber, workPhone, homePhone, dateOfBirth, gender, bloodType, weight, height, clinicalData, lifestyleData, medicationsData } = req.body as UpdatePatientInfoSchema;
 
       const user = await prisma.user.findFirst({
         where: buildOrganizationUserFilter(organizationId!, {
@@ -502,17 +538,41 @@ class DoctorController {
           message: "Patient not found",
         });
       }
+
+      const existingPatientInfo = await prisma.patientInfo.findUnique({
+        where: {
+          patientId: patientId,
+        },
+        select: {
+          weight: true,
+          height: true,
+        },
+      });
+
       const userUpdateData: Prisma.UserUpdateInput = {};
+      if (firstName !== undefined) userUpdateData.firstName = firstName;
+      if (lastName !== undefined) userUpdateData.lastName = lastName;
+      if (middleName !== undefined) userUpdateData.middleName = middleName;
+      if (phoneNumber !== undefined) userUpdateData.phoneNumber = phoneNumber;
+      if (workPhone !== undefined) userUpdateData.workPhoneNumber = workPhone;
+      if (homePhone !== undefined) userUpdateData.homePhoneNumber = homePhone;
       if (dateOfBirth !== undefined) userUpdateData.dateOfBirth = new Date(dateOfBirth);
       if (gender !== undefined) userUpdateData.gender = gender;
       if (bloodType !== undefined) userUpdateData.bloodType = bloodType;
 
       const patientInfoUpdateData: Prisma.PatientInfoUpdateInput = {};
       let bmi: number | undefined;
+
+      const finalWeight = weight !== undefined ? weight : existingPatientInfo?.weight ?? undefined;
+      const finalHeight = height !== undefined ? height : existingPatientInfo?.height ?? undefined;
+
       if (weight !== undefined) patientInfoUpdateData.weight = weight;
       if (height !== undefined) patientInfoUpdateData.height = height;
-      if (weight !== undefined && height !== undefined) bmi = testosteroneDosingHelper.calculateBMI(weight, height);
-      patientInfoUpdateData.bmi = bmi;
+
+      if (finalWeight !== undefined && finalHeight !== undefined && finalWeight !== null && finalHeight !== null) {
+        bmi = testosteroneDosingHelper.calculateBMI(finalWeight, finalHeight);
+        patientInfoUpdateData.bmi = bmi;
+      }
       if (bloodType !== undefined) patientInfoUpdateData.bloodType = bloodType;
       if (clinicalData !== undefined) {
         patientInfoUpdateData.clinicalData = clinicalData as Prisma.InputJsonValue;
@@ -546,8 +606,8 @@ class DoctorController {
             create: {
               patientId: patientId,
               organizationId: organizationId!,
-              weight: weight ?? null,
-              height: height ?? null,
+              weight: finalWeight ?? null,
+              height: finalHeight ?? null,
               bmi: bmi ?? null,
               bloodType: bloodType ?? null,
               clinicalData: clinicalData ? (clinicalData as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -567,6 +627,12 @@ class DoctorController {
           metadata: {
             patientId,
             updates: {
+              ...(firstName && { firstName }),
+              ...(lastName && { lastName }),
+              ...(middleName && { middleName }),
+              ...(phoneNumber && { phoneNumber }),
+              ...(workPhone && { workPhone }),
+              ...(homePhone && { homePhone }),
               ...(dateOfBirth && { dateOfBirth }),
               ...(gender && { gender }),
               ...(bloodType && { bloodType }),
@@ -1361,7 +1427,6 @@ class DoctorController {
           patientDNAResults: {
             where: {
               deletedAt: null,
-              isProcessed: true,
             },
             select: {
               uuid: true,
@@ -1420,6 +1485,201 @@ class DoctorController {
         method: "getPatientDNAAnalysis.Doctor",
         error: err,
       });
+    }
+  }
+
+  public static async getPatientGeneticReports(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as { patientId: string };
+      const { organizationId } = req.user!;
+      const patient = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!patient) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const response: PatientGeneticReportResponse = {
+        reports: [],
+        variantsCount: {
+          total: 0,
+          benign: 0,
+          likelyBenign: 0,
+          vus: 0,
+          likelyImpactful: 0,
+          impactful: 0,
+        },
+      };
+
+      const patientDNAResults = await prisma.patientDNAResultKit.findFirst({
+        where: {
+          patientId,
+          organizationId,
+          deletedAt: null,
+          isProcessed: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          patientDNAResultBreakdown: {
+            select: {
+              snpName: true,
+              genotype: true,
+              masterSNP: {
+                select: {
+                  rsId: true,
+                  geneName: true,
+                  geneSummary: true,
+                  chromosome: true,
+                  position_GRCh38: true,
+                  referenceAllele: true,
+                  altAllele: true,
+                }
+              }
+            },
+          }
+        }
+      });
+
+      if (!patientDNAResults) {
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: response,
+          message: "Patient DNA results not found",
+        });
+      }
+
+      const patientReports = await prisma.patientReport.findMany({
+        where: {
+          patientId,
+          organizationId,
+          deletedAt: null,
+        },
+        include: {
+          report: {
+            select: {
+              id: true,
+              title: true,
+            },
+          }
+        }
+      });
+
+      if (!patientReports.length) {
+        return sendResponse(res, {
+          status: StatusCode.OK,
+          data: response,
+          message: "Patient reports not found",
+        });
+      }
+
+      for (const patientReport of patientReports) {
+        const reportResponse: PatientGeneticReport = {
+          reportName: patientReport.report.title,
+          categories: [],
+        };
+        const reportCategories = await prisma.reportCategory.findMany({
+          where: {
+            reportId: patientReport.reportId,
+          },
+          select: {
+            id: true,
+            name: true,
+            reportCategorySNPs: {
+              select: {
+                id: true,
+                rsID: true,
+                genotype: true,
+                pathogenicity: true,
+                sources: true,
+                description: true,
+              },
+            }
+          }
+        });
+
+        for (const category of reportCategories) {
+          const categorySnps = new Set();
+          for (const snp of category.reportCategorySNPs) {
+            categorySnps.add(snp.rsID);
+          }
+          const variants: PatientGeneticReportVariant[] = [];
+
+          for (const snp of categorySnps) {
+            const patientDNASNP = patientDNAResults.patientDNAResultBreakdown.find((s) => s.snpName === snp);
+            if (!patientDNASNP) {
+              continue;
+            }
+            const reportCategorySNP = category.reportCategorySNPs.find((s) => s.rsID === patientDNASNP.snpName);
+            if (!reportCategorySNP) {
+              continue;
+            }
+            const patientPathogenicity = reportCategorySNP.pathogenicity;
+
+            const variant: PatientGeneticReportVariant = {
+              rsID: patientDNASNP.snpName,
+              geneName: patientDNASNP.masterSNP?.geneName,
+              genotype: patientDNASNP.genotype || "",
+              variantStatus: patientPathogenicity,
+              clinicalSignificance: patientDNASNP.masterSNP?.geneSummary || "",
+              references: reportCategorySNP.sources || [],
+            };
+            variants.push(variant);
+          }
+
+          const guageResult = gaugeFromAcmgLabels(variants.map((v) => v.variantStatus));
+          const variantStatus = REVERSED_ACMG_SEVERITY[guageResult.maxSeverity || 0];
+          reportResponse.categories.push({
+            categoryName: category.name,
+            variantStatus,
+            variants,
+            overallScore: guageResult.normalizedScore || 0,
+          });
+          response.variantsCount.total++;
+          if (variantStatus === "benign") {
+            response.variantsCount.benign++;
+          } else if (variantStatus === "likely benign") {
+            response.variantsCount.likelyBenign++;
+          } else if (variantStatus === "vus") {
+            response.variantsCount.vus++;
+          } else if (variantStatus === "likely impactful") {
+            response.variantsCount.likelyImpactful++;
+          } else if (variantStatus === "impactful") {
+            response.variantsCount.impactful++;
+          }
+        }
+        response.reports.push(reportResponse);
+      }
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: response,
+        message: "Patient genetic reports fetched successfully",
+      });
+    }
+    catch (err) {
+      logger.error("Get patient genetic reports failed", {
+        traceId: req.traceId,
+        method: "getPatientGeneticReports.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get patient genetic reports",
+      }, req);
     }
   }
 
@@ -1660,6 +1920,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -1720,6 +1981,7 @@ class DoctorController {
         where: {
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -1779,6 +2041,7 @@ class DoctorController {
     try {
       const { patientId } = req.params as unknown as { patientId: string };
       const { organizationId, userId } = req.user!;
+      const { chatType } = req.body as { chatType?: ChatType };
 
       const patient = await prisma.user.findFirst({
         where: {
@@ -1801,7 +2064,7 @@ class DoctorController {
         }, req);
       }
 
-      const chatType = ChatType.GENERAL;
+      const finalChatType = chatType || ChatType.GENERAL;
       const patientName = `${patient.firstName} ${patient.lastName}`.trim();
 
       let defaultTitle = patientName;
@@ -1820,7 +2083,7 @@ class DoctorController {
             patientId,
             doctorId: userId,
             organizationId: organizationId!,
-            type: chatType,
+            type: finalChatType,
             title: defaultTitle,
           },
           select: {
@@ -1839,10 +2102,10 @@ class DoctorController {
         }),
         UserService.createUserAuditLog({
           userId: userId!,
-          description: `Patient conversation created: ${chatType}`,
+          description: `Patient conversation created: ${finalChatType}`,
           metadata: {
             patientId,
-            chatType,
+            chatType: finalChatType,
             action: "create",
           },
           priority: Priority.LOW,
@@ -1869,6 +2132,65 @@ class DoctorController {
     }
   }
 
+  public static async deletePatientConversation(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, conversationId } = req.params as unknown as { patientId: string; conversationId: string };
+      const { organizationId, userId } = req.user!;
+
+      const conversation = await prisma.patientChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          patientId,
+          doctorId: userId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      await Promise.all([
+        prisma.patientChatConversation.update({
+          where: { id: conversationId },
+          data: { deletedAt: new Date() },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient conversation deleted`,
+          metadata: {
+            patientId,
+            conversationId,
+            action: "delete",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient conversation deleted successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Delete patient conversation failed", {
+        traceId: req.traceId,
+        method: "deletePatientConversation.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to delete patient conversation",
+      }, req);
+    }
+  }
+
   public static async getPatientConversationMessages(
     req: AuthenticatedRequest,
     res: Response,
@@ -1883,6 +2205,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -1956,6 +2279,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -2032,6 +2356,7 @@ class DoctorController {
           patientId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3261,6 +3586,7 @@ The BiosAI Team`,
         where: {
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
         select: {
           id: true,
@@ -3364,6 +3690,63 @@ The BiosAI Team`,
     }
   }
 
+  public static async deleteGeneralConversation(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+
+      const conversation = await prisma.generalChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          doctorId: userId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      await Promise.all([
+        prisma.generalChatConversation.update({
+          where: { id: conversationId },
+          data: { deletedAt: new Date() },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `General conversation deleted`,
+          metadata: {
+            conversationId,
+            action: "delete",
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "General conversation deleted successfully",
+      }, req);
+    } catch (err) {
+      logger.error("Delete general conversation failed", {
+        traceId: req.traceId,
+        method: "deleteGeneralConversation.Doctor",
+        error: err,
+      });
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to delete general conversation",
+      }, req);
+    }
+  }
+
   public static async getGeneralConversationMessages(req: AuthenticatedRequest, res: Response) {
     try {
       const { conversationId } = req.params as unknown as GeneralConversationIdParamsSchema;
@@ -3374,6 +3757,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3438,6 +3822,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -3491,6 +3876,7 @@ The BiosAI Team`,
           id: conversationId,
           doctorId: userId,
           organizationId: organizationId!,
+          deletedAt: null,
         },
       });
 
@@ -4224,11 +4610,11 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.MALE && pelletType === PelletType.T100) {
+      if (user.gender.toUpperCase() !== Gender.MALE && pelletType == PelletType.T200) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: "T100 Male protocol used for non-male patient.",
+          message: "T200 Male protocol used for non-male patient.",
         });
       }
 
@@ -4247,30 +4633,43 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
+          hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
         },
         lifeStyleFactors: {
-          smokingStatus: lifeStyleFactors.smokingStatus,
-          exerciseLevel: lifeStyleFactors.exerciseLevel,
+          smokingStatus: lifeStyleFactors?.smokingStatus,
+          exerciseLevel: lifeStyleFactors?.exerciseLevel,
         },
         medications: {
-          opiods: medicationsData.opiods,
-          opiodsList: medicationsData.opiodsList,
-          adhdStimulants: medicationsData.adhdStimulants,
-          adhdStimulantsList: medicationsData.adhdStimulantsList,
-          otherMedicationsList: medicationsData.otherMedicationsList,
+          opiods: medicationsData?.opiods,
+          opiodsList: medicationsData?.opiodsList,
+          adhdStimulants: medicationsData?.adhdStimulants,
+          adhdStimulantsList: medicationsData?.adhdStimulantsList,
+          otherMedicationsList: medicationsData?.otherMedicationsList,
         },
         geneticData: {
 
@@ -4336,7 +4735,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.FEMALE) {
+      if (user.gender.toUpperCase() !== Gender.FEMALE) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4356,19 +4755,36 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
+          hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
+        },
+        tier: DosageTier.STANDARD,
+        geneticData: {
+
         }
       });
 
@@ -4395,7 +4811,7 @@ The BiosAI Team`,
     try {
       const { patientId } = req.params as unknown as PatientIdParamsSchema;
       const { organizationId, userId } = req.user!;
-      const { T100, T200, ESTRADIOL, isOverridden } = req.body as SavePatientDosageSchema;
+      const { T100, T200, ESTRADIOL, isOverridden, supplements } = req.body as SavePatientDosageSchema;
 
       if (!T100 && !T200 && !ESTRADIOL) {
         return sendResponse(res, {
@@ -4442,15 +4858,15 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender !== Gender.MALE && T100?.tier) {
+      if (user.gender.toUpperCase() !== Gender.MALE && T200?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
-          message: "T100 Male protocol used for non-male patient.",
+          message: "T200 Male protocol used for non-male patient.",
         });
       }
 
-      if (user.gender !== Gender.FEMALE && ESTRADIOL?.tier) {
+      if (user.gender.toUpperCase() !== Gender.FEMALE && ESTRADIOL?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4458,7 +4874,7 @@ The BiosAI Team`,
         });
       }
 
-      if (user.gender === Gender.MALE && T100?.tier && T200?.tier) {
+      if (user.gender.toUpperCase() === Gender.MALE && T100?.tier && T200?.tier) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
           error: true,
@@ -4481,30 +4897,43 @@ The BiosAI Team`,
           biologicalSex: user.gender as Gender,
         },
         clinical: {
-          shbgLevel: clinicalData.shbgLevel,
-          baselineTotalTestosterone: clinicalData.baselineTotalTestosterone,
-          baselineFreeTestosterone: clinicalData.baselineFreeTestosterone,
-          postInsertionTotalTestosterone: clinicalData.postInsertionTotalTestosterone,
-          insertionDate: clinicalData.insertionDate,
-          baselineEstradiol: clinicalData.baselineEstradiol,
-          postInsertionEstradiol: clinicalData.postInsertionEstradiol,
-          vitaminDLevel: clinicalData.vitaminDLevel,
-          hematocrit: clinicalData.hematocrit,
-          currentPSA: clinicalData.currentPSA,
-          previousPSA: clinicalData.previousPSA,
-          monthsBetweenPSA: clinicalData.monthsBetweenPSA,
-          prostateSymptomsIpss: clinicalData.prostateSymptomsIpss,
+          shbgLevel: clinicalData?.shbgLevel,
+          baselineTotalTestosterone: clinicalData?.baselineTotalTestosterone,
+          baselineFreeTestosterone: clinicalData?.baselineFreeTestosterone,
+          postInsertionTotalTestosterone: clinicalData?.postInsertionTotalTestosterone,
+          postInsertionTotalTestosterone12Weeks: clinicalData?.postInsertionTotalTestosterone12Weeks,
+          insertionDate: clinicalData?.insertionDate,
+          baselineEstradiol: clinicalData?.baselineEstradiol,
+          postInsertionEstradiol: clinicalData?.postInsertionEstradiol,
+          postInsertionEstradiol12Weeks: clinicalData?.postInsertionEstradiol12Weeks,
+          vitaminDLevel: clinicalData?.vitaminDLevel,
+          vitaminDLevel6Weeks: clinicalData?.vitaminDLevel6Weeks,
+          vitaminDLevel12Weeks: clinicalData?.vitaminDLevel12Weeks,
+          hematocrit: clinicalData?.hematocrit,
+          hematocrit6Weeks: clinicalData?.hematocrit6Weeks,
+          hematocrit12Weeks: clinicalData?.hematocrit12Weeks,
+          hemoglobin: clinicalData?.hemoglobin,
+          hemoglobin6Weeks: clinicalData?.hemoglobin6Weeks,
+          hemoglobin12Weeks: clinicalData?.hemoglobin12Weeks,
+          currentPSA: clinicalData?.currentPSA,
+          previousPSA: clinicalData?.previousPSA,
+          monthsBetweenPSA: clinicalData?.monthsBetweenPSA,
+          prostateSymptomsIpss: clinicalData?.prostateSymptomsIpss,
+          fshLevel: clinicalData?.fshLevel,
+          fshLevel6Weeks: clinicalData?.fshLevel6Weeks,
+          fshLevel12Weeks: clinicalData?.fshLevel12Weeks,
+          symptomSeverity: clinicalData?.symptomSeverity,
         },
         lifeStyleFactors: {
-          smokingStatus: lifeStyleFactors.smokingStatus,
-          exerciseLevel: lifeStyleFactors.exerciseLevel,
+          smokingStatus: lifeStyleFactors?.smokingStatus,
+          exerciseLevel: lifeStyleFactors?.exerciseLevel,
         },
         medications: {
-          opiods: medicationsData.opiods,
-          opiodsList: medicationsData.opiodsList,
-          adhdStimulants: medicationsData.adhdStimulants,
-          adhdStimulantsList: medicationsData.adhdStimulantsList,
-          otherMedicationsList: medicationsData.otherMedicationsList,
+          opiods: medicationsData?.opiods,
+          opiodsList: medicationsData?.opiodsList,
+          adhdStimulants: medicationsData?.adhdStimulants,
+          adhdStimulantsList: medicationsData?.adhdStimulantsList,
+          otherMedicationsList: medicationsData?.otherMedicationsList,
         },
         geneticData: {
 
@@ -4517,6 +4946,7 @@ The BiosAI Team`,
         },
       }
 
+      const testosteroneTier = (T100?.tier ? T100.tier : T200?.tier) as DosageTier;
       const testosteroneDosingSuggestions = getTestosteroneDosingSuggestions({
         ...dosingData,
         protocolSelection: {
@@ -4524,7 +4954,16 @@ The BiosAI Team`,
         },
       });
 
-      const testosteroneTier = (T100?.tier ? T100.tier : T200?.tier) as DosageTier;
+      const estradiolTier = ESTRADIOL?.tier ? ESTRADIOL?.tier : null;
+      let estradiolDosingSuggestions: EstradiolDosingSuggestionsResponse | undefined;
+
+      if (estradiolTier) {
+        estradiolDosingSuggestions = getEstradiolDosingSuggestions({
+          ...dosingData,
+          tier: estradiolTier
+        });
+      }
+
       const patientDosageHistory = await prisma.patientDosageHistory.create({
         data: {
           data: JSON.stringify({
@@ -4534,6 +4973,13 @@ The BiosAI Team`,
               pelletsCount: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.pelletCount,
               dosingSuggestions: testosteroneDosingSuggestions
             },
+            ...estradiolTier ? {
+              tier: estradiolTier,
+              dosageMg: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.finalDoseMg,
+              pelletsCount: testosteroneDosingSuggestions[estradiolTier].dosingCalculation.pelletCount,
+              dosingSuggestions: estradiolDosingSuggestions
+            } : {},
+            supplements: supplements?.length ? supplements : []
           }),
           isOverridden: isOverridden,
           type: T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200,
@@ -4548,9 +4994,13 @@ The BiosAI Team`,
       const criticalAlerts = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.criticalAlerts || [];
       const suggestions = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.suggestions || [];
       const recommendations = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.recommendations || [];
-      const supplements = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.supplements || [];
+      const suggestedSupplements = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.supplements || [];
       const monitoringSchedules = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.monitoringSchedules || [];
       const expectedDurationDays = testosteroneDosingSuggestions[testosteroneTier].clinicalRecommendations.expectedDurationDays;
+
+      if (estradiolTier && estradiolDosingSuggestions?.aggressive) {
+        suggestions.push(...estradiolDosingSuggestions[estradiolTier].clinicalRecommendations.suggestions)
+      }
 
       let chartNoteContent = ""
       if (alerts.length > 0) {
@@ -4568,8 +5018,8 @@ The BiosAI Team`,
       if (recommendations.length > 0) {
         chartNoteContent += `Recommendations: ${recommendations.join(", ")}\n`;
       }
-      if (supplements.length > 0) {
-        chartNoteContent += `Supplements: ${supplements.join(", ")}\n`;
+      if (suggestedSupplements.length > 0) {
+        chartNoteContent += `Supplements: ${suggestedSupplements.join(", ")}\n`;
       }
       if (monitoringSchedules.length > 0) {
         chartNoteContent += `Monitoring Schedules: ${monitoringSchedules.join(", ")}\n`;
@@ -4582,6 +5032,101 @@ The BiosAI Team`,
         chartNoteContent = `Dosage History ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200}:\n${chartNoteContent}`;
       }
 
+      const testosteroneDrugName = `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`;
+
+      const existingMedications = await prisma.patientActiveMedication.findMany({
+        where: {
+          patientId: patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          drugName: true,
+        },
+      });
+
+      const existingMedicationsMap = new Map(
+        existingMedications.map(med => [med.drugName.toLowerCase(), med.id])
+      );
+
+      const medicationPromises: Promise<any>[] = [];
+
+      const testosteroneMedicationId = existingMedicationsMap.get(testosteroneDrugName.toLowerCase());
+      if (testosteroneMedicationId) {
+        medicationPromises.push(
+          prisma.patientActiveMedication.update({
+            where: { id: testosteroneMedicationId },
+            data: {
+              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
+              startDate: new Date(),
+              endDate: null,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            },
+          })
+        );
+      } else {
+        medicationPromises.push(
+          prisma.patientActiveMedication.create({
+            data: {
+              patientId: patientId,
+              organizationId: organizationId!,
+              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
+              frequency: "",
+              startDate: new Date(),
+              endDate: null,
+              reason: "",
+              notes: "",
+              drugName: testosteroneDrugName,
+              patientDosageHistoryId: patientDosageHistory.id,
+              doctorId: userId!,
+            },
+          })
+        );
+      }
+
+      if (supplements?.length) {
+        for (const supplement of supplements) {
+          const existingMedicationId = existingMedicationsMap.get(supplement.drugName.toLowerCase());
+          if (existingMedicationId) {
+            medicationPromises.push(
+              prisma.patientActiveMedication.update({
+                where: { id: existingMedicationId },
+                data: {
+                  dosage: supplement.dosage || "",
+                  frequency: supplement.frequency || "",
+                  startDate: new Date(),
+                  endDate: null,
+                  reason: supplement.purpose || "",
+                  notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
+                  patientDosageHistoryId: patientDosageHistory.id,
+                  doctorId: userId!,
+                },
+              })
+            );
+          } else {
+            medicationPromises.push(
+              prisma.patientActiveMedication.create({
+                data: {
+                  patientId: patientId,
+                  organizationId: organizationId!,
+                  dosage: supplement.dosage || "",
+                  frequency: supplement.frequency || "",
+                  startDate: new Date(),
+                  endDate: null,
+                  reason: supplement.purpose || "",
+                  notes: `${supplement.dosage} ${supplement.unit} ${supplement.frequency} ${supplement.purpose}`,
+                  drugName: supplement.drugName,
+                  patientDosageHistoryId: patientDosageHistory.id,
+                  doctorId: userId!,
+                },
+              })
+            );
+          }
+        }
+      }
+
       await Promise.all([
         prisma.patientChartNote.create({
           data: {
@@ -4592,36 +5137,7 @@ The BiosAI Team`,
             organizationId: organizationId!,
           },
         }),
-        prisma.patientActiveMedication.createMany({
-          data: [
-            {
-              patientId: patientId,
-              organizationId: organizationId!,
-              dosage: testosteroneDosingSuggestions[testosteroneTier].dosingCalculation.finalDoseMg.toString(),
-              frequency: "",
-              startDate: new Date(),
-              endDate: null,
-              reason: "",
-              notes: "",
-              drugName: `Testosterone ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200} Dosage`,
-              patientDosageHistoryId: patientDosageHistory.id,
-              doctorId: userId!,
-            },
-            ...supplements.filter(supplement => supplement.isCore).map(supplement => ({
-              patientId: patientId,
-              organizationId: organizationId!,
-              dosage: supplement.dose || "",
-              frequency: supplement.frequency || "",
-              startDate: new Date(),
-              endDate: null,
-              reason: supplement.purpose || "",
-              notes: supplement.timing || "",
-              drugName: supplement.name,
-              patientDosageHistoryId: patientDosageHistory.id,
-              doctorId: userId!,
-            })),
-          ],
-        }),
+        ...medicationPromises,
         UserService.createUserAuditLog({
           userId: userId!,
           description: `Patient dosage saved: ${T100?.tier ? DosageHistoryType.T100 : DosageHistoryType.T200}`,
@@ -4633,6 +5149,7 @@ The BiosAI Team`,
           },
           priority: Priority.MEDIUM,
         }),
+        ragHelper.invalidatePatientSummaryCache(organizationId!, patientId, req.traceId),
       ])
 
       sendResponse(res, {
@@ -4726,6 +5243,383 @@ The BiosAI Team`,
         error: err,
         message: "Failed to retrieve dosage history",
       }, req);
+    }
+  }
+
+  public static async getPatientGoals(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goals = await prisma.patientGoal.findMany({
+        where: {
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+        select: {
+          uuid: true,
+          id: true,
+          description: true,
+          allergies: true,
+          medications: true,
+          problems: true,
+          treatments: true,
+          status: true,
+          notes: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: goals.map((goal) => ({
+          ...goal,
+          id: goal.uuid,
+        })),
+        message: "Patient goals fetched successfully",
+      });
+    } catch (err) {
+      logger.error("Get patient goals failed", {
+        traceId: req.traceId,
+        method: "getPatientGoals.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to fetch patient goals",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createPatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+      const body = req.body as CreatePatientGoalSchema;
+      const { description, allergies, medications, problems, treatments, status, notes } = body;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const [result] = await Promise.all([
+        prisma.patientGoal.create({
+          data: {
+            description: description as string,
+            allergies: (allergies || []) as number[],
+            medications: (medications || []) as number[],
+            problems: (problems || []) as number[],
+            treatments: (treatments || []) as number[],
+            status: (status || Status.PENDING) as Status,
+            notes: (notes || "") as string,
+            patientId,
+            organizationId: organizationId!,
+          },
+          select: {
+            uuid: true,
+            id: true,
+            description: true,
+            targetDate: true,
+            allergies: true,
+            medications: true,
+            problems: true,
+            treatments: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal created: ${description}`,
+          metadata: {
+            patientId,
+            action: "create",
+            description,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient goal created successfully",
+      });
+    } catch (err) {
+      logger.error("Create patient goal failed", {
+        traceId: req.traceId,
+        method: "createPatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create patient goal",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async updatePatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, goalId } = req.params as unknown as GoalIdParamsSchema;
+      const { description, allergies, medications, problems, treatments, status, notes } = req.body as UpdatePatientGoalSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goal = await prisma.patientGoal.findFirst({
+        where: {
+          uuid: goalId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!goal) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient goal not found",
+        });
+      }
+
+      const updateData: Prisma.PatientGoalUpdateInput = {};
+      if (description !== undefined) updateData.description = description;
+      if (allergies !== undefined) updateData.allergies = allergies;
+      if (medications !== undefined) updateData.medications = medications;
+      if (problems !== undefined) updateData.problems = problems;
+      if (treatments !== undefined) updateData.treatments = treatments;
+      if (status !== undefined) updateData.status = status;
+      if (notes !== undefined) updateData.notes = notes;
+
+      const [result] = await Promise.all([
+        prisma.patientGoal.update({
+          where: {
+            uuid: goalId,
+          },
+          data: updateData,
+          select: {
+            uuid: true,
+            id: true,
+            description: true,
+            targetDate: true,
+            allergies: true,
+            medications: true,
+            problems: true,
+            treatments: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal updated: ${description || goal.description}`,
+          metadata: {
+            patientId,
+            goalId: goalId,
+            action: "update",
+            description: description || goal.description,
+          },
+          priority: Priority.MEDIUM,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...result,
+          id: result.uuid,
+        },
+        message: "Patient goal updated successfully",
+      });
+    } catch (err) {
+      logger.error("Update patient goal failed", {
+        traceId: req.traceId,
+        method: "updatePatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to update patient goal",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async deletePatientGoal(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { patientId, goalId } = req.params as unknown as GoalIdParamsSchema;
+      const { userId, organizationId } = req.user!;
+
+      const user = await prisma.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: buildOrganizationUserFilter(organizationId!, {
+          id: patientId,
+          userType: PrismaUserType.PATIENT,
+        }),
+      });
+
+      if (!user) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient not found",
+        });
+      }
+
+      const goal = await prisma.patientGoal.findFirst({
+        where: {
+          uuid: goalId,
+          patientId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!goal) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Patient goal not found",
+        });
+      }
+
+      await Promise.all([
+        prisma.patientGoal.update({
+          where: {
+            uuid: goalId,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        }),
+        UserService.createUserAuditLog({
+          userId: userId!,
+          description: `Patient goal deleted: ${goal.description}`,
+          metadata: {
+            patientId,
+            goalId: goalId,
+            action: "delete",
+            description: goal.description,
+          },
+          priority: Priority.HIGH,
+        }),
+      ]);
+
+      await ragHelper.invalidatePatientSummaryCache(
+        organizationId!,
+        patientId,
+        req.traceId,
+      );
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: true,
+        message: "Patient goal deleted successfully",
+      });
+    } catch (err) {
+      logger.error("Delete patient goal failed", {
+        traceId: req.traceId,
+        method: "deletePatientGoal.Doctor",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to delete patient goal",
+        },
+        req,
+      );
     }
   }
 }

@@ -50,6 +50,7 @@ class GeneralChatHelper extends BaseChatHelper {
                     id: conversationId,
                     doctorId,
                     organizationId,
+                    deletedAt: null,
                 },
                 include: {
                     messages: {

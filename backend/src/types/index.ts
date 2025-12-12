@@ -118,3 +118,38 @@ export interface ResponseOptions {
   data?: object | boolean | null;
   message?: string;
 }
+
+export interface PatientGeneticReportVariant {
+  rsID: string;
+  geneName?: string;
+  genotype?: string;
+  variantStatus: string;
+  clinicalSignificance: string;
+  references: string[];
+}
+
+export interface PatientGeneticReportCategory {
+  categoryName: string;
+  overallScore: number;
+  variantStatus: string;
+  variants: PatientGeneticReportVariant[];
+}
+
+export interface PatientGeneticReport {
+  reportName: string;
+  categories: PatientGeneticReportCategory[];
+}
+
+export interface PatientGeneticVariantResponse {
+  total: number;
+  benign: number;
+  likelyBenign: number;
+  vus: number;
+  likelyImpactful: number;
+  impactful: number;
+}
+
+export interface PatientGeneticReportResponse {
+  reports: PatientGeneticReport[];
+  variantsCount: PatientGeneticVariantResponse;
+}

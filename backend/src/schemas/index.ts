@@ -1,4 +1,4 @@
-import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status } from "@prisma/client";
+import { DNAResultStatus, Gender, MedicalRecordType, OrderType, Status, ChatType } from "@prisma/client";
 import { z } from "zod";
 import { TempusActions } from "../types";
 import { PelletType, DosageTier } from "../types";
@@ -91,6 +91,48 @@ export const createDoctorSchema = z
   .strict();
 export type CreateDoctorSchema = z.infer<typeof createDoctorSchema>;
 
+const clinicalDataSchema = z.object({
+  shbgLevel: z.number().optional(),
+  baselineTotalTestosterone: z.number().optional(),
+  baselineFreeTestosterone: z.number().optional(),
+  postInsertionTotalTestosterone: z.number().optional(),
+  postInsertionTotalTestosterone12Weeks: z.number().optional(),
+  insertionDate: z.coerce.date().transform((val) => val.toISOString()).optional(),
+  baselineEstradiol: z.number().optional(),
+  postInsertionEstradiol: z.number().optional(),
+  postInsertionEstradiol12Weeks: z.number().optional(),
+  vitaminDLevel: z.number().optional(),
+  vitaminDLevel6Weeks: z.number().optional(),
+  vitaminDLevel12Weeks: z.number().optional(),
+  hematocrit: z.number().optional(),
+  hematocrit6Weeks: z.number().optional(),
+  hematocrit12Weeks: z.number().optional(),
+  hemoglobin: z.number().optional(),
+  hemoglobin6Weeks: z.number().optional(),
+  hemoglobin12Weeks: z.number().optional(),
+  currentPSA: z.number().optional(),
+  previousPSA: z.number().optional(),
+  monthsBetweenPSA: z.number().optional(),
+  prostateSymptomsIpss: z.number().optional(),
+  fshLevel: z.number().optional(),
+  fshLevel6Weeks: z.number().optional(),
+  fshLevel12Weeks: z.number().optional(),
+  symptomSeverity: z.number().optional(),
+}).strict().optional();
+
+const lifestyleDataSchema = z.object({
+  smokingStatus: z.enum(["never", "former", "current"]).optional(),
+  exerciseLevel: z.enum(["sedentary", "light", "moderate", "vigorous"]).optional(),
+}).strict().optional();
+
+const medicationsDataSchema = z.object({
+  opiods: z.boolean().optional(),
+  opiodsList: z.array(z.string()).optional(),
+  adhdStimulants: z.boolean().optional(),
+  adhdStimulantsList: z.array(z.string()).optional(),
+  otherMedicationsList: z.array(z.string()).optional(),
+}).strict().optional();
+
 export const createPatientSchema = z
   .object({
     email: z.string().email("Invalid email format").toLowerCase().trim(),
@@ -111,6 +153,11 @@ export const createPatientSchema = z
     phoneNumber: z.string().optional(),
     workPhone: z.string().optional(),
     homePhone: z.string().optional(),
+    weight: z.number().positive("Weight must be a positive number").optional(),
+    height: z.number().positive("Height must be a positive number").optional(),
+    clinicalData: clinicalDataSchema,
+    lifestyleData: lifestyleDataSchema,
+    medicationsData: medicationsDataSchema,
   })
   .strict();
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
@@ -191,6 +238,11 @@ export const patientIdParamsSchema = z.object({
 }).strict();
 export type PatientIdParamsSchema = z.infer<typeof patientIdParamsSchema>;
 
+export const deletePatientSchema = z.object({
+  patientIds: z.array(z.string().uuid("Invalid patient ID")).min(1, "At least one patient ID is required"),
+}).strict();
+export type DeletePatientSchema = z.infer<typeof deletePatientSchema>;
+
 export const dnaKitResultIdParamsSchema = z.object({
   patientId: z.string().uuid("Invalid patient ID"),
   dnaKitResultId: z.string().uuid("Invalid DNA kit result ID"),
@@ -229,6 +281,11 @@ export const updateConversationTitleSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
 }).strict();
 export type UpdateConversationTitleSchema = z.infer<typeof updateConversationTitleSchema>;
+
+export const createPatientConversationSchema = z.object({
+  chatType: z.nativeEnum(ChatType).optional().default(ChatType.GENERAL),
+}).strict();
+export type CreatePatientConversationSchema = z.infer<typeof createPatientConversationSchema>;
 
 export const createGeneralConversationSchema = z.object({
   title: z.string().max(200).optional(),
@@ -431,41 +488,13 @@ export const reportIdParamsSchema = z.object({
 }).strict();
 export type ReportIdParamsSchema = z.infer<typeof reportIdParamsSchema>;
 
-const smokingStatusEnum = z.enum(["never", "former", "current"]);
-const exerciseLevelEnum = z.enum(["sedentary", "light", "moderate", "vigorous"]);
-
-const clinicalDataSchema = z.object({
-  shbgLevel: z.number().optional(),
-  baselineTotalTestosterone: z.number().optional(),
-  baselineFreeTestosterone: z.number().optional(),
-  postInsertionTotalTestosterone: z.number().optional(),
-  insertionDate: z.coerce.date().transform((val) => val.toISOString()).optional(),
-  baselineEstradiol: z.number().optional(),
-  postInsertionEstradiol: z.number().optional(),
-  vitaminDLevel: z.number().optional(),
-  hematocrit: z.number().optional(),
-  currentPSA: z.number().optional(),
-  previousPSA: z.number().optional(),
-  monthsBetweenPSA: z.number().optional(),
-  prostateSymptomsIpss: z.number().optional(),
-  fshLevel: z.number().optional(),
-  symptomSeverity: z.number().optional(),
-}).strict().optional();
-
-const lifestyleDataSchema = z.object({
-  smokingStatus: smokingStatusEnum.optional(),
-  exerciseLevel: exerciseLevelEnum.optional(),
-}).strict().optional();
-
-const medicationsDataSchema = z.object({
-  opiods: z.boolean().optional(),
-  opiodsList: z.array(z.string()).optional(),
-  adhdStimulants: z.boolean().optional(),
-  adhdStimulantsList: z.array(z.string()).optional(),
-  otherMedicationsList: z.array(z.string()).optional(),
-}).strict().optional();
-
 export const updatePatientInfoSchema = z.object({
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  middleName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  workPhone: z.string().optional(),
+  homePhone: z.string().optional(),
   dateOfBirth: z.coerce.date().transform((val) => val.toISOString()).optional(),
   gender: z.string().optional(),
   bloodType: z.string().optional(),
@@ -477,6 +506,12 @@ export const updatePatientInfoSchema = z.object({
 }).strict().refine(
   (data) => {
     return (
+      data.firstName !== undefined ||
+      data.lastName !== undefined ||
+      data.middleName !== undefined ||
+      data.phoneNumber !== undefined ||
+      data.workPhone !== undefined ||
+      data.homePhone !== undefined ||
       data.dateOfBirth !== undefined ||
       data.gender !== undefined ||
       data.bloodType !== undefined ||
@@ -541,6 +576,44 @@ export const savePatientDosageSchema = z.object({
   ESTRADIOL: z.object({
     tier: z.nativeEnum(DosageTier),
   }).optional(),
+  supplements: z.array(z.object({
+    drugName: z.string().min(1, "Name is required"),
+    dosage: z.string().min(1, "Dose is required"),
+    unit: z.string().min(1, "Unit is required"),
+    frequency: z.string().min(1, "Frequency is required"),
+    purpose: z.string().min(1, "Purpose is required"),
+    isSuggested: z.boolean().optional().default(false),
+  })).optional()
 }).strict();
 
 export type SavePatientDosageSchema = z.infer<typeof savePatientDosageSchema>;
+
+export const goalIdParamsSchema = z.object({
+  patientId: z.string().uuid("Invalid patient ID"),
+  goalId: z.string().uuid("Invalid goal ID")
+}).strict();
+export type GoalIdParamsSchema = z.infer<typeof goalIdParamsSchema>;
+
+export const createPatientGoalSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  allergies: z.array(z.number().int()).optional().default([]),
+  medications: z.array(z.number().int()).optional().default([]),
+  problems: z.array(z.number().int()).optional().default([]),
+  treatments: z.array(z.number().int()).optional().default([]),
+  status: z.nativeEnum(Status).optional().default(Status.PENDING),
+  notes: z.string().optional().default(""),
+}).strict();
+export type CreatePatientGoalSchema = z.infer<typeof createPatientGoalSchema>;
+
+export const updatePatientGoalSchema = z.object({
+  description: z.string().min(1, "Description is required").optional(),
+  allergies: z.array(z.number().int()).optional(),
+  medications: z.array(z.number().int()).optional(),
+  problems: z.array(z.number().int()).optional(),
+  treatments: z.array(z.number().int()).optional(),
+  status: z.nativeEnum(Status).optional(),
+  notes: z.string().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: "At least one field must be provided for update",
+});
+export type UpdatePatientGoalSchema = z.infer<typeof updatePatientGoalSchema>;

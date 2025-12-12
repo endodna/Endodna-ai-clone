@@ -521,11 +521,13 @@ export const doctorsApi = {
   },
 
   createPatientConversation: async (
-    patientId: string
+    patientId: string,
+    chatType?: string
   ): Promise<ApiResponse<PatientChatConversation>> => {
     try {
       const response = await apiClient.post(
         getEndpoint(API_ENDPOINTS.DOCTOR.CHAT.PATIENT.CONVERSATIONS, patientId),
+        chatType ? { chatType } : {},
         {
           timeout: 60000, // AI summary generation can take longer on first load
         }
@@ -627,6 +629,31 @@ export const doctorsApi = {
     }
   },
 
+  deletePatientConversation: async (
+    patientId: string,
+    conversationId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.PATIENT.DELETE,
+          patientId,
+          conversationId
+        )
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to delete conversation",
+      };
+    }
+  },
+
   getGeneralConversations: async (): Promise<
     ApiResponse<GeneralChatConversation[]>
   > => {
@@ -653,7 +680,8 @@ export const doctorsApi = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.DOCTOR.CHAT.GENERAL.CONVERSATIONS,
-        payload ?? {
+        payload ?? {},
+        {
           timeout: 60000, // AI summary generation can take longer on first load
         }
       );
@@ -767,6 +795,31 @@ export const doctorsApi = {
     }
   },
 
+  getPatientGeneticsReports: async (
+    patientId: string
+  ): Promise<ApiResponse<PatientGeneticsReport[]>> => {
+    try {
+      const endpoint = getEndpoint(
+        API_ENDPOINTS.DOCTOR.PATIENTS.GENETICS_REPORTS,
+        patientId
+      );
+      console.log("Fetching genetics reports from:", endpoint);
+      const response = await apiClient.get(endpoint);
+      console.log("Genetics reports response:", response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Error fetching genetics reports:", error);
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(
+          error,
+          "Failed to fetch patient genetics reports"
+        ),
+      };
+    }
+  },
+
   updateDnaKitStatus: async (
     patientId: string,
     dnaResultId: string,
@@ -828,9 +881,9 @@ export const doctorsApi = {
   },
 
   // Reports endpoints
-  getReports: async (
-    params?: { gender?: string }
-  ): Promise<ApiResponse<Report[]>> => {
+  getReports: async (params?: {
+    gender?: string;
+  }): Promise<ApiResponse<Report[]>> => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.DOCTOR.REPORTS.LIST, {
         params,
@@ -841,6 +894,26 @@ export const doctorsApi = {
         data: null,
         error: true,
         message: getApiErrorMessage(error, "Failed to fetch reports"),
+      };
+    }
+  },
+
+  createReport: async (data: CreateReportDto): Promise<ApiResponse<Report>> => {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.DOCTOR.REPORTS.CREATE,
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<Report>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to create report"),
       };
     }
   },
@@ -920,6 +993,534 @@ export const doctorsApi = {
         data: null,
         error: true,
         message: getApiErrorMessage(error, "Failed to update patient address"),
+      };
+    }
+  },
+
+  // Patient Info Update
+  updatePatientInfo: async (
+    patientId: string,
+    data: {
+      weight?: number;
+      height?: number;
+      dateOfBirth?: string;
+      gender?: string;
+      bloodType?: string;
+      clinicalData?: Record<string, any>;
+      lifestyleData?: Record<string, any>;
+      medicationsData?: Record<string, any>;
+    }
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.UPDATE_INFO, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to update patient info"),
+      };
+    }
+  },
+
+  // Dosing Calculation APIs
+  calculateTestosteroneDosing: async (
+    patientId: string,
+    pelletType: "T100" | "T200"
+  ): Promise<ApiResponse<TestosteroneDosingSuggestionsResponse>> => {
+    try {
+      const response = await apiClient.post<
+        ApiResponse<TestosteroneDosingSuggestionsResponse>
+      >(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_TESTOSTERONE,
+          patientId
+        ),
+        { pelletType }
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<TestosteroneDosingSuggestionsResponse>>(
+          error
+        ) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(
+          error,
+          "Failed to calculate testosterone dosing"
+        ),
+      };
+    }
+  },
+
+  calculateEstradiolDosing: async (
+    patientId: string
+  ): Promise<ApiResponse<EstradiolDosingSuggestionsResponse>> => {
+    try {
+      const response = await apiClient.post<
+        ApiResponse<EstradiolDosingSuggestionsResponse>
+      >(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.CALCULATE_ESTRADIOL,
+          patientId
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<EstradiolDosingSuggestionsResponse>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(
+          error,
+          "Failed to calculate estradiol dosing"
+        ),
+      };
+    }
+  },
+
+  saveDosingCalculation: async (
+    patientId: string,
+    data: SaveDosingCalculationRequest
+  ): Promise<ApiResponse<boolean>> => {
+    try {
+      const response = await apiClient.post<ApiResponse<boolean>>(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.SAVE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<boolean>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to save dosing calculation"),
+      };
+    }
+  },
+
+  // Get Dosing History using Post API
+  getDosingHistoryPostApi: async (
+    patientId: string,
+    gender: string
+  ): Promise<any> => {
+    try {
+      if (gender.toLowerCase() === "male") {
+        const [result100, result200] = await Promise.allSettled([
+          doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
+          doctorsApi.calculateTestosteroneDosing(patientId, "T200"),
+        ]);
+        const t100 = result100.status === "fulfilled" ? result100.value : null;
+        const t200 = result200.status === "fulfilled" ? result200.value : null;
+        const result = {
+          data: [
+            {
+              data: {
+                T100: { dosingSuggestions: t100?.data || {} },
+              },
+              type: "T100",
+            },
+            {
+              data: {
+                T200: { dosingSuggestions: t200?.data || {} },
+              },
+              type: "T200",
+            },
+          ],
+          error: false,
+          message: "Dosing history fetched successfully",
+        };
+        return result;
+      } else if (gender.toLowerCase() === "female") {
+        const [result100, estradiol] = await Promise.allSettled([
+          doctorsApi.calculateTestosteroneDosing(patientId, "T100"),
+          doctorsApi.calculateEstradiolDosing(patientId),
+        ]);
+        const t100 = result100.status === "fulfilled" ? result100.value : null;
+        const estradiolRes =
+          estradiol.status === "fulfilled" ? estradiol.value : null;
+
+        const result = {
+          data: [
+            {
+              data: {
+                ESTRADIOL: { dosingSuggestions: estradiolRes?.data || {} },
+              },
+              type: "ESTRADIOL",
+            },
+            {
+              data: {
+                T100: { dosingSuggestions: t100?.data || {} },
+              },
+              type: "T100",
+            },
+          ],
+          error: false,
+          message: "Dosing history fetched successfully",
+        };
+        return result;
+      }
+    } catch (error: unknown) {
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch dosing history"),
+      };
+    }
+  },
+
+  getDosingHistory: async (
+    patientId: string
+  ): Promise<ApiResponse<DosingHistoryResponse>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.DOSING.GET_HISTORY, patientId)
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (
+        isAxiosError<ApiResponse<DosingHistoryResponse>>(error) &&
+        error.response?.data
+      ) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to fetch dosing history"),
+      };
+    }
+  },
+
+  // Health Goal APIs
+  getPatientGoals: async (
+    patientId: string
+  ): Promise<ApiResponse<{ goals: PatientGoal[] }>> => {
+    try {
+      const response = await apiClient.get(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId)
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch patient goals",
+      };
+    }
+  },
+
+  createPatientGoal: async (
+    patientId: string,
+    payload: { description: string; notes?: string }
+  ) => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.GOALS, patientId),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create goal",
+      };
+    }
+  },
+
+  updatePatientGoal: async (
+    patientId: string,
+    goalId: string,
+    payload: { description: string; notes?: string }
+  ) => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL,
+          patientId,
+          goalId
+        ),
+        payload
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update goal",
+      };
+    }
+  },
+
+  deletePatientGoal: async (
+    patientId: string,
+    goalId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.GOALS_DETAIL,
+          patientId,
+          goalId
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete goal"),
+      };
+    }
+  },
+
+  // Patient Alert APIs
+  createPatientAlert: async (
+    patientId: string,
+    data: {
+      description: string;
+      severity: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAlert>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE,
+          patientId,
+          "alert"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create alert",
+      };
+    }
+  },
+
+  // Patient Allergy APIs
+  createPatientAllergy: async (
+    patientId: string,
+    data: {
+      allergen: string;
+      reactionType: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAllergy>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.CREATE,
+          patientId,
+          "allergy"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create allergy",
+      };
+    }
+  },
+
+  updatePatientAlert: async (
+    patientId: string,
+    alertId: string,
+    data: {
+      description?: string;
+      severity?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAlert>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.UPDATE,
+          patientId,
+          alertId,
+          "alert"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update alert",
+      };
+    }
+  },
+
+  updatePatientAllergy: async (
+    patientId: string,
+    allergyId: string,
+    data: {
+      allergen?: string;
+      reactionType?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<PatientAllergy>> => {
+    try {
+      const response = await apiClient.put(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.UPDATE,
+          patientId,
+          allergyId,
+          "allergy"
+        ),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update allergy",
+      };
+    }
+  },
+
+  deletePatientAlert: async (
+    patientId: string,
+    alertId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.DELETE,
+          patientId,
+          alertId,
+          "alert"
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete alert"),
+      };
+    }
+  },
+
+  deletePatientAllergy: async (
+    patientId: string,
+    allergyId: string
+  ): Promise<ApiResponse<null>> => {
+    try {
+      const response = await apiClient.delete(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.PATIENTS.ALERTS.DELETE,
+          patientId,
+          allergyId,
+          "allergy"
+        )
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError<ApiResponse<null>>(error) && error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message: getApiErrorMessage(error, "Failed to delete allergy"),
+      };
+    }
+  },
+
+  // Patient Chart Notes APIs
+  createPatientChartNote: async (
+    patientId: string,
+    data: {
+      title?: string;
+      content: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(API_ENDPOINTS.DOCTOR.PATIENTS.CHART_NOTES.CREATE, patientId),
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create chart note",
       };
     }
   },

@@ -1,292 +1,411 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useGetPatientById } from "@/hooks/useDoctor";
-import { cn } from "@/lib/utils";
-import { formatDate, calculateAge } from "@/utils/date.utils";
-import { Calendar, ChevronDown, ChevronUp, Mail, Phone, User } from "lucide-react";
-import { useMemo, useState, type ComponentType } from "react";
 import { ChatsHistory } from "@/components/sidebar/ChatsHistory";
+import { useGetPatientById, useUpdatePatientInfo } from "@/hooks/useDoctor";
+import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
+// Components
+import { EmptyStateCard } from "./PatientHeader/components/EmptyStateCard";
+import { ErrorState } from "./PatientHeader/components/ErrorState";
+import { PatientHeaderSkeleton } from "./PatientHeader/components/PatientHeaderSkeleton";
+import { AlertsAndAllergiesSection } from "./PatientHeader/sections/AlertsAndAllergiesSection";
+import { HealthGoalsSection } from "./PatientHeader/sections/HealthGoalsSection";
+import { PatientInfoSection } from "./PatientHeader/sections/PatientInfoSection";
+import { PhysicalMeasurementsSection } from "./PatientHeader/sections/PhysicalMeasurementsSection";
+
+// Dialogs
+import { AddAlertDialog } from "./PatientHeader/dialogs/AddAlertDialog";
+import { AddAllergyDialog } from "./PatientHeader/dialogs/AddAllergyDialog";
+import { DeleteAlertConfirmDialog } from "./PatientHeader/dialogs/DeleteAlertConfirmDialog";
+import { DeleteAllergyConfirmDialog } from "./PatientHeader/dialogs/DeleteAllergyConfirmDialog";
+import { EditAlertDialog } from "./PatientHeader/dialogs/EditAlertDialog";
+import { EditAllergyDialog } from "./PatientHeader/dialogs/EditAllergyDialog";
+import { GoalEditDialog } from "./PatientHeader/dialogs/GoalEditDialog";
+import { HeightEditDialog } from "./PatientHeader/dialogs/HeightEditDialog";
+import { WeightEditDialog } from "./PatientHeader/dialogs/WeightEditDialog";
+import {
+  useDeletePatientAlert,
+  useDeletePatientAllergy,
+} from "@/hooks/useDoctor";
 
 interface PatientHeaderProps {
-    readonly patientId?: string;
-    readonly className?: string;
+  readonly patientId?: string;
+  readonly className?: string;
 }
 
-interface InfoRowProps {
-    readonly icon: ComponentType<{ className?: string }>;
-    readonly label: string;
-    readonly value?: string | null;
-}
+export function PatientHeader({
+  patientId,
+  className,
+}: Readonly<PatientHeaderProps>) {
+  const enabled = Boolean(patientId);
+  const { data, isLoading, isFetching, error, refetch } = useGetPatientById(
+    patientId ?? "",
+    {
+      enabled,
+    }
+  );
 
-function PatientHeaderSkeleton() {
-    const skeletonBg = "bg-muted-foreground/10";
-    const skeletonHighlight = "bg-muted-foreground/20";
+  const responseError = data?.error ? data.message : null;
+  const patient = data?.data ?? null;
+  const shouldShowSkeleton = isLoading || (isFetching && !patient);
 
-    return (
-        <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
-            {/* Info block */}
-            <div className="space-y-6 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <div className="flex items-center gap-4">
-                    <Skeleton className={`h-16 w-16 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
-                    <div className="flex-1 space-y-2">
-                        <Skeleton className={`h-6 w-40 ${skeletonBg} ${skeletonHighlight}`} />
-                        <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                    </div>
-                </div>
-                <div className="space-y-4 pt-4">
-                    {[0, 1, 2].map((index) => (
-                        <div key={`info-${index}`} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Skeleton className={`h-6 w-6 rounded-full ${skeletonBg} ${skeletonHighlight}`} />
-                                <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                            </div>
-                            <Skeleton className={`h-4 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                        </div>
-                    ))}
-                </div>
-            </div>
+  // Derived patient details
+  const derivedDetails = useMemo(() => {
+    if (!patient) {
+      return {
+        fullName: "",
+        initials: "",
+      };
+    }
+    const fullName =
+      `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim();
+    const initials = fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
-            {/* Alerts */}
-            <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <div className="flex items-center justify-between">
-                    <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                    <Skeleton className={`h-4 w-12 ${skeletonBg} ${skeletonHighlight}`} />
-                </div>
-                <div className="space-y-2">
-                    {[0, 1].map((index) => (
-                        <Skeleton key={`alert-${index}`} className={`h-4 w-full ${skeletonBg} ${skeletonHighlight}`} />
-                    ))}
-                </div>
-            </div>
+    return { fullName, initials };
+  }, [patient]);
 
-            {/* Allergies */}
-            <div className="space-y-2 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                <Skeleton className={`h-5 w-24 ${skeletonBg} ${skeletonHighlight}`} />
-                <Skeleton className={`h-4 w-32 ${skeletonBg} ${skeletonHighlight}`} />
-            </div>
-        </div>
-    );
-}
+  // UI State
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [heightDialogOpen, setHeightDialogOpen] = useState(false);
+  const [weightDialogOpen, setWeightDialogOpen] = useState(false);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<{
+    uuid: string;
+    description: string;
+  } | null>(null);
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [allergyDialogOpen, setAllergyDialogOpen] = useState(false);
+  const [editingAlert, setEditingAlert] = useState<{
+    uuid: string;
+    description: string;
+    severity?: string | null;
+    notes?: string | null;
+  } | null>(null);
+  const [editingAllergy, setEditingAllergy] = useState<{
+    uuid: string;
+    allergen: string;
+    reactionType?: string | null;
+    notes?: string | null;
+  } | null>(null);
+  const [deleteAlertDialogOpen, setDeleteAlertDialogOpen] = useState(false);
+  const [deleteAllergyDialogOpen, setDeleteAllergyDialogOpen] = useState(false);
+  const [alertToDelete, setAlertToDelete] = useState<{
+    id: string;
+    description: string;
+  } | null>(null);
+  const [allergyToDelete, setAllergyToDelete] = useState<{
+    id: string;
+    allergen: string;
+  } | null>(null);
 
-function InfoRow({ icon: Icon, label, value }: Readonly<InfoRowProps>) {
-    return (
-        <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
-            <div className="flex items-center gap-2 md:gap-4">
-                <span className="flex items-center justify-center rounded-full text-primary">
-                    <Icon className="h-4 w-4 md:h-6 md:w-6" />
-                </span>
-                <span>{label}</span>
-            </div>
-            <span>{value ?? '-'}</span>
-        </div>
-    );
-}
+  // Patient info data
+  const patientInfo = patient?.patientInfo;
+  const heightCm = patientInfo?.height ?? null;
+  const weightKg = patientInfo?.weight ?? null;
+  const bmi = patientInfo?.bmi ?? null;
 
-function EmptyStateCard({ message }: { readonly message: string }) {
-    return (
-        <div className="rounded-3xl border border-dashed border-muted-foreground bg-primary-foreground p-5 text-center typo-body-2 text-foreground">
-            {message}
-        </div>
-    );
-}
+  // Mutations
+  const updatePatientInfoMutation = useUpdatePatientInfo({
+    onError: (error) => {
+      toast.error(error.message || "Failed to update patient info");
+    },
+  });
 
-function ErrorState({
-    message,
-    onRetry,
-}: {
-    readonly message: string;
-    readonly onRetry: () => void;
-}) {
-    return (
-        <div className="rounded-3xl border border-destructive bg-primary-foreground p-5 text-center">
-            <p className="typo-body-2 text-destructive">{message}</p>
-            <Button size="sm" className="mt-4" onClick={onRetry}>
-                <span className="text-primary-foreground">Try again</span>
-            </Button>
-        </div>
-    );
-}
+  const deleteAlertMutation = useDeletePatientAlert({
+    onSuccess: () => {
+      toast.success("Alert deleted successfully");
+      setDeleteAlertDialogOpen(false);
+      setAlertToDelete(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete alert");
+    },
+  });
 
+  const deleteAllergyMutation = useDeletePatientAllergy({
+    onSuccess: () => {
+      toast.success("Allergy deleted successfully");
+      setDeleteAllergyDialogOpen(false);
+      setAllergyToDelete(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete allergy");
+    },
+  });
 
-export function PatientHeader({ patientId, className }: Readonly<PatientHeaderProps>) {
-    const enabled = Boolean(patientId);
-    const {
-        data,
-        isLoading,
-        isFetching,
-        error,
-        refetch,
-    } = useGetPatientById(patientId ?? "", {
-        enabled,
-    });
+  // Handlers
+  const handleSaveHeight = async (heightCmValue: number) => {
+    if (!patientId) return;
+    try {
+      const response = await updatePatientInfoMutation.mutateAsync({
+        patientId,
+        data: { height: heightCmValue },
+      });
 
-    const responseError = data?.error ? data.message : null;
-    const patient = data?.data ?? null;
-    const shouldShowSkeleton = isLoading || (isFetching && !patient);
-    const derivedDetails = useMemo(() => {
-        if (!patient) {
-            return {
-                fullName: "",
-                initials: "",
-                dobDisplay: "",
-            };
-        }
-        const fullName = `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim();
-        const initials = fullName
-            .split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
+      if (response.error) {
+        toast.error(response.message || "Failed to update patient info");
+      } else {
+        toast.success("Patient info updated successfully");
+        setHeightDialogOpen(false);
+      }
+    } catch {
+      // Error is already handled by onError callback
+    }
+  };
 
-        const dob = patient.dateOfBirth ? formatDate(patient.dateOfBirth, "MM/DD/YYYY") : "";
-        const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
-        // Format: DOB: MM/DD/YYYY (age years)
-        let dobDisplay: string | null = null;
-        if (dob && age !== null) {
-            const ageText = age === 1 ? 'year' : 'years';
-            dobDisplay = `${dob} (${age} ${ageText})`;
-        } else if (dob) {
-            dobDisplay = dob;
-        }
-        return { fullName, initials, dobDisplay };
-    }, [patient]);
+  const handleSaveWeight = async (weightKgValue: number) => {
+    if (!patientId) return;
+    try {
+      const response = await updatePatientInfoMutation.mutateAsync({
+        patientId,
+        data: { weight: weightKgValue },
+      });
 
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    return (
-        <div className={cn("w-full max-w-[378px]", className)}>
-            {!enabled && <EmptyStateCard message="Select a patient to view details." />}
-            {enabled && shouldShowSkeleton && <PatientHeaderSkeleton />}
-            {enabled && !shouldShowSkeleton && (error || responseError) && (
-                <ErrorState
-                    message={responseError || error?.message || "Unable to load patient."}
-                    onRetry={() => refetch()}
+      if (response.error) {
+        toast.error(response.message || "Failed to update patient info");
+      } else {
+        toast.success("Patient info updated successfully");
+        setWeightDialogOpen(false);
+      }
+    } catch {
+      // Error is already handled by onError callback
+    }
+  };
+
+  const handleOpenGoalDialog = (goal?: {
+    uuid: string;
+    description: string;
+  }) => {
+    setEditingGoal(goal ?? null);
+    setGoalDialogOpen(true);
+  };
+
+  const handleSaveGoal = () => {
+    setGoalDialogOpen(false);
+    setEditingGoal(null);
+  };
+
+  const handleEditAlert = (alert: {
+    uuid: string;
+    description: string;
+    severity?: string | null;
+    notes?: string | null;
+  }) => {
+    setEditingAlert(alert);
+  };
+
+  const handleDeleteAlert = (alert: { uuid: string; description: string }) => {
+    setAlertToDelete({ id: alert.uuid, description: alert.description });
+    setDeleteAlertDialogOpen(true);
+  };
+
+  const handleConfirmDeleteAlert = async () => {
+    if (!patientId || !alertToDelete) {
+      return;
+    }
+    try {
+      await deleteAlertMutation.mutateAsync({
+        patientId,
+        alertId: alertToDelete.id,
+      });
+    } catch (error) {
+      // Error is handled by onError callback
+    }
+  };
+
+  const handleEditAllergy = (allergy: {
+    uuid: string;
+    allergen: string;
+    reactionType?: string | null;
+    notes?: string | null;
+  }) => {
+    setEditingAllergy(allergy);
+  };
+
+  const handleDeleteAllergy = (allergy: { uuid: string; allergen: string }) => {
+    setAllergyToDelete({ id: allergy.uuid, allergen: allergy.allergen });
+    setDeleteAllergyDialogOpen(true);
+  };
+
+  const handleConfirmDeleteAllergy = async () => {
+    if (!patientId || !allergyToDelete) {
+      return;
+    }
+    try {
+      await deleteAllergyMutation.mutateAsync({
+        patientId,
+        allergyId: allergyToDelete.id,
+      });
+    } catch (error) {
+      // Error is handled by onError callback
+    }
+  };
+
+  return (
+    <div className={cn("w-full max-w-[378px]", className)}>
+      {/* Empty State */}
+      {!enabled && (
+        <EmptyStateCard message="Select a patient to view details." />
+      )}
+
+      {/* Loading State */}
+      {enabled && shouldShowSkeleton && <PatientHeaderSkeleton />}
+
+      {/* Error State */}
+      {enabled && !shouldShowSkeleton && (error || responseError) && (
+        <ErrorState
+          message={responseError || error?.message || "Unable to load patient."}
+          onRetry={() => refetch()}
+        />
+      )}
+
+      {/* Patient Content */}
+      {enabled &&
+        !shouldShowSkeleton &&
+        !error &&
+        !responseError &&
+        patient && (
+          <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
+            <PatientInfoSection
+              fullName={derivedDetails.fullName}
+              initials={derivedDetails.initials}
+              photo={patient.photo}
+              dateOfBirth={patient.dateOfBirth}
+              gender={patient.gender}
+              phoneNumber={patient.phoneNumber}
+              email={patient.email}
+              patientId={patientId}
+              isCollapsed={isCollapsed}
+              onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+            />
+
+            {!isCollapsed && (
+              <>
+                <PhysicalMeasurementsSection
+                  heightCm={heightCm}
+                  weightKg={weightKg}
+                  bmi={bmi}
+                  onEditHeight={() => setHeightDialogOpen(true)}
+                  onEditWeight={() => setWeightDialogOpen(true)}
                 />
+
+                <HealthGoalsSection
+                  onAddGoal={() => handleOpenGoalDialog()}
+                  onEditGoal={handleOpenGoalDialog}
+                  patientId={patientId}
+                />
+
+                <AlertsAndAllergiesSection
+                  alerts={patient.patientAlerts}
+                  allergies={patient.patientAllergies}
+                  onAddAlert={() => setAlertDialogOpen(true)}
+                  onAddAllergy={() => setAllergyDialogOpen(true)}
+                  onEditAlert={handleEditAlert}
+                  onDeleteAlert={handleDeleteAlert}
+                  onEditAllergy={handleEditAllergy}
+                  onDeleteAllergy={handleDeleteAllergy}
+                />
+              </>
             )}
-            {enabled && !shouldShowSkeleton && !error && !responseError && patient && (
-                <div className="rounded-3xl border border-muted-foreground bg-primary-foreground divide-y divide-muted-foreground/40">
-                    {/* Patient Info */}
-                    <div className="space-y-4 px-4 pb-4 pt-4 md:px-6 md:pt-6 md:pb-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 md:gap-4">
-                                <Avatar className="h-12 w-12 rounded-full md:h-16 md:w-16">
-                                    <AvatarImage src={patient.photo ?? undefined} className="rounded-full" alt={derivedDetails.fullName} />
-                                    <AvatarFallback className="rounded-full bg-muted-foreground/30 typo-h4 text-foreground">
-                                        {derivedDetails.initials || "P"}
-                                    </AvatarFallback>
-                                </Avatar>
+          </div>
+        )}
 
-                                <div>
-                                    <h2 className="text-foreground">
-                                        {derivedDetails.fullName ?? "Unnamed patient"}
-                                    </h2>
-                                </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={isCollapsed ? "Show patient details" : "Hide patient details"}
-                                className="rounded-full p-2"
-                                onClick={() => setIsCollapsed((prev) => !prev)}
-                            >
-                                {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                            </Button>
-                        </div>
-
-                        {!isCollapsed && (
-                            <div className="space-y-4">
-                                <InfoRow icon={Calendar} label="DOB:" value={derivedDetails.dobDisplay} />
-                                <InfoRow
-                                    icon={User}
-                                    label="Gender:"
-                                    value={patient.gender
-                                        ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1).toLowerCase()
-                                        : null
-                                    }
-                                />
-                                <InfoRow icon={Phone} label="Phone:" value={patient.phoneNumber} />
-                                <InfoRow icon={Mail} label="Email:" value={patient.email} />
-                            </div>
-                        )}
-                    </div>
-
-                    {!isCollapsed && (
-                        <Collapsible>
-                            <CollapsibleTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="flex w-full items-center justify-between rounded-b-3xl bg-primary-brand-teal-2/5 px-4 py-4 text-left typo-body-2 text-bg-teal-gradient transition data-[state=open]:hidden P-4 md:p-6 hover:text-primary-brand-teal-1"
-                                >
-                                    <span>Alerts &amp; Allergies</span>
-                                    <span>Show</span>
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="divide-y divide-muted-foreground/40">
-                                {/* Patient Alerts */}
-                                <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-primary-brand-teal-1">Alerts</h4>
-                                        <CollapsibleTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-auto p-0 typo-body-3  text-primary-brand-teal-1"
-                                            >
-                                                Hide
-                                            </Button>
-                                        </CollapsibleTrigger>
-                                    </div>
-                                    {patient.patientAlerts?.length ? (
-                                        <div className="space-y-2">
-                                            {patient.patientAlerts.map((alert) => (
-                                                <p
-                                                    key={alert.uuid || alert.id}
-                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
-                                                >
-                                                    {alert.description}
-                                                </p>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="typo-body-2 text-foreground">No alerts</p>
-                                    )}
-                                </div>
-
-                                {/* Patient Allergies */}
-                                <div className="space-y-3 px-4 pb-3 pt-4 md:px-6 md:pt-6 md:pb-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-primary-brand-teal-1">
-                                            Allergies
-                                        </h4>
-                                    </div>
-
-                                    {patient.patientAllergies?.length ? (
-                                        <div className="space-y-2">
-                                            {patient.patientAllergies.map((allergy) => (
-                                                <p
-                                                    key={allergy.uuid || allergy.id}
-                                                    className="pb-1 typo-body-1 typo-body-1-regular text-foreground md:pb-2"
-                                                >
-                                                    {allergy.allergen}
-                                                </p>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="typo-body-2 text-foreground">No Allergies</p>
-                                    )}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )}
-                </div>
-            )}
-            {enabled && (
-                <div className="mt-4">
-                    <ChatsHistory patientId={patientId} />
-                </div>
-            )}
+      {/* Chats History */}
+      {enabled && (
+        <div className="mt-4">
+          <ChatsHistory patientId={patientId} />
         </div>
-    );
+      )}
+
+      {/* Dialogs */}
+      <HeightEditDialog
+        open={heightDialogOpen}
+        onOpenChange={setHeightDialogOpen}
+        initialHeightCm={heightCm}
+        onSave={handleSaveHeight}
+        isSaving={updatePatientInfoMutation.isPending}
+      />
+
+      <WeightEditDialog
+        open={weightDialogOpen}
+        onOpenChange={setWeightDialogOpen}
+        initialWeightKg={weightKg}
+        onSave={handleSaveWeight}
+        isSaving={updatePatientInfoMutation.isPending}
+      />
+
+      <GoalEditDialog
+        patientId={patientId ?? ""}
+        open={goalDialogOpen}
+        onOpenChange={setGoalDialogOpen}
+        goal={editingGoal}
+        onSave={handleSaveGoal}
+      />
+
+      <AddAlertDialog
+        patientId={patientId ?? ""}
+        open={alertDialogOpen}
+        onOpenChange={setAlertDialogOpen}
+        onSave={() => {
+          refetch();
+        }}
+      />
+
+      <AddAllergyDialog
+        patientId={patientId ?? ""}
+        open={allergyDialogOpen}
+        onOpenChange={setAllergyDialogOpen}
+        onSave={() => {
+          refetch();
+        }}
+      />
+
+      <EditAlertDialog
+        patientId={patientId ?? ""}
+        open={!!editingAlert}
+        onOpenChange={(open) => {
+          if (!open) setEditingAlert(null);
+        }}
+        alert={editingAlert}
+        onSave={() => {
+          refetch();
+        }}
+      />
+
+      <EditAllergyDialog
+        patientId={patientId ?? ""}
+        open={!!editingAllergy}
+        onOpenChange={(open) => {
+          if (!open) setEditingAllergy(null);
+        }}
+        allergy={editingAllergy}
+        onSave={() => {
+          refetch();
+        }}
+      />
+
+      <DeleteAlertConfirmDialog
+        open={deleteAlertDialogOpen}
+        onOpenChange={setDeleteAlertDialogOpen}
+        alertDescription={alertToDelete?.description}
+        onConfirm={handleConfirmDeleteAlert}
+        isDeleting={deleteAlertMutation.isPending}
+      />
+
+      <DeleteAllergyConfirmDialog
+        open={deleteAllergyDialogOpen}
+        onOpenChange={setDeleteAllergyDialogOpen}
+        allergen={allergyToDelete?.allergen}
+        onConfirm={handleConfirmDeleteAllergy}
+        isDeleting={deleteAllergyMutation.isPending}
+      />
+    </div>
+  );
 }

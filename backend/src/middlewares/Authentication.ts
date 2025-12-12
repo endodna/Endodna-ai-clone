@@ -62,7 +62,7 @@ export const Authentication = async (
       });
     }
   } catch (e) {
-    logger.error("Token verification failed", {
+    logger.debug("Token verification failed", {
       traceId: req.traceId,
       error: e,
     });

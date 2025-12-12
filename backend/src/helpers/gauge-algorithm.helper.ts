@@ -9,9 +9,9 @@
  * by three color zones:
  * - Green: Low risk (benign / likely benign variants)
  * - Yellow: Moderate / uncertain risk (variants of uncertain significance)
- * - Red: High risk (likely pathogenic / pathogenic variants)
+ * - Red: High risk (likely impactful / impactful variants)
  *
- * The worst-case approach uses the most pathogenic classification in a group to determine the
+ * The worst-case approach uses the most impactful classification in a group to determine the
  * overall risk level, ensuring clinical caution is prioritized.
  */
 
@@ -27,20 +27,28 @@ export interface GaugeResult {
 /**
  * Mapping of ACMG/AMP variant classification categories to severity scores.
  *
- * Severity scores range from 0 (benign) to 4 (pathogenic). These scores are used for worst-case
+ * Severity scores range from 0 (benign) to 4 (impactful). These scores are used for worst-case
  * aggregation: the maximum severity determines the gauge color. The mapping aligns with clinical
  * risk levels:
  *  - 0-1: Benign / Likely Benign (low risk) → Green
  *  - 2: Uncertain Significance (moderate risk) → Yellow
- *  - 3-4: Likely Pathogenic / Pathogenic (high risk) → Red
+ *  - 3-4: Likely Impactful / Impactful (high risk) → Red
  */
 const ACMG_SEVERITY: Record<string, number> = {
     benign: 0,
     "likely benign": 1,
     "uncertain significance": 2,
     vus: 2,
-    "likely pathogenic": 3,
-    pathogenic: 4,
+    "likely impactful": 3,
+    impactful: 4,
+};
+
+export const REVERSED_ACMG_SEVERITY: Record<number, string> = {
+    4: "impactful",
+    3: "likely impactful",
+    2: "vus",
+    1: "likely benign",
+    0: "benign",
 };
 
 /**
@@ -53,7 +61,7 @@ const ACMG_SEVERITY: Record<string, number> = {
  *  4. Assigns a color based on maximum severity:
  *     - Green: maxSeverity ≤ 1 (all benign / likely benign)
  *     - Yellow: maxSeverity = 2 (at least one VUS, no LP/P)
- *     - Red: maxSeverity ≥ 3 (at least one likely pathogenic / pathogenic)
+ *     - Red: maxSeverity ≥ 3 (at least one likely impactful / impactful)
  *
  * @param labels List of ACMG variant classification labels.
  * @returns GaugeResult summarizing the aggregated risk.

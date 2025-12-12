@@ -404,7 +404,16 @@ class BedrockHelper {
     async generateChatCompletion(
         params: {
             systemPrompt: string;
-            messages: Array<{ role: string; content: string }>;
+            messages: Array<{ role: string; content: string | any[] }>;
+            tools?: Array<{
+                name: string;
+                description: string;
+                input_schema: {
+                    type: string;
+                    properties: Record<string, any>;
+                    required?: string[];
+                };
+            }>;
             organizationId: number;
             patientId?: string;
             doctorId?: string;
@@ -419,18 +428,24 @@ class BedrockHelper {
         inputTokens: number;
         outputTokens: number;
         latencyMs: number;
+        toolCalls?: Array<{
+            id: string;
+            name: string;
+            input: any;
+        }>;
     }> {
         const startTime = Date.now();
         const {
             systemPrompt,
             messages,
+            tools,
             organizationId,
             patientId,
             doctorId,
             taskId,
             taskType,
-            maxTokens = 4096,
-            temperature = 0.7,
+            maxTokens = 2048,
+            temperature = 0.5,
             traceId,
         } = params;
 
@@ -444,7 +459,14 @@ class BedrockHelper {
             });
 
             const mockText = "This is a mock AI chat response. Bedrock is disabled in development mode.";
-            const inputTokens = this.estimateTokens(systemPrompt + messages.map(m => m.content).join(" "));
+            const messagesContent = messages.map(m => {
+                if (typeof m.content === "string") {
+                    return m.content;
+                } else {
+                    return JSON.stringify(m.content);
+                }
+            }).join(" ");
+            const inputTokens = this.estimateTokens(systemPrompt + messagesContent);
             const outputTokens = this.estimateTokens(mockText);
             const latencyMs = Date.now() - startTime;
 
@@ -461,7 +483,7 @@ class BedrockHelper {
                 outputTokens,
                 cacheHit: false,
                 latencyMs,
-                metadata: { mock: true },
+                metadata: { mock: true, tools: tools?.length || 0 },
                 traceId,
             });
 
@@ -482,21 +504,35 @@ class BedrockHelper {
                 taskType,
                 systemPromptLength: systemPrompt.length,
                 messagesCount: messages.length,
+                toolsCount: tools?.length || 0,
             });
 
             const bedrockClient = this.getBedrockClient();
             const modelId = MODEL_ID.CHAT_COMPLETION;
 
-            const requestBody = {
+            const requestBody: any = {
                 anthropic_version: "bedrock-2023-05-31",
                 max_tokens: maxTokens,
                 temperature,
                 system: systemPrompt,
-                messages: messages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content,
-                })),
+                messages: messages.map(msg => {
+                    if (typeof msg.content === "string") {
+                        return {
+                            role: msg.role,
+                            content: msg.content,
+                        };
+                    } else {
+                        return {
+                            role: msg.role,
+                            content: msg.content,
+                        };
+                    }
+                }),
             };
+
+            if (tools && tools.length > 0) {
+                requestBody.tools = tools;
+            }
 
             const command = new InvokeModelCommand({
                 modelId,
@@ -520,11 +556,30 @@ class BedrockHelper {
                 throw new Error("Invalid chat completion response from Bedrock");
             }
 
-            const text = responseBody.content
-                .map((item: any) => item.text)
-                .join("");
+            const toolCalls: Array<{ id: string; name: string; input: any }> = [];
+            let text = "";
 
-            const inputTokens = responseBody.usage?.input_tokens || this.estimateTokens(systemPrompt + messages.map(m => m.content).join(" "));
+            for (const item of responseBody.content) {
+                if (item.type === "text") {
+                    text += item.text;
+                } else if (item.type === "tool_use") {
+                    toolCalls.push({
+                        id: item.id,
+                        name: item.name,
+                        input: item.input,
+                    });
+                }
+            }
+
+            const messagesContent = messages.map(m => {
+                if (typeof m.content === "string") {
+                    return m.content;
+                } else {
+                    return JSON.stringify(m.content);
+                }
+            }).join(" ");
+
+            const inputTokens = responseBody.usage?.input_tokens || this.estimateTokens(systemPrompt + messagesContent);
             const outputTokens = responseBody.usage?.output_tokens || this.estimateTokens(text);
             const latencyMs = Date.now() - startTime;
 
@@ -541,6 +596,11 @@ class BedrockHelper {
                 outputTokens,
                 cacheHit: false,
                 latencyMs,
+                metadata: {
+                    tools: tools?.length || 0,
+                    toolCalls: toolCalls.length,
+                    toolCallsUsed: toolCalls.map(tc => tc.name),
+                },
                 traceId,
             });
 
@@ -550,6 +610,7 @@ class BedrockHelper {
                 patientId,
                 taskId,
                 textLength: text.length,
+                toolCallsCount: toolCalls.length,
                 inputTokens,
                 outputTokens,
                 latencyMs,
@@ -561,6 +622,7 @@ class BedrockHelper {
                 inputTokens,
                 outputTokens,
                 latencyMs,
+                toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
             };
         } catch (error) {
             const latencyMs = Date.now() - startTime;

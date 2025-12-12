@@ -29,6 +29,7 @@ const navItems = [
   { title: "Labs", url: "/dashboard/labs" },
   { title: "Automation", url: "/dashboard/automation" },
   { title: "Manage Clinic", url: "/dashboard/manage-clinic" },
+  { title: "Treatment Plan Templates", url: "/dashboard/treatment-plan-template" },
 ];
 
 export function TopNavigation() {
@@ -63,7 +64,7 @@ export function TopNavigation() {
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       }
-      <nav className="bg-muted-foreground w-full rounded-3xl rounded-l-2xl p-1">
+      <nav className="bg-neutral-200 w-full rounded-3xl rounded-l-2xl p-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center px-2 gap-4">
             {navItems.map((item) => (

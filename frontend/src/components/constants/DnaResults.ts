@@ -16,6 +16,7 @@ export const DNA_STEP_STATUS = {
     COMPLETE: 'COMPLETE',
     FAILED: 'FAILED',
     UPCOMING: 'UPCOMING'
+    
 } as const;
 
 export type DnaStepStatus = typeof DNA_STEP_STATUS[keyof typeof DNA_STEP_STATUS];

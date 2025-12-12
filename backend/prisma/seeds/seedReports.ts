@@ -20,31 +20,31 @@ export async function seedReports(prisma: PrismaClient) {
 
     for (const reportData of reports) {
         try {
-            const categoryName = reportData.category_name;
+            const reportName = reportData.name;
 
             const existingReport = await prisma.report.findFirst({
                 where: {
-                    title: categoryName,
+                    title: reportName,
                     organizationId: organizationId,
                     deletedAt: null,
                 },
             });
 
             if (existingReport) {
-                console.log(`Report "${categoryName}" already exists, skipping...`);
+                console.log(`Report "${reportName}" already exists, skipping...`);
                 skippedCount++;
                 continue;
             }
 
             reportsToCreate.push(reportData);
         } catch (error) {
-            console.error(`Error checking report "${reportData.category_name}":`, error);
+            console.error(`Error checking report "${reportData.name}":`, error);
             errorCount++;
         }
     }
 
     if (reportsToCreate.length === 0) {
-        console.log("\n=== Seeding Summary ===");
+        console.log("\n=== Reports Seeding Summary ===");
         console.log(`Created: ${createdCount}`);
         console.log(`Skipped: ${skippedCount}`);
         console.log(`Errors: ${errorCount}`);
@@ -58,16 +58,16 @@ export async function seedReports(prisma: PrismaClient) {
         await prisma.$transaction(
             async (tx) => {
                 for (const reportData of reportsToCreate) {
-                    const categoryName = reportData.category_name;
-                    const code = generateCodeFromTitle(categoryName);
+                    const reportName = reportData.name;
+                    const code = generateCodeFromTitle(reportName);
 
                     const report = await tx.report.create({
                         data: {
                             organizationId: organizationId,
                             code: code,
-                            title: categoryName,
+                            title: reportName,
                             description: null,
-                            genders: [reportData.gender],
+                            genders: reportData.genders,
                             price: new Prisma.Decimal(0),
                             metadata: Prisma.JsonNull,
                         },
@@ -80,16 +80,26 @@ export async function seedReports(prisma: PrismaClient) {
                         },
                     });
 
-                    await tx.reportSNP.createMany({
-                        data: reportData.snps.map((snp) => ({
-                            reportVersionId: reportVersion.id,
-                            rsID: snp.rsID,
-                            pathogenicity: snp.pathogenicity,
-                            genotype: snp.genotype,
-                            sources: snp.sources,
-                            description: snp.description,
-                        })),
-                    });
+                    for (const category of reportData.categories) {
+                        const reportCategory = await tx.reportCategory.create({
+                            data: {
+                                name: category.category_name,
+                                reportId: report.id,
+                                reportVersionId: reportVersion.id
+                            },
+                        });
+
+                        await tx.reportCategorySNP.createMany({
+                            data: category.snps.map((snp) => ({
+                                reportCategoryId: reportCategory.id,
+                                rsID: snp.rsID,
+                                pathogenicity: snp.pathogenicity,
+                                genotype: snp.genotype,
+                                sources: snp.sources,
+                                description: snp.description,
+                            })),
+                        });
+                    }
 
                     await tx.report.update({
                         where: {
@@ -101,7 +111,7 @@ export async function seedReports(prisma: PrismaClient) {
                     });
 
                     console.log(
-                        `Created report "${categoryName}" with ${reportData.snps.length} SNPs (version ${reportData.version})`
+                        `Created report "${reportName}" with ${reportData.categories.length} Categories (version ${reportData.version})`
                     );
                     createdCount++;
                 }

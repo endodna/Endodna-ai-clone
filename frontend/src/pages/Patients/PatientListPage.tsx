@@ -1,5 +1,6 @@
 import { AddPatientDialog } from "@/components/patients/AddPatientDialog";
 import { InvitePatientDialog } from "@/components/patients/InvitePatientDialog";
+import { EditPatientDialog } from "@/components/patients/EditPatientDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +36,8 @@ export default function PatientListPage() {
     const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const [search, setSearch] = useState("");
     const [isSearchVisible, setIsSearchVisible] = useState(true);
+    const [editPatientDialogOpen, setEditPatientDialogOpen] = useState(false);
+    const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const { searchInput, selectedPhysician, selectedStatus, page, limit } = filters;
 
     // Fetch doctors and get constants from context
@@ -246,6 +249,10 @@ export default function PatientListPage() {
                 onInvitePatient={() => {
                     dispatch(openInvitePatientDialog());
                 }}
+                onEditPatient={(patient) => {
+                    setSelectedPatientId(patient.id);
+                    setEditPatientDialogOpen(true);
+                }}
             />
 
             <AddPatientDialog
@@ -257,6 +264,16 @@ export default function PatientListPage() {
                 }}
             />
             <InvitePatientDialog />
+            <EditPatientDialog
+                open={editPatientDialogOpen}
+                onOpenChange={(open) => {
+                    setEditPatientDialogOpen(open);
+                    if (!open) {
+                        setSelectedPatientId(null);
+                    }
+                }}
+                patientId={selectedPatientId}
+            />
         </div>
     );
 }

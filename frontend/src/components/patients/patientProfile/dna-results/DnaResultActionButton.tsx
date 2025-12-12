@@ -18,9 +18,10 @@ interface DnaResultActionButtonProps {
     action: RowAction;
     result: PatientDNAResult;
     patientId: string;
+    onOpenClick?: () => void;
 }
 
-export const DnaResultActionButton = ({ action, result, patientId }: DnaResultActionButtonProps) => {
+export const DnaResultActionButton = ({ action, result, patientId, onOpenClick }: DnaResultActionButtonProps) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState<"HOLD" | "PROCESS" | "CANCEL" | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,9 @@ export const DnaResultActionButton = ({ action, result, patientId }: DnaResultAc
 
     const handleClick = () => {
         if (action.intent === "open") {
+            if (onOpenClick) {
+                onOpenClick();
+            }
             return;
         }
 

@@ -1,369 +1,501 @@
 interface Doctor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  userType: string;
+}
+
+interface GetDoctorPatientsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  doctorId?: string;
+  status?: string;
+}
+
+interface Constants {
+  status: string[];
+  dnaResultStatus: string[];
+  medicalRecordType: string[];
+  priority: string[];
+  chatType: string[];
+  chatMessageRole: string[];
+  orderType: string[];
+  paymentStatus: string[];
+  gender: string[];
+}
+
+interface Report {
+  id: string;
+  code: string;
+  title: string;
+  description?: string | null;
+  genders: string[];
+  price: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateReportDto {
+  code: string;
+  title: string;
+  description?: string | null;
+  genders: string[];
+  price: number;
+}
+interface CreateReportVariables {
+  data: CreateReportDto;
+}
+
+interface OrderDNAKitResponseData {
+  dnaResultKitId: string;
+  orderId: string;
+  patientReportId: string;
+}
+
+interface PatientAddressDetails {
+  street?: string;
+  street2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}
+
+interface PatientAddress {
+  id: string;
+  address: PatientAddressDetails | null;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PatientDNAResultActivity {
+  activity: string;
+  status: string;
+  createdAt: string | Date;
+}
+
+interface PatientDNAResultBreakdown {
+  snpName: string;
+  chromosome: string;
+  position: string;
+  genotype: string;
+  referenceAllele: string;
+  alternateAllele: string;
+}
+
+interface PatientDNAResult {
+  id: string;
+  uuid: string;
+  status: string;
+  barcode?: string | null;
+  name?: string | null;
+  reportName?: string | null;
+  isProcessed?: boolean;
+  isFailedProcessing?: boolean;
+  failedProcessingReason?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  patientDNAResultBreakdown?: PatientDNAResultBreakdown[];
+  patientDNAResultActivity?: PatientDNAResultActivity[];
+}
+
+interface PatientGeneticsReport {
+  id: string;
+  name: string;
+  variantStatus:
+    | "Benign"
+    | "Likely Benign"
+    | "VUS"
+    | "Likely Impactful"
+    | "Impactful";
+}
+
+interface PatientGeneticsReportsResponse {
+  reports: Array<{
+    reportName: string;
+    categories: Array<{
+      categoryName: string;
+      variantStatus: string;
+    }>;
+  }>;
+  variantsCount: {
+    total: number;
+    benign: number;
+    likelyBenign: number;
+    vus: number;
+    likelyImpactful: number;
+    impactful: number;
+  };
+}
+
+interface CreatePatientAddressVariables {
+  patientId: string;
+  data: {
+    address: PatientAddressDetails;
+    isPrimary?: boolean;
+  };
+}
+
+interface UpdatePatientAddressVariables {
+  patientId: string;
+  addressId: string;
+  data: {
+    address?: PatientAddressDetails;
+    isPrimary?: boolean;
+  };
+}
+
+interface UploadMedicalRecordsVariables {
+  patientId: string;
+  files: File[];
+  metadata?: {
+    title?: string;
+    type?: string;
+  };
+  onUploadProgress?: (event: AxiosProgressEvent) => void;
+}
+
+interface OrderDNAKitVariables {
+  patientId: string;
+  data: {
+    barcode: string;
+    reportId: string;
+    orderType: DnaOrderType;
+    addressId?: string;
+  };
+}
+
+/**
+ * Backend API response structure for patient - this is what comes from the API
+ */
+interface PatientRow {
+  id: string;
+  firstName: string;
+  lastName: string;
+  status: string; // User account status: ACTIVE, PENDING, etc.
+  dateOfBirth?: string | Date | null;
+  gender?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  workPhoneNumber?: string | null;
+  homePhoneNumber?: string | null;
+  patientInfo?: {
+    id: string;
+    weight?: number | null;
+    height?: number | null;
+    bloodType?: string | null;
+    bmi?: number | null;
+    age?: number | null;
+    prefilledData?: Record<string, any> | null;
+  } | null;
+  patientDNAResults: Array<{
+    id: string;
+    uuid: string;
+    status: string; // DNA result status
+    updatedAt?: string | Date; // Used to find the most recent result
+  }>;
+  patientActivities?: Array<{
+    id: string;
+    uuid: string;
+    activity: string;
+    status?: string;
+    createdAt?: string | Date; // Fallback if dateCompleted is not available
+  }>;
+  patientGoals: Array<{
+    id: string;
+    uuid?: string;
+    description: string;
+  }>;
+  managingDoctor: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
-    userType: string;
-}
-
-interface GetDoctorPatientsParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    doctorId?: string;
-    status?: string;
-}
-
-interface Constants {
-    status: string[];
-    dnaResultStatus: string[];
-    medicalRecordType: string[];
-    priority: string[];
-    chatType: string[];
-    chatMessageRole: string[];
-    orderType: string[];
-    paymentStatus: string[];
-    gender: string[];
-}
-
-
-
-interface Report {
-    id: string;
-    code: string;
-    title: string;
-    description?: string | null;
-    genders: string[];
-    price: string;
-    metadata?: Record<string, unknown> | null;
-    createdAt: string;
-    updatedAt: string;
-}
-
-interface OrderDNAKitResponseData {
-    dnaResultKitId: string;
-    orderId: string;
-    patientReportId: string;
-}
-
-interface PatientAddressDetails {
-    street?: string;
-    street2?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-}
-
-interface PatientAddress {
-    id: string;
-    address: PatientAddressDetails | null;
-    isPrimary: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-interface PatientDNAResultActivity {
-    activity: string;
-    status: string;
-    createdAt: string | Date;
-}
-
-interface PatientDNAResultBreakdown {
-    snpName: string;
-    chromosome: string;
-    position: string;
-    genotype: string;
-    referenceAllele: string;
-    alternateAllele: string;
-}
-
-interface PatientDNAResult {
-    id: string;
-    uuid: string;
-    status: string;
-    barcode?: string | null;
-    name?: string | null;
-    reportName?: string | null;
-    isProcessed?: boolean;
-    isFailedProcessing?: boolean;
-    failedProcessingReason?: string | null;
-    createdAt?: string | Date;
-    updatedAt?: string | Date;
-    patientDNAResultBreakdown?: PatientDNAResultBreakdown[];
-    patientDNAResultActivity?: PatientDNAResultActivity[];
-}
-
-
-interface CreatePatientAddressVariables {
-    patientId: string;
-    data: {
-        address: PatientAddressDetails;
-        isPrimary?: boolean;
-    };
-}
-
-interface UpdatePatientAddressVariables {
-    patientId: string;
-    addressId: string;
-    data: {
-        address?: PatientAddressDetails;
-        isPrimary?: boolean;
-    };
-}
-
-interface UploadMedicalRecordsVariables {
-    patientId: string;
-    files: File[];
-    metadata?: {
-        title?: string;
-        type?: string;
-    };
-    onUploadProgress?: (event: AxiosProgressEvent) => void;
-}
-
-interface OrderDNAKitVariables {
-    patientId: string;
-    data: {
-        barcode: string;
-        reportId: string;
-        orderType: DnaOrderType;
-        addressId?: string;
-    };
-}
-
-/**
-* Backend API response structure for patient - this is what comes from the API
-*/
-interface PatientRow {
-    id: string;
-    firstName: string;
-    lastName: string;
-    status: string; // User account status: ACTIVE, PENDING, etc.
-    dateOfBirth?: string | Date | null;
-    gender?: string | null;
-    email?: string | null;
-    phoneNumber?: string | null;
-    workPhoneNumber?: string | null;
-    homePhoneNumber?: string | null;
-    patientInfo?: {
-        id: string;
-        weight?: number | null;
-        height?: number | null;
-        bloodType?: string | null;
-        bmi?: number | null;
-        age?: number | null;
-        prefilledData?: Record<string, any> | null;
-    } | null;
-    patientDNAResults: Array<{
-        id: string;
-        uuid: string;
-        status: string; // DNA result status
-        updatedAt?: string | Date; // Used to find the most recent result
-    }>;
-    patientActivities?: Array<{
-        id: string;
-        uuid: string;
-        activity: string;
-        status?: string;
-        createdAt?: string | Date; // Fallback if dateCompleted is not available
-    }>;
-    patientGoals: Array<{
-        id: string;
-        uuid?: string;
-        description: string;
-    }>;
-    managingDoctor: {
-        id: string;
-        firstName: string;
-        lastName: string;
-        email: string;
-    } | null;
+  } | null;
 }
 
 /**
  * Backend API paginated response structure
  */
 interface PatientsApiResponse {
-    items: PatientRow[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-    };
+  items: PatientRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 /**
  * Add patient data
  */
 interface AddPatientData {
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    gender: string;
-    email: string;
-    phoneNumber: string;
-    homePhone?: string;
-    workPhone?: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: string;
+  email: string;
+  phoneNumber: string;
+  homePhone?: string;
+  workPhone?: string;
 }
 
 /**
  * patient added response
  */
 interface PatientAddedResponse {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    dateOfBirth: string;
-    gender: string;
-    phoneNumber: string;
-    homePhone?: string;
-    workPhone?: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  dateOfBirth: string;
+  gender: string;
+  phoneNumber: string;
+  homePhone?: string;
+  workPhone?: string;
 }
 
-
 interface UploadedMedicalRecordMetadata {
-    originalName?: string;
-    size?: number;
-    mimetype?: string;
+  originalName?: string;
+  size?: number;
+  mimetype?: string;
 }
 
 interface UploadedMedicalRecord {
-    id: number;
-    title: string;
-    type: string;
-    metadata: UploadedMedicalRecordMetadata;
+  id: number;
+  title: string;
+  type: string;
+  metadata: UploadedMedicalRecordMetadata;
 }
 
 interface UploadMedicalRecordsResponse {
-    records: UploadedMedicalRecord[];
-    count: number;
+  records: UploadedMedicalRecord[];
+  count: number;
 }
 
 /**
  * Patient detail structure from getPatientById API
  */
 interface PatientDetail {
+  id: string;
+  firstName: string;
+  lastName: string;
+  status: string;
+  dateOfBirth?: string | Date | null;
+  gender?: string | null;
+  bloodType?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  workPhoneNumber?: string | null;
+  homePhoneNumber?: string | null;
+  photo?: string | null;
+  patientInfo?: {
+    id: string;
+    weight?: number | null;
+    height?: number | null;
+    bloodType?: string | null;
+    bmi?: number | null;
+    age?: number | null;
+    prefilledData?: Record<string, any> | null;
+    clinicalData?: {
+      shbgLevel?: number;
+      baselineTotalTestosterone?: number;
+      baselineFreeTestosterone?: number;
+      postInsertionTotalTestosterone?: number;
+      insertionDate?: string;
+      baselineEstradiol?: number;
+      postInsertionEstradiol?: number;
+      vitaminDLevel?: number;
+      hematocrit?: number;
+      currentPSA?: number;
+      previousPSA?: number;
+      monthsBetweenPSA?: number;
+      prostateSymptomsIpss?: number;
+      fshLevel?: number;
+      symptomSeverity?: number;
+    } | null;
+    lifestyleData?: Record<string, any> | null;
+    medicationsData?: Record<string, any> | null;
+  } | null;
+  patientDNAResults: Array<{
+    uuid: string;
+    status: string;
+    updatedAt?: string | Date;
+    id: string;
+  }>;
+  patientGoals: Array<{
+    uuid: string;
+    description: string;
+    createdAt?: string | Date;
+    id: string;
+  }>;
+  patientAllergies: Array<{
+    uuid: string;
+    allergen: string;
+    reactionType?: string | null;
+    notes?: string | null;
+    id: string;
+  }>;
+  patientAlerts: Array<{
+    uuid: string;
+    description: string;
+    severity?: string | null;
+    notes?: string | null;
+    id: string;
+  }>;
+  managingDoctor: {
     id: string;
     firstName: string;
     lastName: string;
-    status: string;
-    dateOfBirth?: string | Date | null;
-    gender?: string | null;
-    bloodType?: string | null;
-    email?: string | null;
-    phoneNumber?: string | null;
-    workPhoneNumber?: string | null;
-    homePhoneNumber?: string | null;
-    photo?: string | null;
-    patientInfo?: {
-        id: string;
-        weight?: number | null;
-        height?: number | null;
-        bloodType?: string | null;
-        bmi?: number | null;
-        age?: number | null;
-        prefilledData?: Record<string, any> | null;
-    } | null;
-    patientDNAResults: Array<{
-        uuid: string;
-        status: string;
-        updatedAt?: string | Date;
-        id: string;
-    }>;
-    patientGoals: Array<{
-        uuid: string;
-        description: string;
-        createdAt?: string | Date;
-        id: string;
-    }>;
-    patientAllergies: Array<{
-        uuid: string;
-        allergen: string;
-        reactionType?: string | null;
-        notes?: string | null;
-        id: string;
-    }>;
-    patientAlerts: Array<{
-        uuid: string;
-        description: string;
-        severity?: string | null;
-        notes?: string | null;
-        id: string;
-    }>;
-    managingDoctor: {
-        id: string;
-        firstName: string;
-        lastName: string;
-        email: string;
-    } | null;
+    email: string;
+  } | null;
 }
 
 interface PatientMedication {
-    id: string;
-    drugName: string;
-    dosage: string;
-    frequency: string;
-    startDate?: string | null;
-    endDate?: string | null;
-    reason: string;
-    notes?: string | null;
-    createdAt?: string | Date;
+  id: string;
+  drugName: string;
+  dosage: string;
+  frequency: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  reason: string;
+  notes?: string | null;
+  createdAt?: string | Date;
+}
+
+interface PatientAlert {
+  uuid: string;
+  id: string;
+  description: string;
+  severity?: string | null;
+  notes?: string | null;
+}
+
+interface PatientAllergy {
+  uuid: string;
+  id: string;
+  allergen: string;
+  reactionType?: string | null;
+  notes?: string | null;
+}
+
+interface CreatePatientAlertVariables {
+  patientId: string;
+  data: {
+    description: string;
+    severity: string;
+    notes?: string;
+  };
+}
+
+interface CreatePatientAllergyVariables {
+  patientId: string;
+  data: {
+    allergen: string;
+    reactionType: string;
+    notes?: string;
+  };
+}
+
+interface UpdatePatientAlertVariables {
+  patientId: string;
+  alertId: string;
+  data: {
+    description?: string;
+    severity?: string;
+    notes?: string;
+  };
+}
+
+interface UpdatePatientAllergyVariables {
+  patientId: string;
+  allergyId: string;
+  data: {
+    allergen?: string;
+    reactionType?: string;
+    notes?: string;
+  };
 }
 
 interface CreatePatientMedicationPayload {
-    drugName: string;
-    dosage: string;
-    frequency: string;
-    reason: string;
-    notes?: string;
-    startDate?: string;
-    endDate?: string;
+  drugName: string;
+  dosage: string;
+  frequency: string;
+  reason: string;
+  notes?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface ChatPatientInfo {
-    id: string;
-    firstName: string;
-    lastName: string;
-    photo?: string | null;
+  id: string;
+  firstName: string;
+  lastName: string;
+  photo?: string | null;
 }
 
 interface ChatConversationPreview {
+  id: string;
+  type: string;
+  title: string;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+  messages?: Array<{
     id: string;
-    type: string;
-    title: string;
+    role: string;
+    content: string;
     createdAt: string | Date;
-    updatedAt?: string | Date;
-    messages?: Array<{
-        id: string;
-        role: string;
-        content: string;
-        createdAt: string | Date;
-    }>;
+  }>;
 }
 
 interface PatientChatConversation extends ChatConversationPreview {
-    patient?: ChatPatientInfo | null;
+  patient?: ChatPatientInfo | null;
 }
 
 interface GeneralChatConversation extends ChatConversationPreview {}
 
 interface ChatMessage {
-    id: string;
-    role: string;
-    version?: string | null;
-    content: string;
-    createdAt: string | Date;
-    citations?: Array<{ id: string; title: string | null }>;
+  id: string;
+  role: string;
+  version?: string | null;
+  content: string;
+  createdAt: string | Date;
+  citations?: Array<{ id: string; title: string | null }>;
 }
 
 interface SendChatMessageResponse {
-    messageId: string;
-    content: string;
-    followUpPrompts?: string[];
-    citations?: Array<{ id: string; title: string | null }>;
+  messageId: string;
+  content: string;
+  followUpPrompts?: string[];
+  citations?: Array<{ id: string; title: string | null }>;
+}
+
+interface PatientGoal {
+  uuid: string;
+  id?: string;
+  description: string;
+}
+
+interface CreatePatientHealthGoalsVariables {
+  patientId: string;
+  data: {
+    description: string;
+    notes?: string;
+  };
+}
+
+interface UpdatePatientHealthGoalsVariables {
+  patientId: string;
+  goalId: string;
+  data: {
+    description: string;
+    notes?: string;
+  };
 }
