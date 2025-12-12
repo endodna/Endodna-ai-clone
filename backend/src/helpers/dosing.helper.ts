@@ -168,15 +168,9 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         let adjustedDoseMg = t200BaseDoseMg;
         adjustedDoseMg = adjustedDoseMg * shbgMultiplier * bmiMultiplier * medicationMultiplier * geneticMultiplier;
 
-
-        const preliminaryDoseMg = Math.ceil(adjustedDoseMg / 200) * 200;
-        let finalDoseMg = Math.min(preliminaryDoseMg, this.T200_Config.maxDoseMg);
-        const remainder = finalDoseMg % 200;
-        if (remainder < 100) {
-            finalDoseMg = Math.floor(finalDoseMg / 200) * 200;
-        } else {
-            finalDoseMg = Math.ceil(finalDoseMg / 200) * 200;
-        }
+        const preliminaryDoseMg = Math.round(adjustedDoseMg / 200) * 200;
+        const cappedDoseMg = Math.min(preliminaryDoseMg, this.T200_Config.maxDoseMg);
+        const finalDoseMg = Math.round(cappedDoseMg / 200) * 200;
 
         return Math.ceil(finalDoseMg / 200);
     }
@@ -1090,53 +1084,53 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             }
 
             if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
-                supplements.push({
-                    name: "Anastrozole or DIM",
-                    dose: "0.5mg 2x/week OR 300mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "Prevent excessive E2"
-                })
+                // supplements.push({
+                //     name: "Anastrozole or DIM",
+                //     dose: "0.5mg 2x/week OR 300mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "Prevent excessive E2"
+                // })
             }
 
             if (geneticData.srd5a2Status && geneticData.srd5a2Status === Srd5a2Status.HIGH) {
-                supplements.push({
-                    name: "Zinc + Saw Palmetto + DIM",
-                    dose: "30mg + 320mg + 300mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "DHT management"
-                })
+                // supplements.push({
+                //     name: "Zinc + Saw Palmetto + DIM",
+                //     dose: "30mg + 320mg + 300mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "DHT management"
+                // })
             }
 
             if (geneticData.antioxidantSnps && geneticData.antioxidantSnps === AntioxidantSnpsStatus.POOR_FUNCTION) {
-                supplements.push({
-                    name: "NAC + Zinc",
-                    dose: "600mg + 30mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "Oxidative stress protection"
-                })
+                // supplements.push({
+                //     name: "NAC + Zinc",
+                //     dose: "600mg + 30mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "Oxidative stress protection"
+                // })
             }
-            if (clinical.postInsertionEstradiol && clinical.postInsertionEstradiol > 60) {
-                supplements.push({
-                    name: "Anastrozole",
-                    dose: "0.5mg",
-                    unit: "mg",
-                    frequency: "2x/week",
-                    purpose: "Active E2 reduction"
-                })
-            }
+            // if (clinical.postInsertionEstradiol && clinical.postInsertionEstradiol > 60) {
+            //     supplements.push({
+            //         name: "Anastrozole",
+            //         dose: "0.5mg",
+            //         unit: "mg",
+            //         frequency: "2x/week",
+            //         purpose: "Active E2 reduction"
+            //     })
+            // }
         }
         else {
             if (bmi >= 35) {
-                supplements.push({
-                    name: "Anastrozole + DIM",
-                    dose: "0.5mg 2x/week + 300mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "Aromatase inhibition"
-                })
+                // supplements.push({
+                //     name: "Anastrozole + DIM",
+                //     dose: "0.5mg 2x/week + 300mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "Aromatase inhibition"
+                // })
             }
             else if (bmi >= 30) {
                 supplements.push({
@@ -1149,42 +1143,42 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             }
 
             if (geneticData.cyp19a1Status && geneticData.cyp19a1Status === Cyp19a1Status.HIGH_EXPRESSION) {
-                supplements.push({
-                    name: "Anastrozole or DIM",
-                    dose: "0.5mg 2x/week OR 300mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "Prevent excessive E2"
-                })
+                // supplements.push({
+                //     name: "Anastrozole or DIM",
+                //     dose: "0.5mg 2x/week OR 300mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "Prevent excessive E2"
+                // })
             }
 
             if (geneticData.srd5a2Status && geneticData.srd5a2Status === Srd5a2Status.HIGH) {
-                supplements.push({
-                    name: "Zinc + Saw Palmetto + DIM",
-                    dose: "30mg + 320mg + 300mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "DHT management"
-                })
+                // supplements.push({
+                //     name: "Zinc + Saw Palmetto + DIM",
+                //     dose: "30mg + 320mg + 300mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "DHT management"
+                // })
             }
 
             if (geneticData.antioxidantSnps && geneticData.antioxidantSnps === AntioxidantSnpsStatus.POOR_FUNCTION) {
-                supplements.push({
-                    name: "NAC + Zinc",
-                    dose: "600mg + 30mg daily",
-                    unit: "",
-                    frequency: "",
-                    purpose: "Oxidative stress protection"
-                })
+                // supplements.push({
+                //     name: "NAC + Zinc",
+                //     dose: "600mg + 30mg daily",
+                //     unit: "",
+                //     frequency: "",
+                //     purpose: "Oxidative stress protection"
+                // })
             }
             if (clinical.postInsertionEstradiol && clinical.postInsertionEstradiol > 60) {
-                supplements.push({
-                    name: "Anastrozole",
-                    dose: "0.5mg",
-                    unit: "mg",
-                    frequency: "2x/week",
-                    purpose: "Active E2 reduction"
-                })
+                // supplements.push({
+                //     name: "Anastrozole",
+                //     dose: "0.5mg",
+                //     unit: "mg",
+                //     frequency: "2x/week",
+                //     purpose: "Active E2 reduction"
+                // })
             }
         }
 
@@ -1246,23 +1240,13 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
 
             if (isFemale) {
                 preliminaryDoseMg = Math.round(adjustedDoseMg / 12.5) * 12.5;
-                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxFemaleDoseMg!);
-                const remainder = finalDoseMg % 12.5;
-                if (remainder < 6.25) {
-                    finalDoseMg = Math.floor(finalDoseMg / 12.5) * 12.5;
-                } else {
-                    finalDoseMg = Math.ceil(finalDoseMg / 12.5) * 12.5;
-                }
+                const cappedDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxFemaleDoseMg!);
+                finalDoseMg = Math.round(cappedDoseMg / 12.5) * 12.5;
                 pelletCount = Math.round(finalDoseMg / 12.5);
             } else {
                 preliminaryDoseMg = Math.round(adjustedDoseMg / 100) * 100;
-                finalDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
-                const remainder = finalDoseMg % 100;
-                if (remainder < 50) {
-                    finalDoseMg = Math.floor(finalDoseMg / 100) * 100;
-                } else {
-                    finalDoseMg = Math.ceil(finalDoseMg / 100) * 100;
-                }
+                const cappedDoseMg = Math.min(preliminaryDoseMg, this.T100_Config.maxDoseMg);
+                finalDoseMg = Math.round(cappedDoseMg / 100) * 100;
                 pelletCount = Math.ceil(finalDoseMg / 100);
             }
 
@@ -1281,13 +1265,8 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             });
 
             const preliminaryDoseMg = Math.round(adjustedDoseMg / 200) * 200;
-            let finalDoseMg = Math.min(preliminaryDoseMg, this.T200_Config.maxDoseMg);
-            const remainder = finalDoseMg % 200;
-            if (remainder < 100) {
-                finalDoseMg = Math.floor(finalDoseMg / 200) * 200;
-            } else {
-                finalDoseMg = Math.ceil(finalDoseMg / 200) * 200;
-            }
+            const cappedDoseMg = Math.min(preliminaryDoseMg, this.T200_Config.maxDoseMg);
+            const finalDoseMg = Math.round(cappedDoseMg / 200) * 200;
             const pelletCount = Math.ceil(finalDoseMg / 200);
 
             return { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration: expectedDuration };
