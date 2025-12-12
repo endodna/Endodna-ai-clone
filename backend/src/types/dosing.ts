@@ -25,16 +25,27 @@ export interface DosageClinicalParams {
     baselineTotalTestosterone?: number;
     baselineFreeTestosterone?: number;
     postInsertionTotalTestosterone?: number;
+    postInsertionTotalTestosterone12Weeks?: number;
     insertionDate?: Date;
     baselineEstradiol?: number;
     postInsertionEstradiol?: number;
+    postInsertionEstradiol12Weeks?: number;
     vitaminDLevel?: number;
+    vitaminDLevel6Weeks?: number;
+    vitaminDLevel12Weeks?: number;
     hematocrit?: number;
+    hematocrit6Weeks?: number;
+    hematocrit12Weeks?: number;
+    hemoglobin?: number;
+    hemoglobin6Weeks?: number;
+    hemoglobin12Weeks?: number;
     currentPSA?: number;
     previousPSA?: number;
     monthsBetweenPSA?: number;
     prostateSymptomsIpss?: number;
     fshLevel?: number;
+    fshLevel6Weeks?: number;
+    fshLevel12Weeks?: number;
     symptomSeverity?: number;
 }
 
