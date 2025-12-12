@@ -120,7 +120,7 @@ export function EditPatientDialog({ open, onOpenChange, patientId }: Readonly<Ed
           dob = new Date(patient.dateOfBirth).toISOString();
         }
       }
-      
+
       reset({
         dateOfBirth: dob,
         gender: patient.gender?.toLowerCase() || "",
@@ -141,7 +141,7 @@ export function EditPatientDialog({ open, onOpenChange, patientId }: Readonly<Ed
 
   const onSubmit = async (data: EditPatientFormData) => {
     if (!patientId) return;
-    
+
     // Only send fields that have values
     const updateData: Record<string, any> = {};
     if (data.dateOfBirth) updateData.dateOfBirth = data.dateOfBirth;
@@ -155,7 +155,7 @@ export function EditPatientDialog({ open, onOpenChange, patientId }: Readonly<Ed
         patientId,
         data: updateData,
       });
-      
+
       if (response.error) {
         toast.error(response.message || "Failed to update patient");
       } else {
@@ -172,6 +172,20 @@ export function EditPatientDialog({ open, onOpenChange, patientId }: Readonly<Ed
     if (!updatePatientMutation.isPending) {
       reset();
       onOpenChange(false);
+    }
+  };
+
+  const handleDateSelect = (date: Date | undefined, onChange: (value: string) => void) => {
+    if (date) {
+      // Format as YYYY-MM-DD and append noon UTC to avoid timezone shifts
+      // Using noon UTC instead of midnight prevents date shifts when parsing in different timezones
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}T12:00:00.000Z`;
+      onChange(dateString);
+    } else {
+      onChange("");
     }
   };
 
@@ -230,19 +244,7 @@ export function EditPatientDialog({ open, onOpenChange, patientId }: Readonly<Ed
                           mode="single"
                           captionLayout="dropdown"
                           selected={selectedDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              const utcDate = new Date(Date.UTC(
-                                date.getFullYear(),
-                                date.getMonth(),
-                                date.getDate()
-                              ));
-                              const utcTimestamp = utcDate.toISOString();
-                              field.onChange(utcTimestamp);
-                            } else {
-                              field.onChange("");
-                            }
-                          }}
+                          onSelect={(date) => handleDateSelect(date, field.onChange)}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
