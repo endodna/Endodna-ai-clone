@@ -845,12 +845,24 @@ class RAGHelper {
         ${prefilledFieldsSection}
         **DATE CALCULATIONS**: Use patient's Date of Birth and Current Date above. Calculate age accurately. Be precise when converting dates to years.
         
-        **CHART NOTE HEADINGS**: When processing chart notes, look for and extract information from these specific headings if present:
+        **IMPORTANT - CHART NOTE PROCESSING**: When processing chart notes, carefully examine them for the following structured information:
+        
+        **1. KINETIC SLOPE CALCULATION (REQUIRED IF PRESENT)**: 
+        - MUST check ALL chart notes for "KINETIC SLOPE CALCULATION" heading or any kinetic slope information
+        - If found, you MUST create a dedicated "### Kinetic Slope Calculation" section
+        - Extract and summarize ALL kinetic slope data including:
+          * Testosterone kinetic slope (6-week and 12-week values, change over time, projected target dates)
+          * Estradiol kinetic slope (6-week and 12-week values, change over time, projected target dates)
+          * Decline rates (pg/mL/week or ng/dL/week)
+          * Replenishment interval observations
+          * Any comparisons or correlations mentioned
+        - DO NOT perform any calculations - ONLY summarize the exact values and findings already present in the chart notes
+        - Preserve all numerical values, units, and timeframes exactly as written
+        
+        **2. CHART NOTE HEADINGS**: When processing chart notes, look for and extract information from these specific headings if present:
         - **CURRENT STATUS**: Include this information in the "Patient Overview" or "Active Conditions" sections
         - **MEDICAL HISTORY**: Include this information in the "Medical History Summary" section
         - **PRESENTING SYMPTOMS**: Include this information in the "Active Conditions" or "Patient Overview" sections
-        
-        **KINETIC SLOPE CALCULATION**: If chart notes contain "KINETIC SLOPE CALCULATION" or similar kinetic slope information, extract and summarize it in the dedicated section. DO NOT perform any calculations - only summarize the values and findings that are already present in the chart notes. Include testosterone and estradiol kinetic slope data, projected target dates, and any relevant observations about decline rates or replenishment intervals.
         
         **Output sections** (markdown headings):
         ### Patient Overview  
@@ -859,7 +871,8 @@ class RAGHelper {
         ### Allergies  
         ### Treatment Plans  
         ### Recent Labs and Key Findings  
-        ### Kinetic Slope Calculation (if available in chart notes)
+        ### Kinetic Slope Calculation
+        (MUST be included if kinetic slope information is found in chart notes - place this section after "Recent Labs and Key Findings" and before "Clinical Notes")
         ### Clinical Notes (include relevant chart notes)
         ### Medical History Summary  
         ### Suggested Follow-up Questions
