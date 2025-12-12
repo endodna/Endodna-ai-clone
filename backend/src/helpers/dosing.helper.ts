@@ -1366,7 +1366,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         const calculationBreakdown: DosageCalculationBreakdown[] = [];
         const bmi = this.calculateBMI(patientDemographics.weight, patientDemographics.height);
 
-        const { baseDoseMg, baseDurationDays } = this.calculateBaseT100Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown, patientDemographics.biologicalSex === Gender.FEMALE);
+        const { baseDoseMg, baseDurationDays } = this.calculateBaseT100Dose(patientDemographics.weight, tierSelection.selectedTier, calculationBreakdown, patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE);
         let expectedDuration = baseDurationDays;
 
         let durationWarning = false;
@@ -1417,11 +1417,11 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, false);
         const psaVelocity = this.applyPSAAndProstateModifiers(patientDemographics, clinical, adjustedDoseMg, expectedDuration, calculationBreakdown);
 
-        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false, patientDemographics.biologicalSex === Gender.FEMALE);
+        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, false, patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE);
 
         let finalBaseDose: number;
         let basePelletCount: number;
-        if (patientDemographics.biologicalSex === Gender.FEMALE) {
+        if (patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE) {
             finalBaseDose = baseDoseMg % 12.5 < 6.25 ? Math.floor(baseDoseMg / 12.5) * 12.5 : Math.ceil(baseDoseMg / 12.5) * 12.5;
             basePelletCount = Math.round(finalBaseDose / 12.5);
         } else {
@@ -1505,7 +1505,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
         this.applyVitaminDAndVDRModifiers(clinical, geneticData, adjustedDoseMg, expectedDuration, geneticMultiplier, calculationBreakdown, true);
         this.applyEstradiolModifiers(clinical, bmi, adjustedDoseMg, expectedDuration, calculationBreakdown, true);
 
-        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, true, patientDemographics.biologicalSex === Gender.FEMALE);
+        const { preliminaryDoseMg, finalDoseMg, pelletCount, newExpectedDuration } = this.calculateFinalDose(adjustedDoseMg, expectedDuration, calculationBreakdown, true, patientDemographics.biologicalSex.toUpperCase() === Gender.FEMALE);
 
         const finalBaseDose = baseDoseMg % 100 < 50 ? Math.floor(baseDoseMg / 100) * 100 : Math.ceil(baseDoseMg / 100) * 100;
         const basePelletCount = Math.ceil(finalBaseDose / 100);
