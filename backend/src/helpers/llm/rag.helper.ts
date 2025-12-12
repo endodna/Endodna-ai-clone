@@ -845,6 +845,13 @@ class RAGHelper {
         ${prefilledFieldsSection}
         **DATE CALCULATIONS**: Use patient's Date of Birth and Current Date above. Calculate age accurately. Be precise when converting dates to years.
         
+        **CHART NOTE HEADINGS**: When processing chart notes, look for and extract information from these specific headings if present:
+        - **CURRENT STATUS**: Include this information in the "Patient Overview" or "Active Conditions" sections
+        - **MEDICAL HISTORY**: Include this information in the "Medical History Summary" section
+        - **PRESENTING SYMPTOMS**: Include this information in the "Active Conditions" or "Patient Overview" sections
+        
+        **KINETIC SLOPE CALCULATION**: If chart notes contain "KINETIC SLOPE CALCULATION" or similar kinetic slope information, extract and summarize it in the dedicated section. DO NOT perform any calculations - only summarize the values and findings that are already present in the chart notes. Include testosterone and estradiol kinetic slope data, projected target dates, and any relevant observations about decline rates or replenishment intervals.
+        
         **Output sections** (markdown headings):
         ### Patient Overview  
         ### Active Conditions  
@@ -852,6 +859,7 @@ class RAGHelper {
         ### Allergies  
         ### Treatment Plans  
         ### Recent Labs and Key Findings  
+        ### Kinetic Slope Calculation (if available in chart notes)
         ### Clinical Notes (include relevant chart notes)
         ### Medical History Summary  
         ### Suggested Follow-up Questions

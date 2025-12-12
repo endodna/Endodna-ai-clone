@@ -746,14 +746,6 @@ class PatientDataToolsHelper {
                 organizationId,
                 deletedAt: null,
             },
-            include: {
-                doctor: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
             orderBy: { updatedAt: "desc" },
             take: limit,
         });
@@ -768,12 +760,6 @@ class PatientDataToolsHelper {
                 result += `${note.title}\n`;
             }
             result += `${note.content}`;
-            if (note.doctor) {
-                result += ` (By: ${note.doctor.firstName} ${note.doctor.lastName})`;
-            }
-            if (note.updatedAt) {
-                result += ` - ${note.updatedAt}`;
-            }
             result += `\n\n`;
         });
 
