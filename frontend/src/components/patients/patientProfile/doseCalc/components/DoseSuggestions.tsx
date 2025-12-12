@@ -26,6 +26,7 @@ import {
 import { Pencil, Eye, EyeClosed, Plus, Minus, Sparkles } from "lucide-react";
 import { useSaveDosingCalculation } from "@/hooks/useDoctor";
 import { GENDER } from "@/components/constants/patient";
+import { isPatientExcluded } from "@/lib/excludePatient";
 
 interface DoseSuggestionsProps {
   historyData?: PatientDosageHistoryEntry[] | null;
@@ -110,6 +111,7 @@ interface Supplement {
   isSuggested?: boolean;
   unit?: string;
   purpose?: string;
+  hormoneTypeKey?: HormoneTypeKey; // Track which hormone this supplement belongs to
 }
 
 // API Supplement structure from backend
@@ -180,10 +182,11 @@ function TierCard({
   return (
     <Card
       onClick={handleSelect}
-      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
-        ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
-        : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-        }`}
+      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
+        isSelected
+          ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+          : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
+      }`}
     >
       <CardHeader className="py-2 px-2 md:px-4">
         <CardTitle className="typo-body-2 text-foreground text-base">
@@ -359,6 +362,7 @@ export function DoseSuggestions({
   patientId,
   activeTab,
   patient,
+  latestSupplements,
 }: Readonly<DoseSuggestionsProps>) {
   const dispatch = useAppDispatch();
   const { selectedDoses } = useAppSelector((state) => state.dosingCalculator);
@@ -424,13 +428,13 @@ export function DoseSuggestions({
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-              dosingCalculation: {
-                baseDoseMg: number;
-                basePelletCount: number;
-                finalDoseMg: number;
-                pelletCount: number;
-              };
-            }
+                dosingCalculation: {
+                  baseDoseMg: number;
+                  basePelletCount: number;
+                  finalDoseMg: number;
+                  pelletCount: number;
+                };
+              }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -592,16 +596,8 @@ export function DoseSuggestions({
     dispatch,
   ]);
 
-  // Collect suggestions from historyData and set them in supplements state
+  // Collect suggestions from historyData and latestSupplements, merge and deduplicate
   useEffect(() => {
-    if (
-      !historyData ||
-      !Array.isArray(historyData) ||
-      historyData.length === 0
-    ) {
-      return;
-    }
-
     const collectedSuggestions: Supplement[] = [];
 
     // Helper function to extract suggestions from a hormone type
@@ -641,8 +637,6 @@ export function DoseSuggestions({
             ) {
               const apiSupplement = supplement as ApiSupplement;
 
-              console.log("apiSupplement---------", apiSupplement);
-
               collectedSuggestions.push({
                 id: `${entry.id}-${hormoneType}-${selectedDose.tier}-${Date.now()}-${Math.random()}`,
                 // @ts-ignore
@@ -663,6 +657,7 @@ export function DoseSuggestions({
                 durationInDays: 30,
                 isSuggested: true,
                 purpose: apiSupplement.purpose || "",
+                hormoneTypeKey: hormoneTypeKey, // Track which hormone this belongs to
               });
             }
           });
@@ -670,49 +665,186 @@ export function DoseSuggestions({
       }
     };
 
-    console.log("historyData---------", historyData);
-    // Loop through all historyData entries
-    for (const entry of historyData) {
-      // Extract suggestions from T100
-      extractSupplementsFromHormone(entry, "T100", "testosterone_100");
+    // Extract supplements from POST API (historyData)
+    if (historyData && Array.isArray(historyData) && historyData.length > 0) {
+      // Loop through all historyData entries
+      for (const entry of historyData) {
+        // Extract suggestions from T100
+        extractSupplementsFromHormone(entry, "T100", "testosterone_100");
 
-      // Extract suggestions from T200
-      extractSupplementsFromHormone(entry, "T200", "testosterone_200");
+        // Extract suggestions from T200
+        extractSupplementsFromHormone(entry, "T200", "testosterone_200");
 
-      // Extract suggestions from ESTRADIOL
-      extractSupplementsFromHormone(entry, "ESTRADIOL", "estradiol");
+        // Extract suggestions from ESTRADIOL
+        extractSupplementsFromHormone(entry, "ESTRADIOL", "estradiol");
+      }
     }
 
-    // Set collected suggestions in supplements state
-    if (collectedSuggestions.length > 0) {
-      setSupplements(collectedSuggestions);
+    // Convert latestSupplements (from GET API) to Supplement format
+    // Note: latestSupplements don't have hormone source info, so we'll assign them based on activeTab or selectedDoses
+    const latestSupplementsConverted: Supplement[] = [];
+    if (latestSupplements && Array.isArray(latestSupplements)) {
+      // Determine which hormone to assign based on activeTab or selectedDoses
+      let assignedHormoneTypeKey: HormoneTypeKey | undefined;
+      const patientGender = patient?.gender?.toUpperCase();
+
+      if (patientGender === GENDER.MALE) {
+        // For male patients, prioritize based on activeTab
+        if (activeTab === "testosterone-t100") {
+          assignedHormoneTypeKey = "testosterone_100";
+        } else if (activeTab === "testosterone-t200") {
+          assignedHormoneTypeKey = "testosterone_200";
+        } else if (selectedDoses.testosterone_100) {
+          assignedHormoneTypeKey = "testosterone_100";
+        } else if (selectedDoses.testosterone_200) {
+          assignedHormoneTypeKey = "testosterone_200";
+        }
+      } else {
+        // For female patients
+        if (activeTab === "testosterone-t100") {
+          assignedHormoneTypeKey = "testosterone_100";
+        } else if (activeTab === "estradiol") {
+          assignedHormoneTypeKey = "estradiol";
+        } else if (selectedDoses.testosterone_100) {
+          assignedHormoneTypeKey = "testosterone_100";
+        } else if (selectedDoses.estradiol) {
+          assignedHormoneTypeKey = "estradiol";
+        }
+      }
+
+      latestSupplements.forEach((supplement, index) => {
+        if (supplement && typeof supplement === "object") {
+          latestSupplementsConverted.push({
+            id: `latest-${index}-${Date.now()}-${Math.random()}`,
+            productName: supplement.drugName || "",
+            brand: "",
+            dosage: supplement.dosage || "",
+            benefits: "",
+            allergenDietaryStatus: "Contains soy, gluten & dairy",
+            directions: "",
+            rationale: "",
+            contraindications: "",
+            quantity: 1,
+            unit: supplement.unit || "mg",
+            type: "Tablets",
+            frequency: supplement.frequency || "Once Daily",
+            durationInDays: 30,
+            isSuggested: supplement.isSuggested ?? false,
+            purpose: supplement.purpose || "",
+            hormoneTypeKey: assignedHormoneTypeKey,
+          });
+        }
+      });
     }
-  }, [historyData, selectedDoses]);
+
+    // Helper function to create a unique key for deduplication
+    const getUniqueKey = (supplement: Supplement): string => {
+      const productName = (supplement.productName || "").toLowerCase().trim();
+      const dosage = (supplement.dosage || "").toLowerCase().trim();
+      return `${productName}-${dosage}`;
+    };
+
+    // Collect all hormone types that have GET supplements
+    // If GET API has supplements for a hormone, exclude ALL POST supplements for that same hormone
+    // This ensures GET data (which includes edits) completely replaces POST data for that hormone
+    const hormonesWithGetSupplements = new Set<HormoneTypeKey>();
+    latestSupplementsConverted.forEach((supplement) => {
+      if (supplement.hormoneTypeKey) {
+        hormonesWithGetSupplements.add(supplement.hormoneTypeKey);
+      }
+    });
+
+    // Filter POST supplements: exclude all supplements for hormones that have GET supplements
+    // This prevents showing old POST data when GET data (with edits) exists for that hormone
+    const filteredPostSupplements = collectedSuggestions.filter(
+      (supplement) => {
+        // If supplement has no hormoneTypeKey, keep it (legacy supplements)
+        if (!supplement.hormoneTypeKey) {
+          return true;
+        }
+        // Exclude POST supplements for hormones that have GET supplements
+        return !hormonesWithGetSupplements.has(supplement.hormoneTypeKey);
+      }
+    );
+
+    // Merge both sources (GET API supplements first to maintain priority)
+    const allSupplements = [
+      ...latestSupplementsConverted,
+      ...filteredPostSupplements,
+    ];
+
+    // Deduplicate supplements based on productName and dosage
+    // Since GET API supplements come first in allSupplements, they have priority
+    const uniqueSupplementsMap = new Map<string, Supplement>();
+
+    allSupplements.forEach((supplement) => {
+      const key = getUniqueKey(supplement);
+      // Only add if not already present (first occurrence wins, which is GET API)
+      if (!uniqueSupplementsMap.has(key)) {
+        uniqueSupplementsMap.set(key, supplement);
+      }
+    });
+
+    // Convert map back to array
+    const mergedSupplements = Array.from(uniqueSupplementsMap.values());
+
+    // Set merged and deduplicated suggestions in supplements state
+    setSupplements(mergedSupplements);
+  }, [
+    historyData,
+    selectedDoses,
+    latestSupplements,
+    activeTab,
+    patient?.gender,
+  ]);
 
   // Initialize checked states when hormones/supplements become available
   useEffect(() => {
     const newCheckedHormones = new Set<string>();
+    const patientGender = patient?.gender?.toUpperCase();
+
+    // Sync with activeTab first (for male patients, only one should be checked)
+    if (patientGender === GENDER.MALE && activeTab) {
+      if (activeTab === "testosterone-t100") {
+        newCheckedHormones.add("testosterone_100");
+      } else if (activeTab === "testosterone-t200") {
+        newCheckedHormones.add("testosterone_200");
+      }
+    } else if (patientGender === GENDER.FEMALE && activeTab) {
+      // For female patients, sync with activeTab
+      if (activeTab === "testosterone-t100") {
+        newCheckedHormones.add("testosterone_100");
+      } else if (activeTab === "estradiol") {
+        newCheckedHormones.add("estradiol");
+      }
+    } else {
+      // When no activeTab, check based on selectedDoses
+      if (selectedDoses.testosterone_100) {
+        newCheckedHormones.add("testosterone_100");
+      }
+      if (selectedDoses.testosterone_200) {
+        newCheckedHormones.add("testosterone_200");
+      }
+      if (selectedDoses.estradiol) {
+        newCheckedHormones.add("estradiol");
+      }
+    }
+
+    // Initialize checked supplements (only for checked hormones)
     const newCheckedSupplements = new Set<string>();
-
-    // Initialize checked hormones
-    if (selectedDoses.testosterone_100) {
-      newCheckedHormones.add("testosterone_100");
-    }
-    if (selectedDoses.testosterone_200) {
-      newCheckedHormones.add("testosterone_200");
-    }
-    if (selectedDoses.estradiol) {
-      newCheckedHormones.add("estradiol");
-    }
-
-    // Initialize checked supplements (all supplements checked by default)
     supplements.forEach((supplement) => {
-      newCheckedSupplements.add(supplement.id);
+      // Only check supplements that belong to checked hormones
+      if (
+        !supplement.hormoneTypeKey ||
+        newCheckedHormones.has(supplement.hormoneTypeKey)
+      ) {
+        newCheckedSupplements.add(supplement.id);
+      }
     });
 
     setCheckedHormones(newCheckedHormones);
     setCheckedSupplements(newCheckedSupplements);
-  }, [selectedDoses, supplements]);
+  }, [selectedDoses, supplements, activeTab, patient?.gender]);
 
   // Sync activeTab with checkedHormones for male patients
   useEffect(() => {
@@ -724,22 +856,67 @@ export function DoseSuggestions({
     }
 
     // Update checkedHormones based on activeTab
-    setCheckedHormones((prevCheckedHormones) => {
-      const newCheckedHormones = new Set(prevCheckedHormones);
+    setCheckedHormones(() => {
+      const newCheckedHormones = new Set<string>();
 
       if (activeTab === "testosterone-t100") {
         // Check Testosterone (100) and uncheck Testosterone (200)
         newCheckedHormones.add("testosterone_100");
-        newCheckedHormones.delete("testosterone_200");
       } else if (activeTab === "testosterone-t200") {
         // Check Testosterone (200) and uncheck Testosterone (100)
         newCheckedHormones.add("testosterone_200");
-        newCheckedHormones.delete("testosterone_100");
       }
 
       return newCheckedHormones;
     });
   }, [activeTab, patient?.gender]);
+
+  // Filter supplements to show only those for checked hormones
+  const filteredSupplements = useMemo(() => {
+    if (checkedHormones.size === 0) {
+      return [];
+    }
+
+    const filtered = supplements.filter((supplement) => {
+      // If supplement has hormoneTypeKey, filter by it
+      if (supplement.hormoneTypeKey) {
+        const shouldShow = checkedHormones.has(supplement.hormoneTypeKey);
+        return shouldShow;
+      }
+      // If no hormoneTypeKey (legacy supplements), show them for any checked hormone
+      return true;
+    });
+
+    return filtered;
+  }, [supplements, checkedHormones]);
+
+  // Uncheck supplements when their hormone is unchecked
+  useEffect(() => {
+    setCheckedSupplements((prevChecked) => {
+      const newChecked = new Set(prevChecked);
+      let hasChanges = false;
+
+      supplements.forEach((supplement) => {
+        if (supplement.hormoneTypeKey) {
+          const shouldBeChecked = checkedHormones.has(
+            supplement.hormoneTypeKey
+          );
+          const isCurrentlyChecked = newChecked.has(supplement.id);
+
+          if (!shouldBeChecked && isCurrentlyChecked) {
+            newChecked.delete(supplement.id);
+            hasChanges = true;
+          } else if (shouldBeChecked && !isCurrentlyChecked) {
+            // Auto-check supplements when their hormone is checked
+            newChecked.add(supplement.id);
+            hasChanges = true;
+          }
+        }
+      });
+
+      return hasChanges ? newChecked : prevChecked;
+    });
+  }, [checkedHormones, supplements]);
 
   const hasSuggestions =
     (t100Suggestions && (t100Suggestions.base || t100Suggestions.modified)) ||
@@ -904,6 +1081,29 @@ export function DoseSuggestions({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const getHormoneSectionTitle = (
+    hormoneTypeKey: "testosterone_100" | "testosterone_200" | "estradiol"
+  ) => {
+    if (patient?.gender?.toUpperCase() === GENDER.MALE) {
+      switch (hormoneTypeKey) {
+        case "testosterone_100":
+          return "Testosterone (100)";
+        case "testosterone_200":
+          return "Testosterone (200)";
+        case "estradiol":
+          return "Estradiol";
+      }
+    } else if (patient?.gender?.toUpperCase() === GENDER.FEMALE) {
+      switch (hormoneTypeKey) {
+        case "testosterone_100":
+          return "Testosterone";
+        case "estradiol":
+          return "Estradiol";
+      }
+    }
+    return "";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -922,7 +1122,7 @@ export function DoseSuggestions({
       {t100Suggestions &&
         (t100Suggestions.base || t100Suggestions.modified) && (
           <HormoneSection
-            title="Testosterone (100)"
+            title={getHormoneSectionTitle("testosterone_100")}
             suggestions={t100Suggestions}
             hormoneType="testosterone"
             hormoneTypeKey="testosterone_100"
@@ -944,12 +1144,26 @@ export function DoseSuggestions({
             }}
             isChecked={checkedHormones.has("testosterone_100")}
             onToggleCheck={() => {
-              const newSet = new Set(checkedHormones);
-              if (newSet.has("testosterone_100")) {
-                newSet.delete("testosterone_100");
+              const patientGender = patient?.gender?.toUpperCase();
+              let newSet: Set<string>;
+
+              if (patientGender === GENDER.MALE) {
+                // For male patients, ensure mutual exclusivity with T200
+                newSet = new Set<string>();
+                if (!checkedHormones.has("testosterone_100")) {
+                  newSet.add("testosterone_100");
+                }
+                // If T200 was checked, it will be unchecked automatically
               } else {
-                newSet.add("testosterone_100");
+                // For female patients, allow multiple selections
+                newSet = new Set(checkedHormones);
+                if (newSet.has("testosterone_100")) {
+                  newSet.delete("testosterone_100");
+                } else {
+                  newSet.add("testosterone_100");
+                }
               }
+
               setCheckedHormones(newSet);
             }}
           />
@@ -959,7 +1173,7 @@ export function DoseSuggestions({
       {t200Suggestions &&
         (t200Suggestions.base || t200Suggestions.modified) && (
           <HormoneSection
-            title="Testosterone (200)"
+            title={getHormoneSectionTitle("testosterone_200")}
             suggestions={t200Suggestions}
             hormoneType="testosterone"
             hormoneTypeKey="testosterone_200"
@@ -981,12 +1195,26 @@ export function DoseSuggestions({
             }}
             isChecked={checkedHormones.has("testosterone_200")}
             onToggleCheck={() => {
-              const newSet = new Set(checkedHormones);
-              if (newSet.has("testosterone_200")) {
-                newSet.delete("testosterone_200");
+              const patientGender = patient?.gender?.toUpperCase();
+              let newSet: Set<string>;
+
+              if (patientGender === GENDER.MALE) {
+                // For male patients, ensure mutual exclusivity with T100
+                newSet = new Set<string>();
+                if (!checkedHormones.has("testosterone_200")) {
+                  newSet.add("testosterone_200");
+                }
+                // If T100 was checked, it will be unchecked automatically
               } else {
-                newSet.add("testosterone_200");
+                // For female patients, allow multiple selections
+                newSet = new Set(checkedHormones);
+                if (newSet.has("testosterone_200")) {
+                  newSet.delete("testosterone_200");
+                } else {
+                  newSet.add("testosterone_200");
+                }
               }
+
               setCheckedHormones(newSet);
             }}
           />
@@ -994,9 +1222,9 @@ export function DoseSuggestions({
 
       {/* Estradiol Section */}
       {estradiolSuggestions &&
-        (estradiolSuggestions.base || estradiolSuggestions.modified) && (
+        (estradiolSuggestions.base || estradiolSuggestions.modified) && (!isPatientExcluded(patient?.id || "", "estradiol")) && (
           <HormoneSection
-            title="Estradiol"
+            title={getHormoneSectionTitle("estradiol")}
             suggestions={estradiolSuggestions}
             hormoneType="estradiol"
             hormoneTypeKey="estradiol"
@@ -1030,9 +1258,9 @@ export function DoseSuggestions({
         )}
 
       {/* Supplements List */}
-      {supplements.length > 0 && (
+      {filteredSupplements.length > 0 && (
         <div>
-          {supplements.map((supplement) => {
+          {filteredSupplements.map((supplement) => {
             const isExpanded = expandedSupplements.has(supplement.id);
             return (
               <div key={supplement.id}>

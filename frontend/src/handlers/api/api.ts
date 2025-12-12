@@ -777,6 +777,59 @@ export const doctorsApi = {
     }
   },
 
+  // AI Assistant specific APIs (simplified, no patientId, no chatType)
+  createAiAssistantConversation: async (): Promise<
+    ApiResponse<GeneralChatConversation>
+  > => {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.DOCTOR.CHAT.AI_ASSISTANT.CONVERSATIONS,
+        {},
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create conversation",
+      };
+    }
+  },
+
+  sendAiAssistantConversationMessage: async (
+    conversationId: string,
+    message: string
+  ): Promise<ApiResponse<SendChatMessageResponse>> => {
+    try {
+      const response = await apiClient.post(
+        getEndpoint(
+          API_ENDPOINTS.DOCTOR.CHAT.AI_ASSISTANT.CONVERSATION_MESSAGES,
+          conversationId
+        ),
+        { message },
+        {
+          timeout: 60000, // AI summary generation can take longer on first load
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to send message",
+      };
+    }
+  },
+
   // Genetics/DNA endpoints
   getPatientGenetics: async (
     patientId: string

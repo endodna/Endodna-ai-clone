@@ -35,24 +35,25 @@ export function DosingCalculatorTab({
     enabled: Boolean(patientId),
   });
 
-  const {
-    data: getHistoryResponse,
-  } = useGetDosingHistory(patientId ?? "", {
+  const { data: getHistoryResponse } = useGetDosingHistory(patientId ?? "", {
     enabled: Boolean(patientId),
   });
 
   // Extract supplements from the latest record in getHistoryResponse
   const latestSupplements = useMemo(() => {
-    if (
-      !getHistoryResponse ||
-      !Array.isArray(getHistoryResponse) ||
-      getHistoryResponse.length === 0
-    ) {
+    const historyArray = Array.isArray(getHistoryResponse)
+      ? getHistoryResponse
+      : getHistoryResponse?.data && Array.isArray(getHistoryResponse.data)
+        ? getHistoryResponse.data
+        : null;
+
+    if (!historyArray || historyArray.length === 0) {
       return [];
     }
 
     // Sort by createdAt (descending) to get the latest record first
-    const sorted = [...getHistoryResponse].sort((a, b) => {
+    const sorted = [...historyArray].sort((a, b) => {
+      // Get dates - use createdAt only
       const dateA = a.data?.createdAt || a.createdAt;
       const dateB = b.data?.createdAt || b.createdAt;
       if (!dateA || !dateB) return 0;
@@ -61,7 +62,9 @@ export function DosingCalculatorTab({
 
     // Get supplements from the latest record
     const latestRecord = sorted[0];
-    return latestRecord?.data?.supplements || [];
+    const supplements = latestRecord?.data?.supplements || [];
+
+    return supplements;
   }, [getHistoryResponse]);
 
   // Calculate available tabs based on history data
@@ -113,10 +116,29 @@ export function DosingCalculatorTab({
 
   // Update active tab when tabs change
   useEffect(() => {
-    if (tabs.length > 0 && tabs[0]?.id && !tabs.find((t) => t.id === activeTab)) {
+    if (
+      tabs.length > 0 &&
+      tabs[0]?.id &&
+      !tabs.find((t) => t.id === activeTab)
+    ) {
       setActiveTab(tabs[0].id);
     }
   }, [tabs, activeTab]);
+
+  // Log when activeTab changes
+  useEffect(() => {
+    if (activeTab) {
+      const tabLabel = tabs.find((t) => t.id === activeTab)?.label || activeTab;
+      console.log("=== TAB SELECTED ===", {
+        activeTab,
+        tabLabel,
+        patientGender: patient?.gender,
+        availableTabs: tabs.map((t) => ({ id: t.id, label: t.label })),
+        latestSupplements,
+        latestSupplementsCount: latestSupplements.length,
+      });
+    }
+  }, [activeTab, tabs, patient?.gender, latestSupplements]);
 
   useEffect(() => {
     setShowDisclaimer(true);
@@ -125,9 +147,6 @@ export function DosingCalculatorTab({
   const handleAgree = () => {
     setShowDisclaimer(false);
   };
-
-  console.log("=== historyResponse", historyResponse);
-  console.log("=== getHistoryResponse", getHistoryResponse, latestSupplements);
 
   if (isLoading) {
     return (
@@ -176,10 +195,11 @@ export function DosingCalculatorTab({
           </Button>
           <Button
             variant={showDoseSuggestions ? "secondary" : "outline"}
-            className={`w-full sm:w-auto rounded-lg ${showDoseSuggestions
-              ? "bg-muted text-muted-foreground opacity-60"
-              : ""
-              }`}
+            className={`w-full sm:w-auto rounded-lg ${
+              showDoseSuggestions
+                ? "bg-muted text-muted-foreground opacity-60"
+                : ""
+            }`}
             onClick={() => setShowDoseSuggestions(!showDoseSuggestions)}
           >
             <Lock className="h-4 w-4 mr-2" />
@@ -194,6 +214,7 @@ export function DosingCalculatorTab({
             patientId={patientId}
             activeTab={activeTab}
             patient={patient}
+            latestSupplements={latestSupplements}
           />
         )}
       </div>

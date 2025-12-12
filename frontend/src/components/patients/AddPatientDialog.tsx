@@ -73,7 +73,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
       .map((g) => {
         // Convert enum value to lowercase for value
         const value = g.toLowerCase();
-        
+
         // Format label: "PREFER_NOT_TO_SAY" -> "Prefer Not To Say"
         const label = g
           .split("_")
@@ -86,7 +86,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
 
   // Create schema with dynamic gender options
   const schema = useMemo(() => addPatientSchema(genderOptions), [genderOptions]);
-  
+
   // Infer form data type from schema
   type AddPatientFormData = z.infer<typeof schema>;
 
@@ -164,6 +164,20 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
       dispatch(clearError());
       onOpenChange(false);
       dispatch(closeAddPatientDialog());
+    }
+  };
+
+  const handleDateSelect = (date: Date | undefined, onChange: (value: string) => void) => {
+    if (date) {
+      // Format as YYYY-MM-DD and append noon UTC to avoid timezone shifts
+      // Using noon UTC instead of midnight prevents date shifts when parsing in different timezones
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}T12:00:00.000Z`;
+      onChange(dateString);
+    } else {
+      onChange("");
     }
   };
 
@@ -256,20 +270,7 @@ export function AddPatientDialog({ open, onOpenChange }: Readonly<AddPatientDial
                           mode="single"
                           captionLayout="dropdown"
                           selected={selectedDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              const utcDate = new Date(Date.UTC(
-                                date.getFullYear(),
-                                date.getMonth(),
-                                date.getDate()
-                              ));
-
-                              const utcTimestamp = utcDate.toISOString();
-                              field.onChange(utcTimestamp);
-                            } else {
-                              field.onChange("");
-                            }
-                          }}
+                          onSelect={(date) => handleDateSelect(date, field.onChange)}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }

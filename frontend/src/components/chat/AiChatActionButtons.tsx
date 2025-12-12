@@ -3,6 +3,11 @@ import { Copy, ThumbsUp, ThumbsDown, FileText, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AddToPatientNotesDialog } from "./AddToPatientNotesDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AiChatActionButtonsProps {
   readonly messageId: string;
@@ -146,55 +151,87 @@ export function AiChatActionButtons({
           className
         )}
       >
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-          aria-label="Copy"
-        >
-          <Copy className="h-4 w-4" />
-        </button>
-        {copiedMessageId === messageId && (
-          <span className="text-xs text-muted-foreground">Copied</span>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+              aria-label="Copy"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span className="text-xs text-muted-foreground">{copiedMessageId === messageId ? 'Copied!' : 'Copy'}</span>
+          </TooltipContent>
+        </Tooltip>
 
         {patientId && (
-          <button
-            type="button"
-            onClick={() => setIsAddToNotesDialogOpen(true)}
-            className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-            aria-label="Add to patient's notes"
-          >
-            <FileText className="h-4 w-4" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setIsAddToNotesDialogOpen(true)}
+                className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+                aria-label="Add to patient's notes"
+              >
+                <FileText className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Add to patient's notes
+            </TooltipContent>
+          </Tooltip>
         )}
 
-        <button
-          type="button"
-          onClick={handlePrintToPDF}
-          className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-          aria-label="Print to PDF"
-        >
-          <Printer className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={handlePrintToPDF}
+              className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+              aria-label="Print to PDF"
+            >
+              <Printer className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Print to PDF
+          </TooltipContent>
+        </Tooltip>
 
-        <button
-          type="button"
-          onClick={handleThumbsUp}
-          className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-          aria-label="Thumbs up"
-        >
-          <ThumbsUp className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={handleThumbsUp}
+              className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+              aria-label="Thumbs up"
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Thumbs up
+          </TooltipContent>
+        </Tooltip>
 
-        <button
-          type="button"
-          onClick={handleThumbsDown}
-          className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
-          aria-label="Thumbs down"
-        >
-          <ThumbsDown className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={handleThumbsDown}
+              className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+              aria-label="Thumbs down"
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Thumbs down
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {patientId && (

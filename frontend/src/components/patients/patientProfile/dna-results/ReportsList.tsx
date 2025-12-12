@@ -5,10 +5,6 @@ import {
   X,
   UserRound,
   Bot,
-  Copy,
-  Send,
-  ThumbsUp,
-  ThumbsDown,
   ExternalLink,
   ChevronDown,
 } from "lucide-react";
@@ -23,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AiSummary } from "@/components/patients/patientProfile/aiSummary/AiSummary";
+import { AiChatActionButtons } from "@/components/chat/AiChatActionButtons";
 import {
   useGetPatientById,
   useGetPatientGeneticsReports,
@@ -87,7 +84,6 @@ export function ReportsList({
   const [conversationType, setConversationType] = useState<
     "patient" | "general" | null
   >(null);
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const hasAcknowledgedOptimisticRef = useRef(false);
   const lastAssistantMessageIdRef = useRef<string | null>(null);
@@ -576,59 +572,12 @@ export function ReportsList({
                                 </div>
                                 {/* Action Icons for bot responses */}
                                 {!isUser && (
-                                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-200">
-                                    <div className="relative group">
-                                      <button
-                                        type="button"
-                                        onClick={async () => {
-                                          try {
-                                            await navigator.clipboard.writeText(
-                                              message.content
-                                            );
-                                            setCopiedMessageId(message.id);
-                                            setTimeout(() => {
-                                              setCopiedMessageId(null);
-                                            }, 2000);
-                                          } catch (err) {
-                                            console.error(
-                                              "Failed to copy:",
-                                              err
-                                            );
-                                          }
-                                        }}
-                                        className="flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                                        aria-label="Copy"
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </button>
-                                      {copiedMessageId === message.id && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">
-                                          Copied
-                                        </div>
-                                      )}
-                                    </div>
-                                    <button
-                                      type="button"
-                                      className="flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                                      aria-label="Export"
-                                    >
-                                      <Send className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                                      aria-label="Thumbs up"
-                                    >
-                                      <ThumbsUp className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                                      aria-label="Thumbs down"
-                                    >
-                                      <ThumbsDown className="h-4 w-4" />
-                                    </button>
-                                  </div>
+                                  <AiChatActionButtons
+                                    messageId={message.id}
+                                    messageContent={message.content}
+                                    patientId={patientId ?? null}
+                                    className="border-neutral-200"
+                                  />
                                 )}
                               </div>
                               {message.createdAt && (

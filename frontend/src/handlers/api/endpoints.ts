@@ -110,6 +110,11 @@ export const API_ENDPOINTS = {
         UPDATE_TITLE: (conversationId: string) =>
           `/doctor/conversations/${conversationId}/title`,
       },
+      AI_ASSISTANT: {
+        CONVERSATIONS: "/doctor/conversations",
+        CONVERSATION_MESSAGES: (conversationId: string) =>
+          `/doctor/conversations/${conversationId}/messages`,
+      },
     },
   },
 } as const;
