@@ -74,7 +74,7 @@ export function SummaryTab({ patientId }: Readonly<SummaryTabProps>) {
                     >
                         {summaryData.summary}
                     </ReactMarkdown> */}
-                <div className="[&_p]:mt-4">
+                <div className="[&_p]:mt-4 chat-content">
                     <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
                         {summaryData.summary.replace(/<br\s*\/?>/g, "\n\n").trim()}
                     </ReactMarkdown>
