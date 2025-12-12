@@ -180,10 +180,11 @@ function TierCard({
   return (
     <Card
       onClick={handleSelect}
-      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${isSelected
-        ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
-        : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
-        }`}
+      className={`max-w-[180px] w-full cursor-pointer transition-all duration-300 hover:scale-105 ${
+        isSelected
+          ? " border-primary-brand-teal-1/30 bg-primary/50 hover:border-primary-brand-teal-1/70 "
+          : " border-primary-brand-teal-1 bg-primary-brand-teal-1/10"
+      }`}
     >
       <CardHeader className="py-2 px-2 md:px-4">
         <CardTitle className="typo-body-2 text-foreground text-base">
@@ -424,13 +425,13 @@ export function DoseSuggestions({
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-              dosingCalculation: {
-                baseDoseMg: number;
-                basePelletCount: number;
-                finalDoseMg: number;
-                pelletCount: number;
-              };
-            }
+                dosingCalculation: {
+                  baseDoseMg: number;
+                  basePelletCount: number;
+                  finalDoseMg: number;
+                  pelletCount: number;
+                };
+              }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -904,6 +905,29 @@ export function DoseSuggestions({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const getHormoneSectionTitle = (
+    hormoneTypeKey: "testosterone_100" | "testosterone_200" | "estradiol"
+  ) => {
+    if (patient?.gender === GENDER.MALE) {
+      switch (hormoneTypeKey) {
+        case "testosterone_100":
+          return "Testosterone (100)";
+        case "testosterone_200":
+          return "Testosterone (200)";
+        case "estradiol":
+          return "Estradiol";
+      }
+    } else if (patient?.gender === GENDER.FEMALE) {
+      switch (hormoneTypeKey) {
+        case "testosterone_100":
+          return "Testosterone";
+        case "estradiol":
+          return "Estradiol";
+      }
+    }
+    return "";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -922,7 +946,7 @@ export function DoseSuggestions({
       {t100Suggestions &&
         (t100Suggestions.base || t100Suggestions.modified) && (
           <HormoneSection
-            title="Testosterone (100)"
+            title={getHormoneSectionTitle("testosterone_100")}
             suggestions={t100Suggestions}
             hormoneType="testosterone"
             hormoneTypeKey="testosterone_100"
@@ -959,7 +983,7 @@ export function DoseSuggestions({
       {t200Suggestions &&
         (t200Suggestions.base || t200Suggestions.modified) && (
           <HormoneSection
-            title="Testosterone (200)"
+            title={getHormoneSectionTitle("testosterone_200")}
             suggestions={t200Suggestions}
             hormoneType="testosterone"
             hormoneTypeKey="testosterone_200"
@@ -996,7 +1020,7 @@ export function DoseSuggestions({
       {estradiolSuggestions &&
         (estradiolSuggestions.base || estradiolSuggestions.modified) && (
           <HormoneSection
-            title="Estradiol"
+            title={getHormoneSectionTitle("estradiol")}
             suggestions={estradiolSuggestions}
             hormoneType="estradiol"
             hormoneTypeKey="estradiol"

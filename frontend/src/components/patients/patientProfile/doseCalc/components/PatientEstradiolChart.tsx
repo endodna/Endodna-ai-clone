@@ -8,7 +8,6 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   ReferenceLine,
-  Line,
   ComposedChart,
 } from "recharts";
 import {
@@ -368,7 +367,7 @@ export function PatientEstradiolChart({
               activeDot={{ r: 4 }}
             />
             {/* Selected dose line - dotted (only if selected dose exists) */}
-            {selectedDose && (
+            {/* {selectedDose && (
               <Line
                 type="monotone"
                 dataKey="selectedDoseEstradiol"
@@ -378,7 +377,7 @@ export function PatientEstradiolChart({
                 dot={{ fill: "hsl(var(--primary))", r: 2 }}
                 activeDot={{ r: 4 }}
               />
-            )}
+            )} */}
           </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>

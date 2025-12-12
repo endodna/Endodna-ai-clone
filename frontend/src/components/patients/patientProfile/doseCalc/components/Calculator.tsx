@@ -1,6 +1,6 @@
 import { PatientTestosteroneChart } from "./PatientTestosteroneChart";
 import { PatientEstradiolChart } from "./PatientEstradiolChart";
-import { PatientFshChart } from "./PatientFshChart";
+// import { PatientFshChart } from "./PatientFshChart";
 import { KineticSlope } from "./KineticSlope";
 import { GENDER } from "@/components/constants/patient";
 
@@ -50,12 +50,12 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                     yAxisLabel="Estradiol (E2), pg/mL"
                     activeTab={activeTab}
                   />
-                  <PatientFshChart
+                  {/* <PatientFshChart
                     patient={patient}
                     xAxisLabel="Weeks Since Pellet Insertion"
                     yAxisLabel="FSH, mIU/mL"
                     activeTab={activeTab}
-                  />
+                  /> */}
                 </>
               ) : (
                 // Default: Show PatientTestosteroneChart if no tab is selected
