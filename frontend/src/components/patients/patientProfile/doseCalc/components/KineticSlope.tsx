@@ -27,7 +27,10 @@ interface KineticSlopeContentProps {
   activeTab?: string;
 }
 
-function KineticSlopeContent({ patient, activeTab }: Readonly<KineticSlopeContentProps>) {
+function KineticSlopeContent({
+  patient,
+  activeTab,
+}: Readonly<KineticSlopeContentProps>) {
   const { selectedDoses, insertionDate: insertionDateFromRedux } =
     useAppSelector((state) => state.dosingCalculator);
 
@@ -271,7 +274,12 @@ function KineticSlopeContent({ patient, activeTab }: Readonly<KineticSlopeConten
   );
 }
 
-export function KineticSlope({ patient, historyData, activeTab: activeTabProp, onTabChange }: Readonly<KineticSlopeProps>) {
+export function KineticSlope({
+  patient,
+  historyData,
+  activeTab: activeTabProp,
+  onTabChange,
+}: Readonly<KineticSlopeProps>) {
   // Calculate available suggestions from historyData
   const { t100Suggestions, t200Suggestions, estradiolSuggestions } =
     useMemo(() => {
@@ -290,13 +298,25 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
       // Helper function to extract base and modified suggestions from dosingSuggestions object
       const extractSuggestions = (
         dosingSuggestions: Record<string, unknown> | undefined
-      ): { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } => {
+      ): {
+        base: Record<string, { dosageMg: number; pelletsCount: number }> | null;
+        modified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > | null;
+      } => {
         if (!dosingSuggestions) {
           return { base: null, modified: null };
         }
 
-        const baseResult: Record<string, { dosageMg: number; pelletsCount: number }> = {};
-        const modifiedResult: Record<string, { dosageMg: number; pelletsCount: number }> = {};
+        const baseResult: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > = {};
+        const modifiedResult: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > = {};
 
         const TIER_ORDER = [
           "conservative",
@@ -308,13 +328,13 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
         for (const tier of TIER_ORDER) {
           const tierData = dosingSuggestions[tier] as
             | {
-              dosingCalculation: {
-                baseDoseMg: number;
-                basePelletCount: number;
-                finalDoseMg: number;
-                pelletCount: number;
-              };
-            }
+                dosingCalculation: {
+                  baseDoseMg: number;
+                  basePelletCount: number;
+                  finalDoseMg: number;
+                  pelletCount: number;
+                };
+              }
             | undefined;
 
           if (tierData?.dosingCalculation) {
@@ -348,19 +368,49 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
 
       // Helper function to merge suggestions from multiple entries
       const mergeSuggestions = (
-        existing: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null,
-        newSuggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null }
-      ): { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } => {
+        existing: {
+          base: Record<
+            string,
+            { dosageMg: number; pelletsCount: number }
+          > | null;
+          modified: Record<
+            string,
+            { dosageMg: number; pelletsCount: number }
+          > | null;
+        } | null,
+        newSuggestions: {
+          base: Record<
+            string,
+            { dosageMg: number; pelletsCount: number }
+          > | null;
+          modified: Record<
+            string,
+            { dosageMg: number; pelletsCount: number }
+          > | null;
+        }
+      ): {
+        base: Record<string, { dosageMg: number; pelletsCount: number }> | null;
+        modified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > | null;
+      } => {
         if (!existing) {
           return newSuggestions;
         }
 
-        const mergedBase: Record<string, { dosageMg: number; pelletsCount: number }> = {
+        const mergedBase: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > = {
           ...(existing.base || {}),
           ...(newSuggestions.base || {}),
         };
 
-        const mergedModified: Record<string, { dosageMg: number; pelletsCount: number }> = {
+        const mergedModified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > = {
           ...(existing.modified || {}),
           ...(newSuggestions.modified || {}),
         };
@@ -373,9 +423,27 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
       };
 
       // Loop through all entries and aggregate suggestions separately for T100, T200, and ESTRADIOL
-      let t100Suggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
-      let t200Suggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
-      let estradiolSuggestions: { base: Record<string, { dosageMg: number; pelletsCount: number }> | null; modified: Record<string, { dosageMg: number; pelletsCount: number }> | null } | null = null;
+      let t100Suggestions: {
+        base: Record<string, { dosageMg: number; pelletsCount: number }> | null;
+        modified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > | null;
+      } | null = null;
+      let t200Suggestions: {
+        base: Record<string, { dosageMg: number; pelletsCount: number }> | null;
+        modified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > | null;
+      } | null = null;
+      let estradiolSuggestions: {
+        base: Record<string, { dosageMg: number; pelletsCount: number }> | null;
+        modified: Record<
+          string,
+          { dosageMg: number; pelletsCount: number }
+        > | null;
+      } | null = null;
 
       for (const entry of historyData) {
         const { data: entryData } = entry;
@@ -426,6 +494,14 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
     estradiolSuggestions &&
     (estradiolSuggestions.base || estradiolSuggestions.modified);
 
+  // Patient IDs that should not show Estradiol tab
+  const HIDE_ESTRADIOL_PATIENT_IDS = [
+    "75654e3a-b761-4780-a291-ac3faa35da12",
+    "d6d8a944-4b33-43f7-bf71-c8d272e32391",
+  ];
+  const shouldHideEstradiol =
+    patient?.id && HIDE_ESTRADIOL_PATIENT_IDS.includes(patient.id);
+
   // Determine tabs based on patient gender and available suggestions
   const tabs = useMemo(() => {
     const patientGender = patient?.gender?.toUpperCase();
@@ -444,17 +520,27 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
       if (hasT100Suggestions) {
         tabsList.push({ id: "testosterone-t100", label: "Testosterone" });
       }
-      if (hasEstradiolSuggestions) {
+      if (hasEstradiolSuggestions && !shouldHideEstradiol) {
         tabsList.push({ id: "estradiol", label: "Estradiol" });
       }
     }
 
     return tabsList;
-  }, [patient?.gender, hasT100Suggestions, hasT200Suggestions, hasEstradiolSuggestions]);
+  }, [
+    patient?.gender,
+    patient?.id,
+    hasT100Suggestions,
+    hasT200Suggestions,
+    hasEstradiolSuggestions,
+    shouldHideEstradiol,
+  ]);
 
   // Use activeTab from props if provided, otherwise manage internally
-  const [internalActiveTab, setInternalActiveTab] = useState<string>(tabs[0]?.id || "");
-  const activeTab = activeTabProp !== undefined ? activeTabProp : internalActiveTab;
+  const [internalActiveTab, setInternalActiveTab] = useState<string>(
+    tabs[0]?.id || ""
+  );
+  const activeTab =
+    activeTabProp !== undefined ? activeTabProp : internalActiveTab;
 
   // Update internal active tab when tabs change (only if not controlled by parent)
   useEffect(() => {
@@ -473,7 +559,11 @@ export function KineticSlope({ patient, historyData, activeTab: activeTabProp, o
 
   return (
     <div className="max-w-[490px] w-full">
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
         <div className="flex items-center justify-between mb-4">
           <p className="typo-body-1 text-foreground">Kinetic Slope</p>
           <TabsList className="bg-muted-foreground/10 h-auto p-1">

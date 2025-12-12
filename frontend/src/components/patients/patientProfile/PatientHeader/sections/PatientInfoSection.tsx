@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -113,37 +118,51 @@ export function PatientInfoSection({
             <div className="flex items-center justify-between typo-body-1 typo-body-1-regular text-foreground">
               <div className="flex items-center gap-2">
                 {patientId && (
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(patientId, "patientId")}
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    title="Click to copy patient ID"
-                  >
-                    {copiedField === "patientId" ? (
-                      <span className="text-primary">Copied!</span>
-                    ) : (
-                      <span>
-                        {patientId.slice(0, 5) + "..." + patientId.slice(-5)}
-                      </span>
-                    )}
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(patientId, "patientId")}
+                        className="cursor-pointer hover:text-primary transition-colors"
+                      >
+                        {copiedField === "patientId" ? (
+                          <span className="text-primary">Copied!</span>
+                        ) : (
+                          <span>
+                            {patientId.slice(0, 5) +
+                              "..." +
+                              patientId.slice(-5)}
+                          </span>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to copy patient ID</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {patientId && email && (
                   <span className="text-muted-foreground">•</span>
                 )}
                 {email && (
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(email, "email")}
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    title="Click to copy email"
-                  >
-                    {copiedField === "email" ? (
-                      <span className="text-primary">Copied!</span>
-                    ) : (
-                      <span>{email}</span>
-                    )}
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(email, "email")}
+                        className="cursor-pointer hover:text-primary transition-colors"
+                      >
+                        {copiedField === "email" ? (
+                          <span className="text-primary">Copied!</span>
+                        ) : (
+                          <span>{email}</span>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to copy email</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>

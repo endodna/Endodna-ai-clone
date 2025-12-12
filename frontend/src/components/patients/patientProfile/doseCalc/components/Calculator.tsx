@@ -27,7 +27,7 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                 patient={patient}
                 xAxisLabel="Weeks Since Pellet Insertion"
                 yAxisLabel="Testosterone, ng/dL"
-                activeTab={activeTab}
+                // activeTab={activeTab}
               />
             </>
           ) : (
@@ -39,7 +39,7 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                   patient={patient}
                   xAxisLabel="Weeks Since Pellet Insertion"
                   yAxisLabel="Testosterone, ng/dL"
-                  activeTab={activeTab}
+                  // activeTab={activeTab}
                 />
               ) : activeTab === "estradiol" ? (
                 // If Estradiol tab is selected, show PatientEstradiolChart and PatientFshChart
@@ -48,7 +48,7 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                     patient={patient}
                     xAxisLabel="Weeks Since Pellet Insertion"
                     yAxisLabel="Estradiol (E2), pg/mL"
-                    activeTab={activeTab}
+                    // activeTab={activeTab}
                   />
                   {/* <PatientFshChart
                     patient={patient}
@@ -63,7 +63,7 @@ export function Calculator({ patient, historyData, activeTab, onTabChange }: Rea
                   patient={patient}
                   xAxisLabel="Weeks Since Pellet Insertion"
                   yAxisLabel="Testosterone, ng/dL"
-                  activeTab={activeTab}
+                  // activeTab={activeTab}
                 />
               )}
             </>

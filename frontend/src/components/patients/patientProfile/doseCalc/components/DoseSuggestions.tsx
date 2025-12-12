@@ -26,6 +26,7 @@ import {
 import { Pencil, Eye, EyeClosed, Plus, Minus, Sparkles } from "lucide-react";
 import { useSaveDosingCalculation } from "@/hooks/useDoctor";
 import { GENDER } from "@/components/constants/patient";
+import { isPatientExcluded } from "@/lib/excludePatient";
 
 interface DoseSuggestionsProps {
   historyData?: PatientDosageHistoryEntry[] | null;
@@ -1221,7 +1222,7 @@ export function DoseSuggestions({
 
       {/* Estradiol Section */}
       {estradiolSuggestions &&
-        (estradiolSuggestions.base || estradiolSuggestions.modified) && (
+        (estradiolSuggestions.base || estradiolSuggestions.modified) && (!isPatientExcluded(patient?.id || "", "estradiol")) && (
           <HormoneSection
             title={getHormoneSectionTitle("estradiol")}
             suggestions={estradiolSuggestions}
