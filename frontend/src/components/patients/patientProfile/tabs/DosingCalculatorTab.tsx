@@ -29,18 +29,23 @@ export function DosingCalculatorTab({
   // Track the last patientId we showed the disclaimer for
   const lastShownPatientIdRef = useRef<string | undefined>(undefined);
 
+  const isQueryEnabled = Boolean(patientId) && Boolean(patient?.gender);
+
   const {
     data: historyResponse,
     isLoading,
     isError,
     error,
   } = usePostDosingHistory(patientId ?? "", patient?.gender || "", {
-    enabled: Boolean(patientId) && Boolean(patient?.gender),
+    enabled: isQueryEnabled,
   });
 
   const { data: getHistoryResponse } = useGetDosingHistory(patientId ?? "", {
     enabled: Boolean(patientId),
   });
+
+  // Show loading if query is disabled (waiting for patientId or gender) or if query is loading
+  const isWaitingForData = !isQueryEnabled || isLoading;
 
   // Extract supplements from the latest record in getHistoryResponse
   const latestSupplements = useMemo(() => {
@@ -161,7 +166,7 @@ export function DosingCalculatorTab({
   // Show disclaimer only when data has loaded successfully and we haven't shown it for this patientId yet
   useEffect(() => {
     if (
-      !isLoading &&
+      !isWaitingForData &&
       !isError &&
       historyResponse &&
       patientId &&
@@ -170,13 +175,13 @@ export function DosingCalculatorTab({
       setShowDisclaimer(true);
       lastShownPatientIdRef.current = patientId;
     }
-  }, [isLoading, isError, historyResponse, patientId]);
+  }, [isWaitingForData, isError, historyResponse, patientId]);
 
   const handleAgree = () => {
     setShowDisclaimer(false);
   };
 
-  if (isLoading) {
+  if (isWaitingForData) {
     return (
       <div className="rounded-lg bg-primary-foreground p-4 md:p-6">
         <div className="flex items-center justify-center py-12">
