@@ -114,6 +114,11 @@ doctorRouter.get(
   validateParams(patientIdParamsSchema),
   DoctorController.getPatientAISummary,
 );
+doctorRouter.get(
+  "/patients/:patientId/summary/stream",
+  validateParams(patientIdParamsSchema),
+  DoctorController.getPatientAISummaryStream,
+);
 
 // Genetics Routes
 doctorRouter.get(
@@ -166,6 +171,12 @@ doctorRouter.post(
   validateParams(conversationIdParamsSchema),
   validate(sendPatientMessageSchema),
   DoctorController.sendPatientConversationMessage,
+);
+doctorRouter.post(
+  "/patients/:patientId/conversations/:conversationId/messages/stream",
+  validateParams(conversationIdParamsSchema),
+  validate(sendPatientMessageSchema),
+  DoctorController.sendPatientConversationMessageStream,
 );
 
 doctorRouter.patch(

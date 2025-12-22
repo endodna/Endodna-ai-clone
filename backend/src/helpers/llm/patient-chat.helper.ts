@@ -3,6 +3,8 @@ import { TaskType, ChatType, ChatMessageRole } from "@prisma/client";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import { BaseChatHelper, BaseMessage } from "./base-chat.helper";
 import patientDataToolsHelper from "./tools/patient-data-tools.helper";
+import { bedrockHelper } from "../aws/bedrock.helper";
+import { logger } from "../logger.helper";
 
 export interface ChatMessage {
     role: ChatMessageRole;
@@ -487,6 +489,248 @@ class PatientChatHelper extends BaseChatHelper {
                 method: "PatientChatHelper.sendMessage",
             });
             throw error;
+        }
+    }
+
+    async *sendMessageStream(params: SendMessageParams): AsyncGenerator<{
+        type: "text" | "done" | "error";
+        content?: string;
+        messageId?: string;
+        followUpPrompts?: string[];
+        error?: string;
+    }> {
+        const {
+            conversationId,
+            patientId,
+            doctorId,
+            organizationId,
+            message,
+            chatType,
+            traceId,
+        } = params;
+
+        try {
+            const conversation = await prisma.patientChatConversation.findFirst({
+                where: {
+                    id: conversationId,
+                    patientId,
+                    doctorId,
+                    organizationId,
+                    deletedAt: null,
+                },
+                include: {
+                    messages: {
+                        orderBy: {
+                            createdAt: "asc",
+                        },
+                    },
+                },
+            });
+
+            if (!conversation) {
+                yield { type: "error", error: "Conversation not found" };
+                return;
+            }
+
+            const patient = await prisma.user.findFirst({
+                where: {
+                    id: patientId,
+                    ...buildOrganizationUserFilter(organizationId),
+                },
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    middleName: true,
+                },
+            });
+
+            if (!patient) {
+                yield { type: "error", error: "Patient not found" };
+                return;
+            }
+
+            const systemPrompt = this.buildSystemPrompt(chatType);
+            const tools = patientDataToolsHelper.getPatientDataTools();
+
+            const tokenCalc = this.calculateTokens(systemPrompt, message);
+            const { messages: historyMessages } = this.buildMessagesFromHistory(
+                conversation.messages as BaseMessage[],
+                message,
+                tokenCalc.availableTokens,
+            );
+
+            const messages: Array<{ role: string; content: string | any[] }> = historyMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+            }));
+
+            const userMessage = await prisma.patientChatMessage.create({
+                data: {
+                    conversationId,
+                    role: ChatMessageRole.USER,
+                    content: message,
+                    version: 1,
+                },
+            });
+
+            let fullResponse = "";
+            let emittedText = false;
+            const toolCallsToExecute: { id: string; name: string; input: any }[] = [];
+
+            const filteredMessages = this.filterEmptyMessages(messages);
+            const maxToolIterations = 5;
+
+            for (let iteration = 0; iteration < maxToolIterations; iteration++) {
+                for await (const chunk of bedrockHelper.generateChatCompletionStream({
+                    systemPrompt,
+                    messages: filteredMessages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.DIAGNOSIS_ASSISTANCE,
+                    maxTokens: this.MAX_OUTPUT_TOKENS,
+                    temperature: this.TEMPERATURE,
+                    traceId,
+                })) {
+                    if (chunk.type === "text") {
+                        fullResponse += chunk.content || "";
+                        emittedText = true;
+                        yield { type: "text", content: chunk.content };
+                    } else if (chunk.type === "tool_call" && chunk.toolCall) {
+                        toolCallsToExecute.push(chunk.toolCall);
+                    } else if (chunk.type === "error") {
+                        yield { type: "error", error: chunk.error };
+                        return;
+                    } else if (chunk.type === "done") {
+                        if (toolCallsToExecute.length > 0) {
+                            const uniqueToolCalls = Array.from(
+                                new Map(toolCallsToExecute.map(tc => [tc.id, tc])).values()
+                            );
+
+                            filteredMessages.push({
+                                role: "assistant",
+                                content: uniqueToolCalls.map(tc => ({
+                                    type: "tool_use",
+                                    id: tc.id,
+                                    name: tc.name,
+                                    input: tc.input,
+                                })),
+                            });
+
+                            const toolResults = await Promise.all(
+                                uniqueToolCalls.map(async (toolCall) => {
+                                    const toolResult = await patientDataToolsHelper.executeTool(
+                                        toolCall as any,
+                                        patientId,
+                                        organizationId,
+                                        traceId,
+                                    );
+                                    return {
+                                        type: "tool_result",
+                                        tool_use_id: toolResult.toolUseId,
+                                        content: toolResult.content,
+                                        is_error: toolResult.isError || false,
+                                    };
+                                }),
+                            );
+
+                            filteredMessages.push({
+                                role: "user",
+                                content: toolResults,
+                            });
+
+                            toolCallsToExecute.length = 0;
+                            continue;
+                        }
+                        break;
+                    }
+                }
+                if (toolCallsToExecute.length === 0) {
+                    break;
+                }
+            }
+
+            // Fallback: if nothing was streamed, run a non-streaming pass to return content
+            if (!emittedText) {
+                const finalResult = await this.generateAIResponse({
+                    systemPrompt,
+                    messages: filteredMessages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.DIAGNOSIS_ASSISTANCE,
+                    maxTokens: this.MAX_OUTPUT_TOKENS,
+                    temperature: this.TEMPERATURE,
+                    traceId,
+                });
+                if (finalResult.text && finalResult.text.trim().length > 0) {
+                    yield { type: "text", content: finalResult.text };
+                    fullResponse += finalResult.text;
+                }
+            }
+            else {
+                // Optional completion pass to ensure full response if streaming stopped early
+                const finalResult = await this.generateAIResponse({
+                    systemPrompt,
+                    messages: filteredMessages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.DIAGNOSIS_ASSISTANCE,
+                    maxTokens: this.MAX_OUTPUT_TOKENS,
+                    temperature: this.TEMPERATURE,
+                    traceId,
+                });
+                if (finalResult.text && finalResult.text.trim().length > 0 && finalResult.text.trim() !== fullResponse.trim()) {
+                    // Stream the remaining/full content
+                    yield { type: "text", content: finalResult.text };
+                    fullResponse = finalResult.text;
+                }
+            }
+
+            const { content: parsedContent, followUpPrompts } = this.parseChatResponseWithFollowUps(fullResponse);
+
+            const assistantMessage = await prisma.patientChatMessage.create({
+                data: {
+                    conversationId,
+                    role: ChatMessageRole.ASSISTANT,
+                    content: parsedContent,
+                    version: 1,
+                },
+            });
+
+            await prisma.patientChatConversation.update({
+                where: { id: conversationId },
+                data: {
+                    updatedAt: new Date(),
+                },
+            });
+
+            await prisma.patientChatMessage.update({
+                where: { id: userMessage.id },
+                data: {
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    latencyMs: 0,
+                },
+            });
+
+            yield {
+                type: "done",
+                messageId: assistantMessage.id,
+                followUpPrompts,
+            };
+        } catch (error: any) {
+            logger.error("Error in streaming patient chat", {
+                traceId,
+                conversationId,
+                error,
+                method: "PatientChatHelper.sendMessageStream",
+            });
+            yield { type: "error", error: error?.message || "Streaming failed" };
         }
     }
 }

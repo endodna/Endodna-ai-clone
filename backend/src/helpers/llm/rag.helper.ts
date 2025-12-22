@@ -13,6 +13,7 @@ export interface PatientSummaryParams {
     organizationId: number;
     doctorId?: string;
     traceId?: string;
+    isOutdated?: boolean;
 }
 
 export interface PatientSummaryResult {
@@ -787,7 +788,8 @@ class RAGHelper {
         6. Calculate age accurately using patient's date of birth and current date.
         7. If information is missing, note explicitly (e.g., "_No recent lab results available._").
         8. Do **not** include meta-comments or transitional phrases. Start directly with summary content.
-        9. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
+        9. Do **not** narrate tool usage or preambles (e.g., "I'll gather", "I'll use the tools", "create a comprehensive clinical summary"). Output only the clinical summary.
+        10. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
         
         Include this disclaimer at the end:
         ---
@@ -1074,7 +1076,7 @@ class RAGHelper {
                 },
             ];
 
-            const MAX_TOOL_ITERATIONS = 3;
+            const MAX_TOOL_ITERATIONS = 5;
             let finalResponse = "";
             let totalInputTokens = 0;
             let totalOutputTokens = 0;
@@ -1102,6 +1104,9 @@ class RAGHelper {
                 const assistantContent: any[] = [];
                 if (result.text && result.text.trim().length > 0) {
                     assistantContent.push({ type: "text", text: result.text });
+                }
+                if (result.thinking && result.thinking.trim().length > 0) {
+                    assistantContent.push({ type: "thinking", text: result.thinking });
                 }
                 if (result.toolCalls && result.toolCalls.length > 0) {
                     result.toolCalls.forEach(toolCall => {
@@ -1407,6 +1412,128 @@ class RAGHelper {
                 error: error,
             });
             throw error;
+        }
+    }
+
+
+    async *generatePatientSummaryStream(
+        params: PatientSummaryParams,
+    ): AsyncGenerator<{ type: "text" | "done" | "error"; content?: string; error?: string }> {
+        const { patientId, organizationId, doctorId, isOutdated, traceId } = params;
+
+        try {
+            logger.debug("Starting patient summary streaming", {
+                traceId,
+                patientId,
+                organizationId,
+            });
+
+            const medicalRecordChunks = await this.findRelevantChunks(
+                [],
+                patientId,
+                organizationId,
+                30,
+                0.75,
+                traceId,
+            );
+
+            const medicalRecordsText = this.formatMedicalRecordChunks(medicalRecordChunks);
+            const systemPrompt = this.buildSummarySystemPrompt();
+            const userPrompt = this.buildSummaryUserPromptWithTools(medicalRecordsText, isOutdated);
+
+            const messages: Array<{ role: string; content: string | any[] }> = [
+                {
+                    role: "user",
+                    content: userPrompt,
+                },
+            ];
+
+            const messagesMutable = [...messages];
+            const MAX_TOOL_ITERATIONS = 3;
+
+            for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+                const toolCallsToExecute: { id: string; name: string; input: any }[] = [];
+
+                for await (const chunk of bedrockHelper.generateChatCompletionStream({
+                    systemPrompt,
+                    messages: messagesMutable,
+                    tools: patientDataToolsHelper.getPatientDataTools(),
+                    organizationId,
+                    patientId,
+                    doctorId,
+                    taskType: TaskType.PATIENT_SUMMARY_GENERATION,
+                    maxTokens: 6000,
+                    temperature: 0.1,
+                    traceId,
+                })) {
+                    if (chunk.type === "text") {
+                        yield { type: "text", content: chunk.content };
+                    } else if (chunk.type === "tool_call" && chunk.toolCall) {
+                        toolCallsToExecute.push(chunk.toolCall);
+                    } else if (chunk.type === "error") {
+                        yield { type: "error", error: chunk.error };
+                        return;
+                    } else if (chunk.type === "done") {
+                        if (toolCallsToExecute.length > 0) {
+                            const uniqueToolCalls = Array.from(
+                                new Map(toolCallsToExecute.map(tc => [tc.id, tc])).values()
+                            );
+
+                            messagesMutable.push({
+                                role: "assistant",
+                                content: uniqueToolCalls.map(tc => ({
+                                    type: "tool_use",
+                                    id: tc.id,
+                                    name: tc.name,
+                                    input: tc.input,
+                                })),
+                            });
+
+                            const toolResults = await Promise.all(
+                                uniqueToolCalls.map(async (toolCall) => {
+                                    const toolResult = await patientDataToolsHelper.executeTool(
+                                        toolCall as any,
+                                        patientId,
+                                        organizationId,
+                                        traceId,
+                                    );
+                                    return {
+                                        type: "tool_result",
+                                        tool_use_id: toolResult.toolUseId,
+                                        content: toolResult.content,
+                                        is_error: toolResult.isError || false,
+                                    };
+                                }),
+                            );
+
+                            messagesMutable.push({
+                                role: "user",
+                                content: toolResults,
+                            });
+
+                            continue;
+                        }
+                        yield { type: "done" };
+                        return;
+                    }
+                }
+
+                if (iteration === MAX_TOOL_ITERATIONS - 1) {
+                    yield { type: "done" };
+                    return;
+                }
+            }
+
+            yield { type: "done" };
+        } catch (error: any) {
+            logger.error("Streaming patient summary failed", {
+                traceId,
+                patientId,
+                organizationId,
+                error,
+                method: "RAGHelper.generatePatientSummaryStream",
+            });
+            yield { type: "error", error: error?.message || "Failed to stream summary" };
         }
     }
 }
