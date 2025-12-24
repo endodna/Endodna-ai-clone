@@ -1,4 +1,4 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, InvokeModelCommand, InvokeModelWithResponseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
 import { logger } from "../logger.helper";
 import aws from "../../lib/aws";
 import { MODEL_ID } from "../token-usage.helper";
@@ -425,6 +425,7 @@ class BedrockHelper {
         },
     ): Promise<{
         text: string;
+        thinking?: string;
         inputTokens: number;
         outputTokens: number;
         latencyMs: number;
@@ -558,10 +559,13 @@ class BedrockHelper {
 
             const toolCalls: Array<{ id: string; name: string; input: any }> = [];
             let text = "";
+            let thinking = "";
 
             for (const item of responseBody.content) {
                 if (item.type === "text") {
                     text += item.text;
+                } else if (item.type === "thinking") {
+                    thinking += item.text || "";
                 } else if (item.type === "tool_use") {
                     toolCalls.push({
                         id: item.id,
@@ -600,6 +604,7 @@ class BedrockHelper {
                     tools: tools?.length || 0,
                     toolCalls: toolCalls.length,
                     toolCallsUsed: toolCalls.map(tc => tc.name),
+                    thinking: thinking.length > 0,
                 },
                 traceId,
             });
@@ -623,6 +628,7 @@ class BedrockHelper {
                 outputTokens,
                 latencyMs,
                 toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                thinking: thinking.length > 0 ? thinking : undefined,
             };
         } catch (error) {
             const latencyMs = Date.now() - startTime;
@@ -635,6 +641,220 @@ class BedrockHelper {
                 latencyMs,
             });
             throw error;
+        }
+    }
+
+    async *generateChatCompletionStream(
+        params: {
+            systemPrompt: string;
+            messages: Array<{ role: string; content: string | any[] }>;
+            tools?: Array<{
+                name: string;
+                description: string;
+                input_schema: {
+                    type: string;
+                    properties: Record<string, any>;
+                    required?: string[];
+                };
+            }>;
+            organizationId: number;
+            patientId?: string;
+            doctorId?: string;
+            taskId?: number;
+            taskType: TaskType;
+            maxTokens?: number;
+            temperature?: number;
+            traceId?: string;
+        },
+    ): AsyncGenerator<{
+        type: "text" | "done" | "error" | "tool_call";
+        content?: string;
+        toolCall?: { id: string; name: string; input: any };
+        inputTokens?: number;
+        outputTokens?: number;
+        latencyMs?: number;
+        error?: string;
+    }> {
+        const startTime = Date.now();
+        const {
+            systemPrompt,
+            messages,
+            tools,
+            organizationId,
+            patientId,
+            doctorId,
+            taskId,
+            taskType,
+            maxTokens = 2048,
+            temperature = 0.5,
+            traceId,
+        } = params;
+
+        if (!this.enableBedrock) {
+            const mockText = "This is a mock AI chat response. Bedrock is disabled in development mode.";
+            for (const char of mockText) {
+                yield { type: "text", content: char };
+                await new Promise((r) => setTimeout(r, 5));
+            }
+            const latencyMs = Date.now() - startTime;
+            yield { type: "done", inputTokens: mockText.length / 4, outputTokens: mockText.length / 4, latencyMs };
+            return;
+        }
+
+        try {
+            const bedrockClient = this.getBedrockClient();
+            const modelId = MODEL_ID.CHAT_COMPLETION;
+
+            const requestBody: any = {
+                anthropic_version: "bedrock-2023-05-31",
+                max_tokens: maxTokens,
+                temperature,
+                system: systemPrompt,
+                messages: messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content,
+                })),
+            };
+
+            if (tools && tools.length > 0) {
+                requestBody.tools = tools;
+            }
+
+            const command = new InvokeModelWithResponseStreamCommand({
+                modelId,
+                contentType: "application/json",
+                accept: "application/json",
+                body: JSON.stringify(requestBody),
+            });
+
+            const response = await bedrockClient.send(command);
+
+            if (!response.body) {
+                throw new Error("Empty response body from Bedrock");
+            }
+
+            let fullText = "";
+            let inputTokens = 0;
+            let outputTokens = 0;
+            let buffer = "";
+            const pendingTools: Record<string, { id: string; name: string; inputJson: string }> = {};
+
+            for await (const event of response.body) {
+                if (!event?.chunk?.bytes) continue;
+                const decoded = new TextDecoder().decode(event.chunk.bytes);
+                buffer += decoded;
+
+                let chunk: any;
+                try {
+                    chunk = JSON.parse(buffer.trim());
+                    buffer = "";
+                } catch {
+                    continue;
+                }
+
+                if (chunk.type === "message_start") {
+                    continue;
+                }
+
+                if (chunk.type === "content_block_start" && chunk.content_block?.type === "tool_use") {
+                    // Ensure unique tool_use id; if duplicate, skip to avoid API error
+                    if (!pendingTools[chunk.content_block.id]) {
+                        pendingTools[chunk.content_block.id] = {
+                            id: chunk.content_block.id,
+                            name: chunk.content_block.name,
+                            inputJson: "",
+                        };
+                        yield {
+                            type: "tool_call",
+                            toolCall: { id: chunk.content_block.id, name: chunk.content_block.name, input: {} },
+                        };
+                    }
+                }
+
+                if (chunk.type === "content_block_delta") {
+                    if (chunk.delta?.type === "text_delta" && chunk.delta?.text) {
+                        fullText += chunk.delta.text;
+                        yield { type: "text", content: chunk.delta.text };
+                    } else if (chunk.delta?.type === "input_json_delta" && typeof chunk.delta.partial_json === "string") {
+                        // Accumulate tool input JSON
+                        Object.values(pendingTools).forEach((tool) => {
+                            tool.inputJson += chunk.delta.partial_json;
+                        });
+                    }
+                }
+
+                if (chunk.type === "message_delta" && chunk.usage) {
+                    inputTokens = chunk.usage.input_tokens || inputTokens;
+                    outputTokens = chunk.usage.output_tokens || outputTokens;
+                }
+
+                if (chunk.type === "message_stop") {
+                    // Emit final tool_call inputs if any
+                    for (const tool of Object.values(pendingTools)) {
+                        if (tool.inputJson.trim().length > 0) {
+                            try {
+                                yield {
+                                    type: "tool_call",
+                                    toolCall: {
+                                        id: tool.id,
+                                        name: tool.name,
+                                        input: JSON.parse(tool.inputJson),
+                                    },
+                                };
+                            } catch {
+                                yield {
+                                    type: "tool_call",
+                                    toolCall: {
+                                        id: tool.id,
+                                        name: tool.name,
+                                        input: tool.inputJson,
+                                    },
+                                };
+                            }
+                        }
+                    }
+
+                    const latencyMs = Date.now() - startTime;
+                    await tokenUsageHelper.recordUsage({
+                        organizationId,
+                        patientId,
+                        doctorId,
+                        taskId,
+                        taskType,
+                        requestType: RequestType.CHAT_COMPLETION,
+                        modelId,
+                        modelType: "chat-completion",
+                        inputTokens: inputTokens || this.estimateTokens(systemPrompt + JSON.stringify(messages)),
+                        outputTokens: outputTokens || this.estimateTokens(fullText),
+                        cacheHit: false,
+                        latencyMs,
+                        metadata: {
+                            tools: tools?.length || 0,
+                            streamed: true,
+                        },
+                        traceId,
+                    });
+
+                    yield {
+                        type: "done",
+                        inputTokens,
+                        outputTokens,
+                        latencyMs,
+                    };
+                    return;
+                }
+            }
+        } catch (error: any) {
+            const latencyMs = Date.now() - startTime;
+            logger.error("Error generating streaming chat completion", {
+                traceId,
+                organizationId,
+                patientId,
+                taskId,
+                error,
+                latencyMs,
+            });
+            yield { type: "error", error: error?.message || "Streaming error", latencyMs };
         }
     }
 

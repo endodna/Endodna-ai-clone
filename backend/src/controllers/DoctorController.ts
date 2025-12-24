@@ -1414,6 +1414,71 @@ class DoctorController {
     }
   }
 
+  public static async getPatientAISummaryStream(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
+    try {
+      const { patientId } = req.params as unknown as PatientIdParamsSchema;
+      const { organizationId, userId } = req.user!;
+
+      const patientInfo = await prisma.patientInfo.findFirst({
+        where: {
+          patientId: patientId,
+          organizationId: organizationId!,
+        },
+        select: {
+          isOutdated: true,
+        },
+      });
+
+      if (!patientInfo) {
+        res.write(`data: ${JSON.stringify({ type: "error", error: "Patient info not found" })}\n\n`);
+        res.end();
+        return;
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+
+      const stream = ragHelper.generatePatientSummaryStream({
+        patientId,
+        doctorId: userId,
+        organizationId: organizationId!,
+        isOutdated: patientInfo.isOutdated ?? false,
+        traceId: req.traceId,
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.type === "text") {
+          res.write(`data: ${JSON.stringify({ type: "text", content: chunk.content })}\n\n`);
+        } else if (chunk.type === "done") {
+          res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+          res.end();
+          return;
+        } else if (chunk.type === "error") {
+          res.write(`data: ${JSON.stringify({ type: "error", error: chunk.error })}\n\n`);
+          res.end();
+          return;
+        }
+      }
+
+      res.end();
+    } catch (err) {
+      logger.error("Stream patient AI summary failed", {
+        traceId: req.traceId,
+        method: "getPatientAISummaryStream",
+        error: err,
+      });
+      if (!res.headersSent) {
+        res.write(`data: ${JSON.stringify({ type: "error", error: "Failed to stream summary" })}\n\n`);
+        res.end();
+      }
+    }
+  }
+
   public static async getPatientGenetics(
     req: AuthenticatedRequest,
     res: Response,
@@ -2339,6 +2404,78 @@ class DoctorController {
         error: err,
         message: "Failed to send patient conversation message",
       }, req);
+    }
+  }
+
+  public static async sendPatientConversationMessageStream(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
+    try {
+      const { patientId, conversationId } = req.params as unknown as { patientId: string; conversationId: string };
+      const { organizationId, userId } = req.user!;
+      const { message } = req.body as SendPatientMessageSchema;
+
+      const conversation = await prisma.patientChatConversation.findFirst({
+        where: {
+          id: conversationId,
+          patientId,
+          doctorId: userId,
+          organizationId: organizationId!,
+          deletedAt: null,
+        },
+      });
+
+      if (!conversation) {
+        return sendResponse(res, {
+          status: StatusCode.NOT_FOUND,
+          error: true,
+          message: "Conversation not found",
+        }, req);
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+
+      const stream = patientChatHelper.sendMessageStream({
+        conversationId,
+        patientId,
+        doctorId: userId,
+        organizationId: organizationId!,
+        message,
+        chatType: conversation.type,
+        traceId: req.traceId,
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.type === "text") {
+          res.write(`data: ${JSON.stringify({ type: "text", content: chunk.content })}\n\n`);
+        } else if ((chunk as any).type === "tool_call") {
+          res.write(`data: ${JSON.stringify({ type: "tool_call", toolCall: (chunk as any).toolCall })}\n\n`);
+        } else if (chunk.type === "done") {
+          res.write(`data: ${JSON.stringify({ type: "done", messageId: chunk.messageId, followUpPrompts: chunk.followUpPrompts })}\n\n`);
+          res.end();
+          return;
+        } else if (chunk.type === "error") {
+          res.write(`data: ${JSON.stringify({ type: "error", error: chunk.error })}\n\n`);
+          res.end();
+          return;
+        }
+      }
+
+      res.end();
+    } catch (err) {
+      logger.error("Send patient conversation message stream failed", {
+        traceId: req.traceId,
+        method: "sendPatientConversationMessageStream",
+        error: err,
+      });
+      if (!res.headersSent) {
+        res.write(`data: ${JSON.stringify({ type: "error", error: "Failed to stream message" })}\n\n`);
+        res.end();
+      }
     }
   }
 
