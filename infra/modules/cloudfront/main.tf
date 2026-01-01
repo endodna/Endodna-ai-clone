@@ -53,7 +53,8 @@ resource "aws_cloudfront_distribution" "frontend" {
   # Include main domain, id subdomain, and ensure wildcard certificate covers all subdomains
   aliases = compact(concat(
     var.domain_name != null ? [var.domain_name] : [],
-    var.base_domain != null ? ["id.${var.base_domain}"] : []
+    var.base_domain != null ? ["id.${var.base_domain}"] : [],
+    ["*.${var.base_domain}"]
   ))
 
   # SSL certificate configuration
