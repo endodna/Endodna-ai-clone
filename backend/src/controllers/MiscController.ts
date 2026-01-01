@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Response, Request } from "express";
 import { sendResponse } from "../helpers/response.helper";
 import { AuthenticatedRequest, StatusCode, UserType } from "../types";
 import { logger } from "../helpers/logger.helper";
@@ -18,6 +18,9 @@ import { prisma } from "../lib/prisma";
 import s3Helper from "../helpers/aws/s3.helper";
 import OrganizationCustomizationHelper from "../helpers/organization-customization.helper";
 import { PrefilledDataField, prefilledDataFields } from "../helpers/llm/prefilledDataField";
+import redis from "../lib/redis";
+import { PublicOrganizationInfoSchema } from "../schemas";
+import { DEFAULT_ORG_SLUG } from "../utils/constants";
 
 class MiscController {
   public static async getMenu(req: AuthenticatedRequest, res: Response) {
@@ -84,40 +87,87 @@ class MiscController {
     }
   }
 
-  public static async getOrganizationInfo(req: AuthenticatedRequest, res: Response) {
+  public static async getPublicOrganizationInfo(req: Request, res: Response) {
     try {
-      const { organizationId, userType } = req.user!;
+      const { slug } = req.query as PublicOrganizationInfoSchema;
 
-      if (!organizationId) {
-        return sendResponse(res, {
-          status: StatusCode.BAD_REQUEST,
-          error: true,
-          message: "Organization ID not found",
+      const cacheKey = `org:public:${slug}`;
+      const CACHE_TTL_SECONDS = 60 * 5; // 5 minutes
+
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return sendResponse(res, {
+            status: StatusCode.OK,
+            data: JSON.parse(cached),
+            message: "Organization info retrieved successfully",
+          });
+        }
+      } catch (cacheError) {
+        logger.warn("Cache read error", {
+          traceId: (req as any).traceId,
+          error: cacheError,
+          method: "getPublicOrganizationInfo",
         });
       }
 
-      const [organization, customization] = await Promise.all([
-        prisma.organization.findUnique({
+      let organization;
+
+      if (slug === DEFAULT_ORG_SLUG) {
+        organization = await prisma.organization.findFirst({
           where: {
-            id: organizationId,
+            OR: [
+              { slug: null },
+              { slug: DEFAULT_ORG_SLUG },
+            ],
           },
           select: {
             id: true,
             uuid: true,
             name: true,
+            slug: true,
+            customizations: {
+              select: {
+                customization: true,
+              },
+            },
           },
-        }),
-        prisma.organizationCustomization.findUnique({
-          where: {
-            organizationId: organizationId,
-          },
+          orderBy: { id: "asc" },
+        });
+      } else {
+        organization = await prisma.organization.findUnique({
+          where: { slug },
           select: {
             id: true,
-            organizationId: true,
-            customization: true,
+            uuid: true,
+            name: true,
+            slug: true,
+            parentOrganizationId: true,
+            customizations: {
+              select: {
+                customization: true,
+              },
+            },
           },
-        }),
-      ]);
+        });
+
+        if (organization?.parentOrganizationId) {
+          organization = await prisma.organization.findUnique({
+            where: { id: organization.parentOrganizationId },
+            select: {
+              id: true,
+              uuid: true,
+              name: true,
+              slug: true,
+              customizations: {
+                select: {
+                  customization: true,
+                },
+              },
+            },
+          });
+        }
+      }
 
       if (!organization) {
         return sendResponse(res, {
@@ -127,61 +177,63 @@ class MiscController {
         });
       }
 
-      const structuredCustomization = customization?.customization
-        ? OrganizationCustomizationHelper.structureCustomization(customization.customization)
+      const structuredCustomization = organization.customizations?.customization
+        ? OrganizationCustomizationHelper.structureCustomization(organization.customizations.customization)
         : null;
 
-      const isAdmin = userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
+      const publicCustomization = OrganizationCustomizationHelper.getPublicCustomization(structuredCustomization);
 
-      if (structuredCustomization?.logo) {
+      if (publicCustomization?.logo?.key && publicCustomization.logo.bucket) {
         try {
           const presignedUrl = await s3Helper.getPresignedDownloadUrl({
-            bucket: structuredCustomization.logo.bucket,
-            key: structuredCustomization.logo.key,
+            bucket: publicCustomization.logo.bucket,
+            key: publicCustomization.logo.key,
             expiresIn: 60 * 60 * 24 * 7, // 7 days
-            traceId: req.traceId,
+            traceId: (req as any).traceId,
           });
-          structuredCustomization.logo.url = presignedUrl;
+          publicCustomization.logo.url = presignedUrl;
         } catch (error) {
           logger.warn("Failed to generate presigned URL for logo", {
-            traceId: req.traceId,
-            method: "getOrganizationInfo",
+            traceId: (req as any).traceId,
+            method: "getPublicOrganizationInfo",
             error,
           });
         }
       }
 
-      let customizationData;
-      if (isAdmin) {
-        customizationData = OrganizationCustomizationHelper.sanitizeForResponse(structuredCustomization);
-      } else {
-        customizationData = OrganizationCustomizationHelper.getPublicCustomization(structuredCustomization);
+      const responseData = {
+        id: organization.uuid,
+        name: organization.name,
+        slug: organization.slug,
+        customization: publicCustomization,
+      };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(responseData), CACHE_TTL_SECONDS);
+      } catch (cacheError) {
+        logger.warn("Cache write error", {
+          traceId: (req as any).traceId,
+          error: cacheError,
+          method: "getPublicOrganizationInfo",
+        });
       }
 
-      sendResponse(res, {
+      return sendResponse(res, {
         status: StatusCode.OK,
-        data: {
-          id: organization.uuid,
-          name: organization.name,
-          customization: customizationData,
-        },
+        data: responseData,
         message: "Organization info retrieved successfully",
       });
     } catch (err) {
-      logger.error("Get organization info failed", {
-        traceId: req.traceId,
-        method: "getOrganizationInfo",
+      logger.error("Get public organization info failed", {
+        traceId: (req as any).traceId,
+        method: "getPublicOrganizationInfo",
         error: err,
       });
-      sendResponse(
-        res,
-        {
-          status: StatusCode.INTERNAL_SERVER_ERROR,
-          error: err,
-          message: "Failed to get organization info",
-        },
-        req,
-      );
+      sendResponse(res, {
+        status: StatusCode.INTERNAL_SERVER_ERROR,
+        error: err,
+        message: "Failed to get organization info",
+      });
     }
   }
 

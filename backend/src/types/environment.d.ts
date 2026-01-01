@@ -25,6 +25,12 @@ declare global {
       TEMPUS_PASSWORD: string;
       TEMPUS_CLIENT_ID: string;
       TEMPUS_COMPANY: string;
+      FRONTEND_URL: string;
+      ID_DOMAIN_URL: string;
+      BASE_DOMAIN: string;
+      DEFAULT_ORG_SLUG: string;
+      TRANSFER_CODE_ENCRYPTION_KEY: string;
+      ADMIN_TOKEN: string;
     }
   }
 }

@@ -164,6 +164,14 @@ class AdminController {
         });
       }
 
+      if (organization.parentOrganizationId) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Organization name is not allowed for licensee organizations",
+        });
+      }
+
       const existingOrg = await prisma.organization.findFirst({
         where: {
           name,
@@ -250,7 +258,19 @@ class AdminController {
         where: {
           organizationId: organizationId!,
         },
+        select: {
+          customization: true,
+          organization: true,
+        },
       });
+
+      if (organizationCustomization?.organization?.parentOrganizationId) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Organization customization is not allowed for licensee organizations",
+        });
+      }
 
 
       const existingCustomization: OrganizationCustomizationData | null = organizationCustomization?.customization

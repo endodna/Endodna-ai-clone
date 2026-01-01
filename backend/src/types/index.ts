@@ -6,17 +6,29 @@ export enum UserType {
   ADMIN = "ADMIN",
   SUPER_ADMIN = "SUPER_ADMIN",
   DOCTOR = "DOCTOR",
+  LICENSEE = "LICENSEE",
 }
 
 export interface AuthenticatedRequest extends Request {
   traceId?: string;
   startTime?: number;
+  token?: string;
+  claims?: {
+    claims: {
+      session_id?: string;
+      exp?: number;
+      [key: string]: any;
+    };
+  } | null;
   user?: {
     userId: string;
     userType: UserType;
     sessionId: string;
     organizationId?: number;
+    parentOrganizationId?: number;
     isPasswordSet?: boolean;
+    transferCompleted?: boolean;
+    isLicenseeOrganization?: boolean;
   };
 }
 

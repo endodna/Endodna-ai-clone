@@ -68,7 +68,7 @@ export const useGetConstants = (
     },
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
     retry: (count, error: any) => {
       if (error?.response?.status === 401) return false;
       if (error?.message === "No valid session available") return false;

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
+import { useOrganizationBranding } from "@/hooks/useOrganizationBranding";
 
 const getInvitationData = () => {
   try {
@@ -12,22 +13,24 @@ const getInvitationData = () => {
     const key = keys.find(
       (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
     );
-    if (!key) return { doctorName: "", orgName: "" };
+    if (!key) return { doctorName: "", orgName: "", orgSlug: null };
 
     const data = JSON.parse(localStorage.getItem(key) || "{}");
     const metadata = data?.user?.user_metadata;
-    if (!metadata) return { doctorName: "", orgName: "" };
+    if (!metadata) return { doctorName: "", orgName: "", orgSlug: null };
 
     const firstName = metadata.firstName || "";
     const lastName = metadata.lastName || "";
     const orgName = metadata?.organization?.name || "";
+    const orgSlug = metadata?.organization?.slug || null;
 
     return {
       doctorName: `${firstName} ${lastName}`.trim(),
       orgName,
+      orgSlug,
     };
   } catch {
-    return { doctorName: "", orgName: "" };
+    return { doctorName: "", orgName: "", orgSlug: null };
   }
 };
 
@@ -35,7 +38,10 @@ export default function AcceptInvitation() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const { doctorName, orgName } = getInvitationData();
+  const { doctorName, orgName, orgSlug } = getInvitationData();
+  
+  const inviteContext = orgSlug ? { organization: { slug: orgSlug } } : undefined;
+  const { branding } = useOrganizationBranding(orgSlug || undefined, inviteContext);
 
   useEffect(() => {
     const {
@@ -64,12 +70,14 @@ export default function AcceptInvitation() {
           <div className="typo-body-1 text-neutral-600-old">
             <p>
               <span className="font-semibold">{doctorName}</span> has invited you to join{" "}
-              <span className="font-semibold">{orgName}</span>. Here you&apos;ll
+              <span className="font-semibold">{orgName || branding?.name || "the organization"}</span>. Here you&apos;ll
               be able to access your medical and labs records easily.
             </p>
           </div>
         </div>
       }
+      organizationBranding={branding}
+      organizationName={orgName || branding?.name}
     >
       <div>
         <Button

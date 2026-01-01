@@ -50,15 +50,15 @@ function useSessionReady(userId: string | null) {
 export function ConstantsProvider({ children }: Readonly<ConstantsProviderProps>) {
   const { user, loading: authLoading, userConfig } = useAuth();
 
-  // Query that confirms supabase has a real, ready session
   const sessionQuery = useSessionReady(user?.id ?? null);
-
-  // Final "is session ready" flag
-  const isSessionReady =
-    !!user &&
-    !authLoading &&
-    !!userConfig.userType &&
-    sessionQuery.status === "success";
+  const isSessionReady = useMemo(
+    () =>
+      !!user &&
+      !authLoading &&
+      !!userConfig.userType &&
+      sessionQuery.status === "success",
+    [user, authLoading, userConfig.userType, sessionQuery.status]
+  );
 
   /**
    * Constants fetch (only enabled when session is fully ready)

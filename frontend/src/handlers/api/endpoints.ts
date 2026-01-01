@@ -6,11 +6,15 @@ export const API_ENDPOINTS = {
     SET_PASSWORD: "/auth/set-password",
     FORGOT_PASSWORD: "/auth/forgot-password",
     GET_PROFILE: "/auth/profile",
+    GET_ORGANIZATION: "/auth/organization",
+    TRANSFER_CODE: "/auth/transfer-code",
+    EXCHANGE_TRANSFER_CODE: "/auth/exchange-transfer-code",
   },
 
   MISC: {
     GET_MENU: "/misc/menu",
     GET_CONSTANTS: "/misc/constants",
+    GET_PUBLIC_ORGANIZATION: "/misc/organization/public",
   },
 
   PATIENTS: {

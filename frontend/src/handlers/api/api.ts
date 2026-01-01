@@ -20,10 +20,11 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 
 // Authentication API
 export const authApi = {
-  login: async (token: string): Promise<ApiResponse> => {
+  login: async (token: string, refreshToken: string): Promise<ApiResponse> => {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN_TOKEN, {
         token,
+        refreshToken,
       });
       return response.data;
     } catch (error: any) {
@@ -132,6 +133,57 @@ export const authApi = {
       };
     }
   },
+
+  getOrganization: async (): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.AUTH.GET_ORGANIZATION);
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to get organization",
+      };
+    }
+  },
+
+  createTransferCode: async (): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.AUTH.TRANSFER_CODE);
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create transfer code",
+      };
+    }
+  },
+
+  exchangeTransferCode: async (code: string, state: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.AUTH.EXCHANGE_TRANSFER_CODE, {
+        code,
+        state,
+      });
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to exchange transfer code",
+      };
+    }
+  },
 };
 
 // Patient API
@@ -221,6 +273,24 @@ export const miscApi = {
           error.response?.data?.message ||
           error.message ||
           "Failed to fetch constants",
+      };
+    }
+  },
+
+  getPublicOrganization: async (slug: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.MISC.GET_PUBLIC_ORGANIZATION, {
+        params: { slug },
+      });
+      return response.data;
+    } catch (error: any) {
+      return {
+        data: null,
+        error: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch organization",
       };
     }
   },
@@ -1178,7 +1248,7 @@ export const doctorsApi = {
   ): Promise<any> => {
     try {
       const normalizedGender = gender?.toLowerCase() || "";
-      
+
       if (!normalizedGender) {
         return {
           data: null,

@@ -27,6 +27,7 @@ import { buildRedisSession } from "../helpers/misc.helper";
 import { UserService } from "../services/user.service";
 import PaginationHelper from "../helpers/pagination.helper";
 import ragHelper from "../helpers/llm/rag.helper";
+import { encryptSessionData } from "../helpers/encryption.helper";
 
 class SAdminController {
   public static async createSuperAdmin(
@@ -59,17 +60,6 @@ class SAdminController {
       });
 
       await Promise.all([
-        prisma.adminLogin.create({
-          data: {
-            adminId: superAdmin.id,
-            ip: req.ip,
-            appVersion: req.headers["user-agent"],
-            metadata: {
-              ip: req.ip,
-              userAgent: req.headers["user-agent"],
-            },
-          },
-        }),
         prisma.adminAuditLog.create({
           data: {
             adminId: superAdmin.id,
@@ -154,9 +144,10 @@ class SAdminController {
         userId: admin.id,
         sessionId,
       });
+      const encryptedSession = encryptSessionData(session);
 
       await Promise.all([
-        redis.set(SESSION_KEY(sessionId), session, ttl),
+        redis.set(SESSION_KEY(sessionId), encryptedSession, ttl),
         prisma.adminSession.create({
           data: {
             adminId: admin.id,
@@ -211,19 +202,14 @@ class SAdminController {
   ) {
     try {
       const user = req.user!;
-      const { name, admin } =
+      const { name, admin, isLicensee } =
         req.body as ProvisionOrganizationSchema;
 
-      const [checkName, checkIfPrimary, checkAdminEmail, checkSuperAdminEmail] =
+      const [checkName, checkAdminEmail, checkSuperAdminEmail] =
         await Promise.all([
           prisma.organization.findFirst({
             where: {
               name,
-            },
-          }),
-          prisma.organization.findFirst({
-            where: {
-              isPrimary: true,
             },
           }),
           prisma.user.findFirst({
@@ -246,14 +232,6 @@ class SAdminController {
         });
       }
 
-      if (checkIfPrimary) {
-        return sendResponse(res, {
-          status: StatusCode.BAD_REQUEST,
-          error: true,
-          message: "PrimaryOrganizationExists",
-        });
-      }
-
       if (checkAdminEmail || checkSuperAdminEmail) {
         return sendResponse(res, {
           status: StatusCode.BAD_REQUEST,
@@ -270,10 +248,13 @@ class SAdminController {
           email_confirm: true,
         });
       } else {
+        const idDomainUrl = process.env.ID_DOMAIN_URL || "https://id.bios.med";
+        const inviteUrl = `${idDomainUrl}/auth/accept-invitation?token={token}`;
+
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(
           admin.email,
           {
-            redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
+            redirectTo: inviteUrl,
             data: {
               userType: PrismaUserType.ADMIN.toString().toLowerCase(),
               firstName: admin.firstName,
@@ -298,6 +279,7 @@ class SAdminController {
         prisma.organization.create({
           data: {
             name,
+            isLicensee,
             createdBy: user?.userId,
           },
         }),

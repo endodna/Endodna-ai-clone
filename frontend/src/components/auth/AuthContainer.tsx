@@ -7,14 +7,29 @@ import {
 import loginBackground from "@/assets/login_background.jpg";
 // import carePlus from "@/assets/care_plus.svg";
 import bellaVita from "@/assets/bellaVita.svg";
+import { OrganizationBranding } from "@/hooks/useOrganizationBranding";
 
 export default function AuthContainer({
   header,
   children,
+  organizationBranding,
+  organizationName,
 }: {
   header: React.ReactNode;
   children?: React.ReactNode;
+  organizationBranding?: OrganizationBranding | null;
+  organizationName?: string;
 }) {
+  
+  const logoUrl = organizationBranding?.customization?.logo?.url || bellaVita;
+  const orgName = organizationName || organizationBranding?.name || "BellaVita";
+  const tagline = organizationBranding?.customization?.tagline;
+  const primaryColor = organizationBranding?.customization?.primaryColor;
+
+  const borderStyle = primaryColor
+    ? { borderColor: primaryColor }
+    : {};
+
   return (
     <div
       className="relative bg-cover bg-center flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10"
@@ -24,16 +39,23 @@ export default function AuthContainer({
 
       <div className="relative z-10 flex w-full max-w-lg">
         <div className="flex flex-col gap-6 w-full">
-          <Card className="px-4 py-4 bg-gradient-to-r from-white/100 to-gray-100/100 flex flex-col gap-6">
+          <Card
+            className="px-4 py-4 bg-gradient-to-r from-white/100 to-gray-100/100 flex flex-col gap-6"
+            style={borderStyle}
+          >
             <CardHeader className="pb-0">
               <CardDescription className="flex flex-col gap-6">
-                <div className="flex items-center justify-center">
-                  {/* <img src={carePlus} alt="Care Plus" className="w-20 h-auto" /> */}
+                <div className="flex flex-col items-center justify-center gap-2">
                   <img
-                    src={bellaVita}
-                    alt="Powered by BellaVita"
+                    src={logoUrl}
+                    alt={orgName}
                     className="w-60 h-auto"
                   />
+                  {tagline && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      {tagline}
+                    </p>
+                  )}
                 </div>
                 {header}
               </CardDescription>

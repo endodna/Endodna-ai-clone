@@ -27,6 +27,7 @@ export type CreateSuperAdminSchema = z.infer<typeof createSuperAdminSchema>;
 export const provisionOrganizationSchema = z
   .object({
     name: z.string().min(1, "Name is required").trim(),
+    isLicensee: z.boolean().optional().default(false),
     admin: z
       .object({
         email: z.string().email("Invalid email format").toLowerCase().trim(),
@@ -165,6 +166,7 @@ export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
 export const validateLoginSchema = z
   .object({
     token: z.string().min(1, "Token is required"),
+    refreshToken: z.string().min(1, "Refresh token is required"),
   })
   .strict();
 export type ValidateLoginSchema = z.infer<typeof validateLoginSchema>;
@@ -617,3 +619,14 @@ export const updatePatientGoalSchema = z.object({
   message: "At least one field must be provided for update",
 });
 export type UpdatePatientGoalSchema = z.infer<typeof updatePatientGoalSchema>;
+
+export const publicOrganizationInfoSchema = z.object({
+  slug: z.string().min(1, "Organization slug is required"),
+}).strict();
+export type PublicOrganizationInfoSchema = z.infer<typeof publicOrganizationInfoSchema>;
+
+export const exchangeTransferCodeSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+  state: z.string().min(1, "State is required"),
+}).strict();
+export type ExchangeTransferCodeSchema = z.infer<typeof exchangeTransferCodeSchema>;
