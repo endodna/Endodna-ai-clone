@@ -48,3 +48,29 @@ resource "aws_route53_record" "alb" {
     evaluate_target_health = true
   }
 }
+
+# Route53 record for id.bios.med (centralized login domain)
+resource "aws_route53_record" "id_subdomain" {
+  zone_id = var.hosted_zone_id
+  name    = "id.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = var.cloudfront_domain_name
+    zone_id                = var.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# Route53 wildcard record for organization subdomains (*.bios.med)
+resource "aws_route53_record" "wildcard_subdomain" {
+  zone_id = var.hosted_zone_id
+  name    = "*.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = var.cloudfront_domain_name
+    zone_id                = var.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+}

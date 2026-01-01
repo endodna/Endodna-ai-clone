@@ -10,10 +10,11 @@ import {
 import { UserResponse } from "@supabase/supabase-js";
 import { AuthenticatedRequest, StatusCode, TempusActions, UserType } from "../types";
 import { buildRedisSession } from "../helpers/misc.helper";
-import { SESSION_KEY } from "../utils/constants";
+import { REFRESH_TOKEN_KEY, SESSION_KEY, DEFAULT_ORG_SLUG } from "../utils/constants";
 import redis from "../lib/redis";
 import { logger } from "../helpers/logger.helper";
 import tempusService from "./tempus.service";
+import { encryptRefreshToken, encryptSessionData } from "../helpers/encryption.helper";
 
 export interface CreateUserParams {
   email: string;
@@ -79,7 +80,9 @@ export class UserService {
         },
         select: {
           id: true,
+          uuid: true,
           name: true,
+          slug: true,
           createdBy: true,
           createdByAdmin: {
             select: {
@@ -143,7 +146,7 @@ export class UserService {
             middleName,
             status,
             organization: {
-              id: organization.id,
+              id: organization.uuid,
               name: organization.name,
               email: organization.createdByAdmin?.email,
             },
@@ -153,8 +156,14 @@ export class UserService {
           }
         });
       } else {
+        const idDomainUrl = process.env.ID_DOMAIN_URL || "https://id.bios.med";
+        const orgSlug = organization.slug || "";
+        const inviteUrl = orgSlug
+          ? `${idDomainUrl}/auth/accept-invitation?org=${orgSlug}&token={token}`
+          : `${idDomainUrl}/auth/accept-invitation?token={token}`;
+
         newSupabaseUser = await supabase.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${process.env.FRONTEND_URL}/auth/accept-invitation`,
+          redirectTo: inviteUrl,
           data: {
             userType: userType.toString(),
             organizationId,
@@ -163,9 +172,10 @@ export class UserService {
             middleName,
             status,
             organization: {
-              id: organization.id,
+              id: organization.uuid,
               name: organization.name,
               email: organization.createdByAdmin?.email,
+              slug: organization.slug,
             },
             invitedBy: {
               ...invitedBy,
@@ -281,15 +291,28 @@ export class UserService {
 
   public static async completeUserLogin({
     accessToken,
+    refreshToken,
     req,
   }: {
     accessToken: string;
+    refreshToken?: string;
     req: AuthenticatedRequest;
   }): Promise<{
     status?: StatusCode;
     error?: boolean;
     message?: string;
-    user?: Partial<User>;
+    user?: Partial<User> & {
+      organizationUsers?: Array<{
+        organizationId: number;
+        organization: {
+          id: number;
+          uuid: string;
+          slug: string | null;
+        };
+      }>;
+    };
+    organizationSlug?: string | null;
+    organizationId?: number;
     accessToken?: string;
   }> {
     const claims = await supabase.auth.getClaims(accessToken);
@@ -322,6 +345,9 @@ export class UserService {
               select: {
                 id: true,
                 uuid: true,
+                slug: true,
+                isLicensee: true,
+                parentOrganizationId: true,
               },
             },
           },
@@ -342,10 +368,16 @@ export class UserService {
       },
     });
 
+    const organizationSlug = user.organizationUsers[0]?.organization?.slug || DEFAULT_ORG_SLUG;
+    const organizationId = user.organizationUsers[0]?.organization.id;
+    const userOrganizationId = user.organizationUsers[0]?.organizationId;
+
     if (checkSession) {
       user.organizationUsers = [];
       return {
         user,
+        organizationSlug,
+        organizationId: userOrganizationId,
         status: StatusCode.OK,
         error: false,
         message: "Session already exists",
@@ -355,15 +387,31 @@ export class UserService {
     const ttl = claims.data?.claims.exp - Math.floor(Date.now() / 1000);
     const sessionId = claims?.data?.claims?.session_id;
 
+    if (!organizationId) {
+      return {
+        status: StatusCode.BAD_REQUEST,
+        error: true,
+        message: "User is not associated with an organization",
+      };
+    }
+
     const session = buildRedisSession({
       userType: user.userType as UserType,
       userId: user.id,
       sessionId,
       isPasswordSet: user.isPasswordSet,
-      organizationId: user.organizationUsers[0].organization.id!,
+      organizationId: organizationId,
+      transferCompleted: false,
+      parentOrganizationId: user.organizationUsers[0]?.organization?.parentOrganizationId,
+      isLicenseeOrganization: user.organizationUsers[0]?.organization?.isLicensee,
     });
 
-    await redis.set(SESSION_KEY(sessionId), session, ttl);
+    const encryptedSession = encryptSessionData(session);
+    if (refreshToken) {
+      const encryptedRefreshToken = encryptRefreshToken(refreshToken);
+      await redis.set(REFRESH_TOKEN_KEY(sessionId), encryptedRefreshToken, ttl);
+    }
+    await redis.set(SESSION_KEY(sessionId), encryptedSession, ttl);
 
     user.organizationUsers = [];
     try {
@@ -404,6 +452,8 @@ export class UserService {
 
     return {
       user,
+      organizationSlug,
+      organizationId: userOrganizationId,
       status: StatusCode.OK,
       error: false,
       message: "Login successful",

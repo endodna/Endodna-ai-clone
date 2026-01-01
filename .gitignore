@@ -47,3 +47,4 @@ temp/
 terraform.tfplan
 terraform.tfplan.*
 *.tfplan
+.cursor/

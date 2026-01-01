@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
+import { toast } from "sonner";
 import {
   PanelLeftClose,
   PanelRightClose,
@@ -41,7 +42,7 @@ export function TopNavigation() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
+    toast.success("Logged out!");
   };
 
   return (

@@ -16,14 +16,20 @@ export const buildRedisSession = ({
   sessionId,
   data,
   organizationId,
+  parentOrganizationId,
   isPasswordSet,
+  transferCompleted,
+  isLicenseeOrganization,
 }: {
   userType: UserType;
   userId: string;
   sessionId: string;
   organizationId?: number;
+  parentOrganizationId?: number | null;
   isPasswordSet?: boolean;
   data?: Record<string, any>;
+  transferCompleted?: boolean;
+  isLicenseeOrganization?: boolean;
 }) => {
   return JSON.stringify({
     userType,
@@ -31,6 +37,9 @@ export const buildRedisSession = ({
     sessionId,
     data,
     organizationId,
+    parentOrganizationId,
     isPasswordSet,
+    transferCompleted: transferCompleted ?? false,
+    isLicenseeOrganization: isLicenseeOrganization ?? false,
   });
 };

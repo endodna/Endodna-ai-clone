@@ -376,10 +376,10 @@ class PatientChatHelper extends BaseChatHelper {
 
                 // Only add assistant message if it has content (text or tool calls)
                 if (assistantContent.length > 0) {
-                    messages.push({
-                        role: "assistant",
-                        content: assistantContent,
-                    });
+                messages.push({
+                    role: "assistant",
+                    content: assistantContent,
+                });
                 }
 
                 if (!result.toolCalls || result.toolCalls.length === 0) {

@@ -12,7 +12,7 @@
     "lint": "eslint --fix src/**/*.ts --ext ts,tsx  --max-warnings 30",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "npx prisma db seed",
     "reconcile:dna-snps": "ts-node scripts/reconcile-dna-snps.ts",
@@ -75,6 +75,7 @@
     "nodemon": "^3.0.2",
     "prettier": "^3.6.2",
     "prisma": "^6.19.0",
+    "supabase": "^2.70.4",
     "ts-jest": "^29.2.5",
     "typescript": "^5.2.2"
   },

@@ -4,15 +4,18 @@ import {
   type ComponentType,
   type LazyExoticComponent,
 } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "@/pages/Auth/Login";
 import { Loading } from "./components/Loading";
+import { IdSubdomainGuard, OrgSubdomainGuard } from "@/components/SubdomainGuard";
+import { isLoginSubdomain } from "@/utils/subdomain";
 
 const DashboardLayout = lazy(() => import("./Layouts/DashboardLayout"));
 const ResetPasswordForm = lazy(() => import("./pages/Auth/ResetPassword"));
 const ForgotPasswordForm = lazy(() => import("./pages/Auth/ForgotPassword"));
 const AcceptInvitation = lazy(() => import("./pages/Auth/AcceptInvitation"));
+const Transfer = lazy(() => import("./pages/Auth/Transfer"));
 const PatientListPage = lazy(() => import("./pages/Patients/PatientListPage"));
 const PatientProfilePage = lazy(
   () => import("./pages/Patients/PatientProfilePage")
@@ -36,16 +39,43 @@ const withSuspense =
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: LoginPage,
+    Component: () => {
+      if (typeof window !== "undefined" && !isLoginSubdomain()) {
+        return (
+          <OrgSubdomainGuard>
+            <Navigate to="/dashboard" replace />
+          </OrgSubdomainGuard>
+        );
+      }
+      
+      if (typeof window !== "undefined" && isLoginSubdomain()) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("org")) {
+          urlParams.delete("org");
+          const newUrl = urlParams.toString() 
+            ? `${window.location.pathname}?${urlParams.toString()}`
+            : window.location.pathname;
+          window.history.replaceState({}, "", newUrl);
+        }
+      }
+      
+      return (
+        <IdSubdomainGuard>
+          <LoginPage />
+        </IdSubdomainGuard>
+      );
+    },
   },
   {
     path: "/dashboard",
     Component: () => (
-      <ProtectedRoute>
-        <Suspense fallback={<Loading loadingMessage="Loading dashboard..." />}>
-          <DashboardLayout />
-        </Suspense>
-      </ProtectedRoute>
+      <OrgSubdomainGuard>
+        <ProtectedRoute>
+          <Suspense fallback={<Loading loadingMessage="Loading dashboard..." />}>
+            <DashboardLayout />
+          </Suspense>
+        </ProtectedRoute>
+      </OrgSubdomainGuard>
     ),
     children: [
       {
@@ -94,16 +124,38 @@ export const router = createBrowserRouter([
     path: "/auth",
     children: [
       {
+        path: "transfer",
+        Component: () => (
+          <OrgSubdomainGuard>
+            <Suspense fallback={<Loading />}>
+              <Transfer />
+            </Suspense>
+          </OrgSubdomainGuard>
+        ),
+      },
+      {
         path: "reset-password",
-        Component: withSuspense(ResetPasswordForm),
+        Component: () => (
+          <IdSubdomainGuard>
+            {withSuspense(ResetPasswordForm)()}
+          </IdSubdomainGuard>
+        ),
       },
       {
         path: "forgot-password",
-        Component: withSuspense(ForgotPasswordForm),
+        Component: () => (
+          <IdSubdomainGuard>
+            {withSuspense(ForgotPasswordForm)()}
+          </IdSubdomainGuard>
+        ),
       },
       {
         path: "accept-invitation",
-        Component: withSuspense(AcceptInvitation),
+        Component: () => (
+          <IdSubdomainGuard>
+            {withSuspense(AcceptInvitation)()}
+          </IdSubdomainGuard>
+        ),
       },
     ],
   },

@@ -2,11 +2,13 @@ import { z } from "zod";
 import { ReusableForm, FormField } from "@/components/forms";
 import { PasswordValidation } from "@/components/forms/PasswordValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContainer from "@/components/auth/AuthContainer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { isLoginSubdomain, buildOrgUrl, DEFAULT_ORG_SLUG } from "@/utils/subdomain";
+import { authApi } from "@/handlers/api/api";
 
 const schema = z
   .object({
@@ -60,13 +62,34 @@ export default function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [success, setSuccess] = useState(false);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
+    if (hasRedirected.current) return;
+
     const now = new Date();
     const sessionExpiry = new Date(auth?.session?.expires_at || 0);
 
     if (auth?.userConfig?.isPasswordSet || sessionExpiry > now) {
-      navigate("/dashboard");
+      hasRedirected.current = true;
+      if (isLoginSubdomain()) {
+        const redirectToOrg = async () => {
+          try {
+            const response = await authApi.getOrganization();
+            if (response.data?.slug) {
+              window.location.href = buildOrgUrl(response.data.slug, "/dashboard");
+            } else {
+              window.location.href = buildOrgUrl(DEFAULT_ORG_SLUG, "/dashboard");
+            }
+          } catch (error) {
+            console.error("Failed to get organization:", error);
+            window.location.href = buildOrgUrl(DEFAULT_ORG_SLUG, "/dashboard");
+          }
+        };
+        redirectToOrg();
+      } else {
+        navigate("/dashboard");
+      }
     }
     return () => {};
   }, [auth?.session, auth?.userConfig?.isPasswordSet, navigate]);

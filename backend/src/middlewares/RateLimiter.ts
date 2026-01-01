@@ -9,6 +9,10 @@ export const rateLimiter = {
     windowMs: 1000, // 1 second
     max: 20, // limit
   }),
+  transfer_code_rate_limiter: rateLimit({
+    windowMs: 1000, // 1 second
+    max: 5, // limit
+  }),
   strict_rate_limiter: rateLimit({
     windowMs: 1000, // 1 second
     max: 1, // limit

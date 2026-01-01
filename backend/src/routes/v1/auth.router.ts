@@ -2,6 +2,7 @@ import { Router } from "express";
 import AuthController from "../../controllers/AuthController";
 import { validate } from "../../middlewares/Validator";
 import {
+  exchangeTransferCodeSchema,
   forgotPasswordSchema,
   loginSchema,
   setPasswordSchema,
@@ -9,6 +10,7 @@ import {
 } from "../../schemas";
 import SAdminController from "../../controllers/SAdminController";
 import { Authentication } from "../../middlewares/Authentication";
+import { rateLimiter } from "../../middlewares/RateLimiter";
 
 const authRouter = Router();
 
@@ -26,6 +28,14 @@ authRouter.post(
 );
 authRouter.post("/logout", Authentication, AuthController.signOut);
 authRouter.get("/profile", Authentication, AuthController.getProfile);
+authRouter.get("/organization", Authentication, AuthController.getOrganization);
+authRouter.post("/transfer-code",
+  rateLimiter.transfer_code_rate_limiter,
+  Authentication,
+  AuthController.createTransferCode);
+authRouter.post("/exchange-transfer-code",
+  validate(exchangeTransferCodeSchema),
+  AuthController.exchangeTransferCode);
 authRouter.post(
   "/set-password",
   validate(setPasswordSchema),

@@ -1067,7 +1067,7 @@ class TestosteroneDosingHelper extends BaseDosingHelper {
             if (bmi >= 35) {
                 supplements.push({
                     name: "Anastrozole + DIM",
-                    dose: "0.5mg 2x/week + 500mg daily",
+                    dose: "0.5mg 2x/week + 350mg daily",
                     unit: "",
                     frequency: "",
                     purpose: "Aromatase inhibition",

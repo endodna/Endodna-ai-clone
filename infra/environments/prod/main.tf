@@ -116,6 +116,7 @@ module "cloudfront" {
   public_bucket_id           = module.s3_public.bucket_id
   environment                = var.environment
   domain_name                = var.domain_name
+  base_domain                = var.base_domain
   certificate_arn            = var.certificate_arn
   price_class                = var.price_class
   enable_logging             = var.enable_logging

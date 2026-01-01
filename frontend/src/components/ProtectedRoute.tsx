@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useMenu } from "../contexts/MenuContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildIdUrl, getSubdomain, DEFAULT_ORG_SLUG, isLoginSubdomain } from "@/utils/subdomain";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,17 +22,35 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!userConfig?.userType) {
-    return <Navigate to="/" replace />;
+    if (isLoginSubdomain()) {
+      return <Navigate to="/" replace />;
+    }
+    const currentSubdomain = getSubdomain();
+    const orgSlug = currentSubdomain || DEFAULT_ORG_SLUG;
+    const idLoginUrl = orgSlug === DEFAULT_ORG_SLUG
+      ? `${buildIdUrl("/")}?logout=true`
+      : `${buildIdUrl("/")}?org=${orgSlug}&logout=true`;
+    window.location.href = idLoginUrl;
+    return null;
   }
 
   if (userConfig?.userType && userConfig?.isPasswordSet === false) {
-    return (
-      <Navigate
-        to="/auth/reset-password"
-        state={{ isPasswordRecovery: true }}
-        replace
-      />
-    );
+    const currentSubdomain = getSubdomain();
+    if (currentSubdomain === "id") {
+      return (
+        <Navigate
+          to="/auth/reset-password"
+          state={{ isPasswordRecovery: true }}
+          replace
+        />
+      );
+    }
+    const orgSlug = currentSubdomain || DEFAULT_ORG_SLUG;
+    const resetPasswordUrl = orgSlug === DEFAULT_ORG_SLUG
+      ? buildIdUrl("/auth/reset-password")
+      : `${buildIdUrl("/auth/reset-password")}?org=${orgSlug}`;
+    window.location.href = resetPasswordUrl;
+    return null;
   }
 
   // if (!hasAccess(location.pathname)) {

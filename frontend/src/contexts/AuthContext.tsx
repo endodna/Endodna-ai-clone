@@ -8,7 +8,7 @@ import React, {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { authApi } from "@/handlers/api/api";
-import { toast } from "sonner";
+import { getSubdomain, buildIdUrl, isLoginSubdomain } from "@/utils/subdomain";
 
 interface UserConfig {
   userType: UserType | null;
@@ -53,8 +53,41 @@ const saveUserConfigToStorage = (userConfig: UserConfig): void => {
 const clearUserConfigFromStorage = (): void => {
   try {
     localStorage.removeItem(USER_CONFIG_KEY);
+    
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn(`Failed to remove Supabase key ${key}:`, e);
+      }
+    });
+    
+    if (typeof document !== "undefined") {
+      const cookies = document.cookie.split(";");
+     
+      cookies.forEach((cookie) => {
+        const cookieName = cookie.split("=")[0].trim();
+        if (cookieName.startsWith("sb-") && cookieName.endsWith("-auth-token")) {
+          const domains = [".bios.dev", ".bios.med", ""];
+          domains.forEach((domain) => {
+            if (domain) {
+              document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${domain};`;
+            } else {
+              document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+            }
+          });
+        }
+      });
+    }
   } catch (error) {
-    console.error("Error clearing userConfig from localStorage:", error);
+    console.error("Error clearing userConfig and Supabase credentials from storage:", error);
   }
 };
 
@@ -111,6 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     saveUserConfigToStorage(userConfig);
   }, [userConfig]);
 
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -145,7 +179,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (_event === "SIGNED_IN" || _event === "PASSWORD_RECOVERY") {
         setSession(session);
         setUser(session?.user ?? null);
-        // Fetch user profile when user signs in (including via invite)
       }
       if (_event === "USER_UPDATED") {
         getProfile();
@@ -178,7 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: apiError,
         message: apiMessage,
         data: apiData,
-      } = await authApi.login(supabaseData.session?.access_token);
+      } = await authApi.login(supabaseData.session?.access_token, supabaseData.session?.refresh_token);
       if (apiError) {
         return { error: apiMessage };
       }
@@ -221,8 +254,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async (useSupabaseSignOut?: boolean) => {
     try {
+      const currentSubdomain = getSubdomain();
+      const isOnIdSubdomain = isLoginSubdomain();
+      const orgSlug = currentSubdomain && !isOnIdSubdomain ? currentSubdomain : null;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const hasAccessToken = !!session?.access_token;
+
       if (useSupabaseSignOut) {
-        await supabase.auth.signOut();
+        if (hasAccessToken) {
+          await supabase.auth.signOut();
+        }
         setUser(null);
         setUserConfig({
           userType: null,
@@ -232,33 +274,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           middleName: null,
         });
         clearUserConfigFromStorage();
+
+        if (orgSlug) {
+          window.location.href = buildIdUrl(`/?org=${orgSlug}&logout=true`);
+        } else if (!isOnIdSubdomain) {
+          window.location.href = buildIdUrl("/?logout=true");
+        } else {
+          window.location.href = buildIdUrl("/?logout=true");
+        }
         return;
       }
-      const {
-        error: apiError,
-        message: apiMessage,
-        data: apiData,
-      } = await authApi.logout();
-      if (apiError) {
-        console.error("Logout API error:", apiMessage);
+
+      if (hasAccessToken) {
+        const {
+          error: apiError,
+          message: apiMessage
+        } = await authApi.logout();
+        if (apiError) {
+          console.error("Logout API error:", apiMessage);
+        }
+        
+        try {
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.error("Error signing out:", error);
+        }
       }
-      if (apiData) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setUserConfig({
-          userType: null,
-          isPasswordSet: null,
-          firstName: null,
-          lastName: null,
-          middleName: null,
-        });
-        clearUserConfigFromStorage();
-        toast.success("Logged out!");
-      }
+
+      setUser(null);
+      setUserConfig({
+        userType: null,
+        isPasswordSet: null,
+        firstName: null,
+        lastName: null,
+        middleName: null,
+      });
+      clearUserConfigFromStorage();
+
+      if (orgSlug) {
+        window.location.href = buildIdUrl(`/?org=${orgSlug}&logout=true`);
+      } else if (!isOnIdSubdomain) {
+        window.location.href = buildIdUrl("/?logout=true");
+      } 
     } catch (error) {
       console.error("Logout error:", error);
-      await supabase.auth.signOut();
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await supabase.auth.signOut();
+        }
+      } catch (signOutError) {
+        console.error("Error signing out in catch block:", signOutError);
+      }
+      
       clearUserConfigFromStorage();
+
+      const currentSubdomain = getSubdomain();
+      const isOnIdSubdomain = isLoginSubdomain();
+      const orgSlug = currentSubdomain && !isOnIdSubdomain ? currentSubdomain : null;
+
+      if (orgSlug) {
+        window.location.href = buildIdUrl(`/?org=${orgSlug}`);
+      } else if (!isOnIdSubdomain) {
+        window.location.href = buildIdUrl("/");
+      }
     }
   };
 

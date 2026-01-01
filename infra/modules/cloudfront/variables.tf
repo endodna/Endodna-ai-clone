@@ -29,6 +29,12 @@ variable "domain_name" {
   default     = null
 }
 
+variable "base_domain" {
+  description = "Base domain name"
+  type        = string
+  default     = null
+}
+
 variable "certificate_arn" {
   description = "SSL certificate ARN for custom domain"
   type        = string

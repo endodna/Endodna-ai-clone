@@ -2,6 +2,9 @@ export const SESSION_KEY = (sessionId: string) => `session:${sessionId}`;
 export const SESSION_BLACKLIST_KEY = (sessionId: string) =>
   `session_blacklist:${sessionId}`;
 export const SESSION_BLACKLIST_EXPIRY_TIME = 86400; // 1 day in seconds
+export const REFRESH_TOKEN_KEY = (sessionId: string) => `refresh_token:${sessionId}`;
+export const TRANSFER_CODE_KEY = (code: string) => `transfer:code:${code}`;
+export const TRANSFER_STATE_KEY = (state: string) => `transfer:state:${state}`;
 
 export const PatientIds = {
   Tiffany: "e5511a50-563c-4960-86ff-b486294cddb8",
@@ -176,3 +179,14 @@ export const ALLOWED_SNPS = [
 ];
 
 export const ALLOWED_SNPS_SET = new Set<string>(ALLOWED_SNPS);
+
+export const RESERVED_ORGANIZATION_SLUGS = [
+  "id", "www", "api", "admin", "login", "auth", "sso",
+  "mail", "email", "ftp", "smtp", "pop", "imap", "webmail", "cpanel", "whm", "ns1", "ns2", "dns", "mx",
+  "test", "staging", "dev", "development", "prod", "production", "demo", "beta", "alpha",
+  "aws", "cloudfront", "s3", "cdn",
+  "root", "system", "support", "help", "status", "health", "monitoring", "logs",
+  "static", "assets", "docs", "webhook", "webhooks", "localhost", "local", "null", "undefined", "favicon", "robots", "sitemap",
+] as const;
+
+export const DEFAULT_ORG_SLUG = "app";
