@@ -77,6 +77,9 @@ export const TenantResolver = async (
                 traceId: req.traceId,
                 slug: orgSlug,
                 hostname,
+                forwardedHost,
+                directHost,
+                req: JSON.stringify(req),
             });
 
             return sendResponse(res, {

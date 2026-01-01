@@ -17,11 +17,12 @@ redis.connect();
 
 const app = express();
 
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", true);
+}
+
 // MiddleWares
 app.use(bodyParser.urlencoded({ extended: false }));
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1);
-}
 
 // app.use(
 //   // bodyParser.json({
