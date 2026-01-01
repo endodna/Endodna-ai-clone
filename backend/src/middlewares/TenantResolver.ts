@@ -40,25 +40,23 @@ export const TenantResolver = async (
             return next();
         }
 
-        const forwardedHost = req.get("X-Forwarded-Host") || req.get("X-Original-Host");
-        const directHost = req.get("host") || req.hostname || "";
-        const hostname = forwardedHost || directHost;
+        const origin = req.get('ORIGIN');
+        const originHostname = origin ? new URL(origin).hostname : null;
+
         let orgSlug: string | null = null;
 
-        const subdomain = extractSubdomain(hostname);
+        const subdomain = extractSubdomain(originHostname || '');
 
         if (subdomain === "id") {
             logger.debug("Skipping tenant resolution for reserved subdomain", {
                 traceId: req.traceId,
                 subdomain,
-                hostname,
-                forwardedHost,
-                directHost,
+                originHostname
             });
             return next();
         }
 
-        if (!subdomain && (hostname.includes("localhost") || hostname.includes("127.0.0.1") || hostname.includes("bios.dev"))) {
+        if (!subdomain && (originHostname?.includes("localhost") || originHostname?.includes("127.0.0.1") || originHostname?.includes("bios.dev"))) {
             orgSlug = req.get("X-Org-Slug") || null;
 
             if (!orgSlug) {
@@ -76,9 +74,7 @@ export const TenantResolver = async (
             logger.warn("Attempted access to reserved slug", {
                 traceId: req.traceId,
                 slug: orgSlug,
-                hostname,
-                forwardedHost,
-                directHost,
+                originHostname,
                 method: req.method,
                 path: req.path,
                 originalUrl: req.originalUrl,
@@ -187,7 +183,7 @@ export const TenantResolver = async (
             logger.warn("Organization not found", {
                 traceId: req.traceId,
                 slug: orgSlug,
-                hostname,
+                originHostname
             });
 
             return sendResponse(res, {
@@ -201,7 +197,7 @@ export const TenantResolver = async (
             traceId: req.traceId,
             organizationId: organization.id,
             slug: organization.slug,
-            hostname,
+            originHostname,
         });
 
         next();
