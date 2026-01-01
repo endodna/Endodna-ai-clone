@@ -79,7 +79,9 @@ export const TenantResolver = async (
                 hostname,
                 forwardedHost,
                 directHost,
-                req: JSON.stringify(req),
+                method: req.method,
+                path: req.path,
+                originalUrl: req.originalUrl,
             });
 
             return sendResponse(res, {
