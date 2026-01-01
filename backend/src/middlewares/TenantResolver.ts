@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { sendResponse } from "../helpers/response.helper";
 import { logger } from "../helpers/logger.helper";
 import { AuthenticatedRequest, StatusCode } from "../types";
-import { DEFAULT_ORG_SLUG, SESSION_KEY } from "../utils/constants";
+import { DEFAULT_ORG_SLUG, RESERVED_ORGANIZATION_SLUGS, SESSION_KEY } from "../utils/constants";
 import { getSupabaseClaims } from "../helpers/encryption.helper";
 import { decryptSessionData } from "../helpers/encryption.helper";
 import redis from "../lib/redis";
@@ -40,12 +40,21 @@ export const TenantResolver = async (
             return next();
         }
 
-        const hostname = req.get("host") || req.hostname || "";
+        const forwardedHost = req.get("X-Forwarded-Host") || req.get("X-Original-Host");
+        const directHost = req.get("host") || req.hostname || "";
+        const hostname = forwardedHost || directHost;
         let orgSlug: string | null = null;
 
         const subdomain = extractSubdomain(hostname);
 
         if (subdomain === "id") {
+            logger.debug("Skipping tenant resolution for reserved subdomain", {
+                traceId: req.traceId,
+                subdomain,
+                hostname,
+                forwardedHost,
+                directHost,
+            });
             return next();
         }
 
@@ -63,19 +72,19 @@ export const TenantResolver = async (
             return next();
         }
 
-        // if (RESERVED_ORGANIZATION_SLUGS.includes(orgSlug.toLowerCase() as any)) {
-        //     logger.warn("Attempted access to reserved slug", {
-        //         traceId: req.traceId,
-        //         slug: orgSlug,
-        //         hostname,
-        //     });
+        if (RESERVED_ORGANIZATION_SLUGS.includes(orgSlug.toLowerCase() as any)) {
+            logger.warn("Attempted access to reserved slug", {
+                traceId: req.traceId,
+                slug: orgSlug,
+                hostname,
+            });
 
-        //     return sendResponse(res, {
-        //         status: StatusCode.NOT_FOUND,
-        //         error: true,
-        //         message: "OrganizationNotFound1",
-        //     });
-        // }
+            return sendResponse(res, {
+                status: StatusCode.NOT_FOUND,
+                error: true,
+                message: "OrganizationNotFound1",
+            });
+        }
 
         let organization;
 
