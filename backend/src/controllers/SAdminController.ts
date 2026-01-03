@@ -291,7 +291,7 @@ class SAdminController {
             middleName: admin.middleName,
             email: admin.email,
             status: Status.ACTIVE,
-            userType: PrismaUserType.ADMIN,
+            userType: isLicensee ? PrismaUserType.LICENSEE : PrismaUserType.ADMIN,
           },
         }),
       ]);
@@ -316,7 +316,7 @@ class SAdminController {
           data: {
             organizationId: organization.id,
             userId: newUserId,
-            userType: PrismaUserType.ADMIN,
+            userType: isLicensee ? PrismaUserType.LICENSEE : PrismaUserType.ADMIN,
           },
         }),
       ]);
