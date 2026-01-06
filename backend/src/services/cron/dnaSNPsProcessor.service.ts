@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { logger } from "../../helpers/logger.helper";
 import tempusService from "../tempus.service";
+import s3Helper from "../../helpers/aws/s3.helper";
 
 interface ReconciliationResult {
     dnaResultKitId: number;
@@ -185,10 +186,40 @@ class DNASNPsProcessorService {
                 };
             }
 
+            let fileKey = metadata.key;
+            const fileExists = await s3Helper.fileExists(metadata.bucket, fileKey, traceId);
+
+            if (!fileExists && fileKey.startsWith("pending/")) {
+                const filename = fileKey.replace("pending/", "");
+                const completedKey = `completed/${filename}`;
+                const completedFileExists = await s3Helper.fileExists(metadata.bucket, completedKey, traceId);
+
+                if (completedFileExists) {
+                    logger.info("File not found at pending/ key, using completed/ key instead", {
+                        traceId,
+                        dnaResultKitId,
+                        barcode,
+                        originalKey: fileKey,
+                        newKey: completedKey,
+                        method: "DNASNPsProcessorService.reconcileDNAFile",
+                    });
+                    fileKey = completedKey;
+                } else {
+                    logger.warn("File not found at either pending/ or completed/ key", {
+                        traceId,
+                        dnaResultKitId,
+                        barcode,
+                        pendingKey: fileKey,
+                        completedKey,
+                        method: "DNASNPsProcessorService.reconcileDNAFile",
+                    });
+                }
+            }
+
             await tempusService.processDNAFile(
                 {
                     bucket: metadata.bucket,
-                    key: metadata.key,
+                    key: fileKey,
                     traceId,
                 },
                 true
