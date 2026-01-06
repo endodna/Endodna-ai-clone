@@ -20,6 +20,7 @@
     "docker:build": "docker compose build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@aws-sdk/client-bedrock-runtime": "^3.926.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.490.0",
     "@aws-sdk/client-s3": "^3.926.0",

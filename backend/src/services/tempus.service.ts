@@ -148,6 +148,32 @@ class TempusService {
                 traceId,
             );
 
+            let finalKey = key;
+            if (key.startsWith("pending/")) {
+                const filename = key.replace("pending/", "");
+                finalKey = `completed/${filename}`;
+
+                try {
+                    await s3Helper.moveFile(bucket, key, finalKey, traceId);
+                    logger.info("File moved to completed folder", {
+                        traceId,
+                        bucket,
+                        sourceKey: key,
+                        destinationKey: finalKey,
+                        method: "TempusService.processDNAFile",
+                    });
+                } catch (moveError) {
+                    logger.error("Error moving file to completed folder", {
+                        traceId,
+                        bucket,
+                        sourceKey: key,
+                        destinationKey: finalKey,
+                        error: moveError,
+                    });
+                    finalKey = key;
+                }
+            }
+
             const existingFileMetadata = (dnaResultKit.fileMetadata as Record<string, any>) || {};
 
             const updatePromises: Promise<any>[] = [
@@ -161,7 +187,7 @@ class TempusService {
                         fileMetadata: {
                             ...existingFileMetadata,
                             bucket: bucket,
-                            key: key,
+                            key: finalKey,
                             totalSNPs: parsedFile.totalRows,
                             processingDate: parsedFile.header.processingDate,
                             gsgtVersion: parsedFile.header.gsgtVersion,
@@ -178,7 +204,7 @@ class TempusService {
                             totalSNPs: parsedFile.totalRows,
                             sampleId: parsedFile.sampleId,
                             bucket,
-                            key,
+                            key: finalKey,
                             processingDate: parsedFile.header.processingDate,
                             gsgtVersion: parsedFile.header.gsgtVersion,
                         },
@@ -211,8 +237,7 @@ class TempusService {
                 );
             }
 
-            await Promise.all(updatePromises)
-
+            await Promise.all(updatePromises);
 
             logger.info("DNA file processing completed successfully", {
                 traceId,
@@ -222,30 +247,6 @@ class TempusService {
                 totalSNPs: parsedFile.totalRows,
                 method: "TempusService.processDNAFile",
             });
-
-            if (key.startsWith("pending/")) {
-                const filename = key.replace("pending/", "");
-                const completedKey = `completed/${filename}`;
-
-                try {
-                    await s3Helper.moveFile(bucket, key, completedKey, traceId);
-                    logger.info("File moved to completed folder", {
-                        traceId,
-                        bucket,
-                        sourceKey: key,
-                        destinationKey: completedKey,
-                        method: "TempusService.processDNAFile",
-                    });
-                } catch (moveError) {
-                    logger.error("Error moving file to completed folder", {
-                        traceId,
-                        bucket,
-                        sourceKey: key,
-                        destinationKey: completedKey,
-                        error: moveError,
-                    });
-                }
-            }
 
         } catch (error) {
             logger.error("Error processing DNA file", {
