@@ -7,6 +7,7 @@ import adminRouter from "./admin.router";
 import miscRouter from "./misc.router";
 import sAdminRouter from "./sadmin.router";
 import doctorRouter from "./doctor.router";
+import licenseeRouter from "./licensee.router";
 
 const v1Router = Router();
 
@@ -21,5 +22,6 @@ v1Router.use("/admin", adminRouter);
 v1Router.use("/service", sAdminRouter);
 v1Router.use("/misc", miscRouter);
 v1Router.use("/doctor", doctorRouter);
+v1Router.use("/licensee", licenseeRouter);
 
 export default v1Router;

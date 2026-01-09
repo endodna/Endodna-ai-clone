@@ -32,7 +32,7 @@ apiClient.interceptors.request.use(
     }
 
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
-    if (hostname.includes("bios.test") || hostname === "localhost" || hostname === "127.0.0.1") {
+    if (hostname.includes("bios.dev") || hostname === "localhost" || hostname === "127.0.0.1") {
       const orgSlug = getCurrentOrgSlug();
       if (orgSlug) {
         config.headers["X-Org-Slug"] = orgSlug;
@@ -104,7 +104,7 @@ apiClient.interceptors.response.use(
           cookies.forEach((cookie) => {
             const cookieName = cookie.split("=")[0].trim();
             if (cookieName.startsWith("sb-") && cookieName.endsWith("-auth-token")) {
-              const domains = [".bios.test", ".bios.med", ""];
+              const domains = [".bios.dev", ".bios.med", ""];
               domains.forEach((domain) => {
                 if (domain) {
                   document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${domain};`;

@@ -10,11 +10,11 @@ export function getSubdomain(): string | null {
     const hostname = window.location.hostname;
     const parts = hostname.split(".");
 
-    // Handle bios.test subdomains for local development (e.g., id.bios.test, app.bios.test)
+    // Handle bios.dev subdomains for local development (e.g., id.bios.dev, app.bios.dev)
     // This requires /etc/hosts configuration
-    if (hostname.includes("bios.test") && parts.length >= 3) {
-        // If it's subdomain.bios.test format, return the subdomain
-        if (parts.slice(-2).join(".") === "bios.test") {
+    if (hostname.includes("bios.dev") && parts.length >= 3) {
+        // If it's subdomain.bios.dev format, return the subdomain
+        if (parts.slice(-2).join(".") === "bios.dev") {
             return parts[0];
         }
     }
@@ -40,10 +40,10 @@ export function getBaseDomain(): string {
     const hostname = window.location.hostname;
     const parts = hostname.split(".");
 
-    // For bios.test subdomains (local development), return "bios.test"
-    if (hostname.includes("bios.test") && parts.length >= 3) {
-        if (parts.slice(-2).join(".") === "bios.test") {
-            return "bios.test";
+    // For bios.dev subdomains (local development), return "bios.dev"
+    if (hostname.includes("bios.dev") && parts.length >= 3) {
+        if (parts.slice(-2).join(".") === "bios.dev") {
+            return "bios.dev";
         }
     }
 
@@ -69,12 +69,12 @@ export function buildOrgUrl(orgSlug: string, path: string = "/"): string {
     const port = window.location.port ? `:${window.location.port}` : "";
     const hostname = window.location.hostname;
 
-    if (hostname.includes("bios.test")) {
-        return `${protocol}//${orgSlug}.bios.test${port}${path}`;
+    if (hostname.includes("bios.dev")) {
+        return `${protocol}//${orgSlug}.bios.dev${port}${path}`;
     }
 
     if (hostname === "localhost" || hostname === "127.0.0.1") {
-        return `${protocol}//${orgSlug}.bios.test${port}${path}`;
+        return `${protocol}//${orgSlug}.bios.dev${port}${path}`;
     }
 
     const baseDomain = getBaseDomain();

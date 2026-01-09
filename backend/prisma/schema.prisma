@@ -61,20 +61,22 @@ model AdminSession {
 }
 
 model Organization {
-  id                       Int                        @id @default(autoincrement())
-  uuid                     String                     @default(uuid())
+  id                       Int                         @id @default(autoincrement())
+  uuid                     String                      @default(uuid())
   name                     String
-  slug                     String?                    @unique
+  slug                     String?                     @unique
   parentOrganizationId     Int?
-  parentOrganization       Organization?              @relation("ParentOrganization", fields: [parentOrganizationId], references: [id])
-  childrenOrganizations    Organization[]             @relation("ParentOrganization")
-  isPrimary                Boolean                    @default(false)
-  isLicensee               Boolean                    @default(false)
-  createdBy                String
-  createdByAdmin           Admin?                     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  customizations           OrganizationCustomization?
-  createdAt                DateTime                   @default(now())
-  updatedAt                DateTime                   @updatedAt
+  parentOrganization       Organization?               @relation("ParentOrganization", fields: [parentOrganizationId], references: [id])
+  childrenOrganizations    Organization[]              @relation("ParentOrganization")
+  isPrimary                Boolean                     @default(false)
+  isLicensee               Boolean                     @default(false)
+  createdBy                String?
+  createdByUserId          String?
+  createdByAdmin           Admin?                      @relation(fields: [createdBy], references: [id])
+  createdByUser            User?                       @relation(fields: [createdByUserId], references: [id])
+  customizations           OrganizationCustomization[]
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
   organizationUser         OrganizationUser[]
   organizationUserInvites  OrganizationUserInvites[]
   patientActivities        PatientActivity[]
@@ -196,6 +198,7 @@ model User {
   patientInfo                PatientInfo?
   patientDosageHistories     PatientDosageHistory[]     @relation("Patient")
   doctorDosageHistories      PatientDosageHistory[]     @relation("Doctor")
+  organizations              Organization[]
 }
 
 model PatientInfo {

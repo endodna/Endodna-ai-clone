@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { sendResponse } from "../helpers/response.helper";
 import { logger } from "../helpers/logger.helper";
 import { AuthenticatedRequest, StatusCode, UserType } from "../types";
+import { prisma } from "../lib/prisma";
 
 export const PatientAuthorization = async (
   req: AuthenticatedRequest,
@@ -94,6 +95,33 @@ export const AdminAuthorization = async (
         message: "Unauthorized",
       });
     }
+
+    if (!req.user?.organizationId) {
+      return sendResponse(res, {
+        status: StatusCode.FORBIDDEN,
+        error: true,
+        message: "Organization ID not found",
+      });
+    }
+
+    const orgUser = await prisma.organizationUser.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: req.user?.organizationId,
+          userId: req.user.userId,
+        },
+        userType: UserType.ADMIN,
+      },
+    });
+
+    if (!orgUser) {
+      return sendResponse(res, {
+        status: StatusCode.FORBIDDEN,
+        error: true,
+        message: "User does not belong to the organization",
+      });
+    }
+
     next();
   } catch (err) {
     logger.error("Admin authorization error", {
@@ -135,9 +163,38 @@ export const LicenseeAuthorization = async (
         message: "Unauthorized",
       });
     }
+
+    if (!req.user?.organizationId) {
+      return sendResponse(res, {
+        status: StatusCode.FORBIDDEN,
+        error: true,
+        message: "Organization ID not found",
+      });
+    }
+
+    const orgUser = await prisma.organizationUser.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: req.user?.organizationId,
+          userId: req.user.userId,
+        },
+        userType: {
+          in: [UserType.ADMIN, UserType.LICENSEE],
+        },
+      },
+    });
+
+    if (!orgUser) {
+      return sendResponse(res, {
+        status: StatusCode.FORBIDDEN,
+        error: true,
+        message: "User does not belong to the organization",
+      });
+    }
+
     next();
   } catch (err) {
-    logger.error("Admin authorization error", {
+    logger.error("Licensee authorization error", {
       traceId: req.traceId,
       error: String(err),
     });
