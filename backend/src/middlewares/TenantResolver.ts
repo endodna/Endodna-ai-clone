@@ -56,7 +56,7 @@ export const TenantResolver = async (
             return next();
         }
 
-        if (!subdomain && (originHostname?.includes("localhost") || originHostname?.includes("127.0.0.1") || originHostname?.includes("bios.dev"))) {
+        if (!subdomain && (originHostname?.includes("localhost") || originHostname?.includes("127.0.0.1") || originHostname?.includes("bios.test"))) {
             orgSlug = req.get("X-Org-Slug") || null;
 
             if (!orgSlug) {
