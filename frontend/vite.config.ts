@@ -17,10 +17,8 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      '.bios.test',
-      'bios.test',
-      '.bios.test',
-      'bios.test',
+      '.bios.dev',
+      'bios.dev',
     ],
   },
 });

@@ -75,7 +75,7 @@ const clearUserConfigFromStorage = (): void => {
       cookies.forEach((cookie) => {
         const cookieName = cookie.split("=")[0].trim();
         if (cookieName.startsWith("sb-") && cookieName.endsWith("-auth-token")) {
-          const domains = [".bios.test", ".bios.med", ""];
+          const domains = [".bios.dev", ".bios.med", ""];
           domains.forEach((domain) => {
             if (domain) {
               document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${domain};`;

@@ -630,3 +630,46 @@ export const exchangeTransferCodeSchema = z.object({
   state: z.string().min(1, "State is required"),
 }).strict();
 export type ExchangeTransferCodeSchema = z.infer<typeof exchangeTransferCodeSchema>;
+
+export const getLicenseeOrganizationsSchema = z.object({
+  page: z.string().transform(val => Number(val)).optional(),
+  limit: z.string().transform(val => Number(val)).optional(),
+  search: z.string().trim().toLowerCase().optional(),
+}).strict();
+export type GetLicenseeOrganizationsSchema = z.infer<typeof getLicenseeOrganizationsSchema>;
+
+export const createLicenseeOrganizationSchema = z.object({
+  name: z.string().min(1, "Name is required").trim(),
+}).strict();
+export type CreateLicenseeOrganizationSchema = z.infer<typeof createLicenseeOrganizationSchema>;
+
+export const updateLicenseeOrganizationSchema = z.object({
+  name: z.string().min(1, "Organization name is required").trim(),
+}).strict();
+export type UpdateLicenseeOrganizationSchema = z.infer<typeof updateLicenseeOrganizationSchema>;
+
+export const createLicenseeOrganizationAdminSchema = z.object({
+  email: z.string().email("Invalid email format").toLowerCase().trim(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  middleName: z.string().optional(),
+  organizationId: z.string().uuid("Invalid organization ID"),
+}).strict();
+export type CreateLicenseeOrganizationAdminSchema = z.infer<typeof createLicenseeOrganizationAdminSchema>;
+
+export const createLicenseeOrganizationDoctorSchema = z.object({
+  email: z.string().email("Invalid email format").toLowerCase().trim(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  middleName: z.string().optional(),
+  organizationId: z.string().uuid("Invalid organization ID"),
+}).strict();
+export type CreateLicenseeOrganizationDoctorSchema = z.infer<typeof createLicenseeOrganizationDoctorSchema>;

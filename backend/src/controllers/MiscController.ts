@@ -177,8 +177,8 @@ class MiscController {
         });
       }
 
-      const structuredCustomization = organization.customizations?.customization
-        ? OrganizationCustomizationHelper.structureCustomization(organization.customizations.customization)
+      const structuredCustomization = organization.customizations[0]?.customization
+        ? OrganizationCustomizationHelper.structureCustomization(organization.customizations[0].customization)
         : null;
 
       const publicCustomization = OrganizationCustomizationHelper.getPublicCustomization(structuredCustomization);

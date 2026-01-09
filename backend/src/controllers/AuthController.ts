@@ -349,7 +349,7 @@ class AuthController {
       }
 
       const organization = parentOrganization || childOrganization;
-      const customization = organization?.customizations?.customization;
+      const customization = organization?.customizations[0]?.customization;
       const structuredCustomization = customization
         ? OrganizationCustomizationHelper.structureCustomization(customization)
         : null;
