@@ -10,6 +10,8 @@ import { createWorker } from "tesseract.js";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import llmProviderHelper from "../../helpers/llm/llm-provider.helper";
+import patientDataToolsHelper from "../../helpers/llm/tools/patient-data-tools.helper";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { createCanvas } = require("canvas");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -131,6 +133,14 @@ class MedicalRecordProcessorService {
             if (!textContent || textContent.trim().length === 0) {
                 throw new Error("No text content extracted from file");
             }
+
+            await this.extractLabResultsAndPrefilledData(
+                record.id,
+                record.patientId,
+                record.organizationId,
+                textContent,
+                traceId,
+            );
 
             await this.deleteExistingChunks(record.id, traceId);
 
@@ -756,6 +766,321 @@ class MedicalRecordProcessorService {
         });
 
         return chunkIndex;
+    }
+
+    private async extractLabResultsAndPrefilledData(
+        recordId: number,
+        patientId: string,
+        organizationId: number,
+        textContent: string,
+        traceId?: string,
+    ): Promise<void> {
+        try {
+            logger.info("Extracting lab results and prefilledData from medical record", {
+                traceId,
+                recordId,
+                patientId,
+                organizationId,
+                textLength: textContent.length,
+            });
+
+            const systemPrompt = `You are a medical data extraction assistant. Extract lab results and clinical data from medical records.
+
+**LAB RESULTS EXTRACTION:**
+- Identify ALL lab results in the text (biomarker names, values, units, reference ranges, dates)
+- For each lab result found, use the match_biomarker_to_loinc tool to get the standardized LOINC code
+- Extract: biomarker name, value, unit, reference range, collection date, status (if available)
+- IMPORTANT: You MUST call match_biomarker_to_loinc for each lab result to get the LOINC code
+
+**PREFILLED DATA EXTRACTION:**
+- Extract clinical data fields that match the prefilledDataFields structure
+- Include: weight, height, age, blood type, BMI, and other clinical measurements
+- Use LOINC tools to standardize biomarker names where applicable
+
+**CRITICAL OUTPUT REQUIREMENT:**
+You MUST return ONLY a valid JSON object in a code block. Use this EXACT format:
+
+\`\`\`json
+{
+  "labResults": [
+    {
+      "bioMarkerName": "Glucose",
+      "value": "95",
+      "unit": "mg/dL",
+      "referenceRange": "70-100",
+      "collectionDate": "2024-01-15",
+      "loincCode": "2339-0",
+      "loincLongName": "Glucose [Mass/volume] in Blood"
+    }
+  ],
+  "prefilledData": {
+    "weight": 180,
+    "height": 175,
+    "bmi": 25.5
+  }
+}
+\`\`\`
+
+Do NOT include any text before or after the JSON code block. Return ONLY the JSON code block.`;
+
+            const tools = patientDataToolsHelper.getPatientDataTools();
+            const messages: Array<{ role: string; content: string | any[] }> = [
+                {
+                    role: "user",
+                    content: `Extract lab results and prefilledData from this medical record:\n\n${textContent.substring(0, 10000)}${textContent.length > 10000 ? "\n\n[... truncated for processing ...]" : ""}`,
+                },
+            ];
+
+            const MAX_TOOL_ITERATIONS = 5;
+            let extractionResult: any = null;
+
+            for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+                const result = await llmProviderHelper.generateChatCompletion({
+                    systemPrompt,
+                    messages,
+                    tools,
+                    organizationId,
+                    patientId,
+                    taskType: TaskType.DOCUMENT_EMBEDDING,
+                    maxTokens: 8000,
+                    temperature: 0.1,
+                    traceId,
+                });
+
+                const assistantContent: any[] = [];
+                if (result.text && result.text.trim().length > 0) {
+                    assistantContent.push({ type: "text", text: result.text });
+                }
+                if (result.toolCalls && result.toolCalls.length > 0) {
+                    result.toolCalls.forEach((toolCall) => {
+                        assistantContent.push({
+                            type: "tool_use",
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input: toolCall.input,
+                        });
+                    });
+                }
+
+                if (assistantContent.length > 0) {
+                    messages.push({
+                        role: "assistant",
+                        content: assistantContent,
+                    });
+                }
+
+                if (!result.toolCalls || result.toolCalls.length === 0) {
+                    const jsonBlockMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/);
+                    if (jsonBlockMatch) {
+                        try {
+                            const jsonText = jsonBlockMatch[1].trim();
+                            extractionResult = JSON.parse(jsonText);
+                            logger.info("Extracted JSON from code block", {
+                                traceId,
+                                recordId,
+                                hasLabResults: !!extractionResult?.labResults,
+                                labResultsCount: extractionResult?.labResults?.length || 0,
+                                hasPrefilledData: !!extractionResult?.prefilledData,
+                            });
+                            break;
+                        } catch (e) {
+                            logger.warn("Failed to parse JSON from code block", {
+                                traceId,
+                                recordId,
+                                error: e,
+                                jsonBlock: jsonBlockMatch[1].substring(0, 200),
+                            });
+                        }
+                    }
+
+                    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch && !extractionResult) {
+                        try {
+                            extractionResult = JSON.parse(jsonMatch[0]);
+                            logger.info("Extracted JSON from text", {
+                                traceId,
+                                recordId,
+                                hasLabResults: !!extractionResult?.labResults,
+                                labResultsCount: extractionResult?.labResults?.length || 0,
+                                hasPrefilledData: !!extractionResult?.prefilledData,
+                            });
+                            break;
+                        } catch (e) {
+                            logger.warn("Failed to parse extraction JSON", {
+                                traceId,
+                                recordId,
+                                error: e,
+                                jsonSnippet: jsonMatch[0].substring(0, 200),
+                            });
+                        }
+                    }
+
+                    if (!extractionResult) {
+                        logger.warn("No JSON found in LLM response", {
+                            traceId,
+                            recordId,
+                            responseLength: result.text.length,
+                            responsePreview: result.text.substring(0, 500),
+                        });
+                    }
+                    break;
+                }
+
+                const toolResults = await Promise.all(
+                    result.toolCalls.map(async (toolCall) => {
+                        const toolResult = await patientDataToolsHelper.executeTool(
+                            toolCall,
+                            patientId,
+                            organizationId,
+                            traceId,
+                        );
+                        return {
+                            type: "tool_result",
+                            tool_use_id: toolResult.toolUseId,
+                            content: toolResult.content,
+                            is_error: toolResult.isError || false,
+                        };
+                    }),
+                );
+
+                messages.push({
+                    role: "user",
+                    content: toolResults,
+                });
+            }
+
+            if (extractionResult?.labResults && Array.isArray(extractionResult.labResults)) {
+                logger.info("Processing lab results for storage", {
+                    traceId,
+                    recordId,
+                    patientId,
+                    labResultsCount: extractionResult.labResults.length,
+                });
+
+                let storedCount = 0;
+                let errorCount = 0;
+
+                for (const labResult of extractionResult.labResults) {
+                    try {
+                        if (!labResult.bioMarkerName || !labResult.value) {
+                            logger.warn("Skipping lab result with missing required fields", {
+                                traceId,
+                                recordId,
+                                labResult,
+                            });
+                            errorCount++;
+                            continue;
+                        }
+
+                        await prisma.patientLabResult.create({
+                            data: {
+                                uuid: randomUUID(),
+                                organizationId,
+                                patientId,
+                                medicalRecordId: recordId,
+                                bioMarkerName: labResult.bioMarkerName,
+                                loincCode: labResult.loincCode || null,
+                                loincLongName: labResult.loincLongName || null,
+                                value: String(labResult.value),
+                                unit: labResult.unit || null,
+                                referenceRange: labResult.referenceRange || null,
+                                collectionDate: labResult.collectionDate
+                                    ? new Date(labResult.collectionDate)
+                                    : null,
+                                status: labResult.status || null,
+                                reportData: {
+                                    medicalRecordId: recordId,
+                                    extractedAt: new Date().toISOString(),
+                                },
+                            },
+                        });
+                        storedCount++;
+                    } catch (error) {
+                        errorCount++;
+                        logger.error("Error storing lab result", {
+                            traceId,
+                            recordId,
+                            labResult,
+                            error: error instanceof Error ? error.message : String(error),
+                            errorStack: error instanceof Error ? error.stack : undefined,
+                        });
+                    }
+                }
+
+                logger.info("Lab results extraction completed", {
+                    traceId,
+                    recordId,
+                    patientId,
+                    total: extractionResult.labResults.length,
+                    stored: storedCount,
+                    errors: errorCount,
+                });
+            } else {
+                logger.warn("No lab results found in extraction result", {
+                    traceId,
+                    recordId,
+                    patientId,
+                    extractionResult: extractionResult ? Object.keys(extractionResult) : null,
+                    hasLabResults: !!extractionResult?.labResults,
+                    isArray: Array.isArray(extractionResult?.labResults),
+                });
+            }
+
+            if (extractionResult?.prefilledData && typeof extractionResult.prefilledData === "object") {
+                const prefilledData = extractionResult.prefilledData;
+                const filteredPrefilledData = Object.fromEntries(
+                    Object.entries(prefilledData).filter(
+                        ([_, value]) => value !== null && value !== undefined && value !== "",
+                    ),
+                );
+
+                if (Object.keys(filteredPrefilledData).length > 0) {
+                    let patientInfo = await prisma.patientInfo.findUnique({
+                        where: { patientId },
+                    });
+
+                    if (!patientInfo) {
+                        patientInfo = await prisma.patientInfo.create({
+                            data: {
+                                patientId,
+                                organizationId,
+                                prefilledData: {},
+                            },
+                        });
+                    }
+
+                    const timestamp = Date.now();
+                    const existingPrefilledData = (patientInfo.prefilledData as Record<string, any>) || {};
+                    const versionedPrefilledData = {
+                        ...existingPrefilledData,
+                        [timestamp]: filteredPrefilledData,
+                    };
+
+                    await prisma.patientInfo.update({
+                        where: { patientId },
+                        data: {
+                            prefilledData: versionedPrefilledData,
+                            isOutdated: false,
+                        },
+                    });
+
+                    logger.info("PrefilledData extracted and stored", {
+                        traceId,
+                        recordId,
+                        patientId,
+                        timestamp,
+                        fields: Object.keys(filteredPrefilledData),
+                    });
+                }
+            }
+        } catch (error) {
+            logger.error("Error extracting lab results and prefilledData", {
+                traceId,
+                recordId,
+                patientId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 
     private async deleteExistingChunks(

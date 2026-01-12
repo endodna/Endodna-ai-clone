@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { logger } from "../logger.helper";
 import bedrockHelper from "../aws/bedrock.helper";
+import llmProviderHelper from "./llm-provider.helper";
 import { TaskType } from "@prisma/client";
 import redis from "../../lib/redis";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
@@ -813,11 +814,6 @@ class RAGHelper {
             hour12: false
         });
 
-        const prefilledFieldsSection = includePrefilledData ? `
-        **REQUIRED CLINICAL DATA FIELDS - MUST BE INCLUDED:**
-        ${this.buildPrefilledDataFieldsInstructions()}
-        ` : '';
-
         const jsonTemplate = includePrefilledData ? prefilledDataFields.map(f => `"${f.id}": null`).join(",\n            ") : '';
         const structuredDataSection = includePrefilledData ? `
         
@@ -844,7 +840,13 @@ class RAGHelper {
         ${medicalRecords}
         
         **Extract ALL clinical information** from medical records, chart notes, and patient reports. Use tools to fetch and combine patient data. Include: medications, allergies, conditions, diagnoses, treatment plans, lab results, clinical observations, chart notes, and dosage history (T100, T200, estradiol).
-        ${prefilledFieldsSection}
+        
+        **LAB RESULTS PROCESSING:**
+        - Lab results are automatically extracted from medical records during processing and stored in the database
+        - Use the \`get_patient_lab_results\` tool to retrieve stored lab results
+        - When extracting NEW lab results from medical records that aren't in the database, use LOINC tools (\`match_biomarker_to_loinc\`, \`search_loinc_codes\`) to identify and standardize biomarker names
+        - Always use LOINC codes for lab result standardization when available
+        
         **DATE CALCULATIONS**: Use patient's Date of Birth and Current Date above. Calculate age accurately. Be precise when converting dates to years.
         
         **IMPORTANT - CHART NOTE PROCESSING**: When processing chart notes, carefully examine them for the following structured information:
@@ -1084,7 +1086,7 @@ class RAGHelper {
             const toolCallsUsed: string[] = [];
 
             for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
-                const result = await bedrockHelper.generateChatCompletion({
+                const result = await llmProviderHelper.generateChatCompletion({
                     systemPrompt,
                     messages,
                     tools,
@@ -1454,7 +1456,7 @@ class RAGHelper {
             for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
                 const toolCallsToExecute: { id: string; name: string; input: any }[] = [];
 
-                for await (const chunk of bedrockHelper.generateChatCompletionStream({
+                for await (const chunk of llmProviderHelper.generateChatCompletionStream({
                     systemPrompt,
                     messages: messagesMutable,
                     tools: patientDataToolsHelper.getPatientDataTools(),

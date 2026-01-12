@@ -1,5 +1,5 @@
 import { logger } from "../logger.helper";
-import bedrockHelper from "../aws/bedrock.helper";
+import llmProviderHelper from "./llm-provider.helper";
 import { TaskType, ChatMessageRole } from "@prisma/client";
 
 export interface BaseMessage {
@@ -217,7 +217,7 @@ export abstract class BaseChatHelper {
     }) {
         const filteredMessages = this.filterEmptyMessages(params.messages);
 
-        return await bedrockHelper.generateChatCompletion({
+        return await llmProviderHelper.generateChatCompletion({
             systemPrompt: params.systemPrompt,
             messages: filteredMessages as any,
             tools: params.tools,
