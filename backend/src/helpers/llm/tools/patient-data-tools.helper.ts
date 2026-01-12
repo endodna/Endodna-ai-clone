@@ -3,6 +3,7 @@ import { Status } from "@prisma/client";
 import { logger } from "../../logger.helper";
 import { buildOrganizationUserFilter } from "../../organization-user.helper";
 import { gaugeFromAcmgLabels, REVERSED_ACMG_SEVERITY } from "../../gauge-algorithm.helper";
+import loincHelper from "../../loinc/loinc.helper";
 
 export interface ToolCall {
     id: string;
@@ -164,6 +165,64 @@ class PatientDataToolsHelper {
                     required: ["pathogenicityLabels"],
                 },
             },
+            {
+                name: "search_loinc_codes",
+                description: "Search for LOINC codes by biomarker name, component, or other criteria. Use this to identify standardized LOINC codes for lab results when parsing medical records.",
+                input_schema: {
+                    type: "object",
+                    properties: {
+                        query: {
+                            type: "string",
+                            description: "Search query (e.g., 'glucose', 'testosterone', 'hemoglobin A1c')",
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of results (default: 10)",
+                        },
+                        component_filter: {
+                            type: "string",
+                            description: "Filter by component name",
+                        },
+                        system_filter: {
+                            type: "string",
+                            description: "Filter by system (e.g., 'Blood', 'Serum', 'Plasma')",
+                        },
+                    },
+                    required: ["query"],
+                },
+            },
+            {
+                name: "get_loinc_code_details",
+                description: "Get detailed information about a specific LOINC code including formal name, component, property, system, and units.",
+                input_schema: {
+                    type: "object",
+                    properties: {
+                        loincCode: {
+                            type: "string",
+                            description: "LOINC code (e.g., '2339-0', '24331-1')",
+                        },
+                    },
+                    required: ["loincCode"],
+                },
+            },
+            {
+                name: "match_biomarker_to_loinc",
+                description: "Match a biomarker name to its corresponding LOINC code. Use this when parsing lab results from medical records to get standardized LOINC codes. This is the preferred method for identifying LOINC codes.",
+                input_schema: {
+                    type: "object",
+                    properties: {
+                        biomarkerName: {
+                            type: "string",
+                            description: "Biomarker name (e.g., 'Glucose', 'Total Testosterone', 'Hemoglobin A1c')",
+                        },
+                        unit: {
+                            type: "string",
+                            description: "Optional: Unit of measurement to help match (e.g., 'mg/dL', 'ng/dL', 'pg/mL', '%')",
+                        },
+                    },
+                    required: ["biomarkerName"],
+                },
+            },
         ];
     }
 
@@ -243,6 +302,24 @@ class PatientDataToolsHelper {
                 case "calculate_gauge_from_pathogenicity":
                     result = await this.calculateGaugeFromPathogenicity(
                         toolCall.input as { pathogenicityLabels: string[] },
+                        traceId,
+                    );
+                    break;
+                case "search_loinc_codes":
+                    result = await this.searchLOINCCodes(
+                        toolCall.input as { query: string; limit?: number; component_filter?: string; system_filter?: string },
+                        traceId,
+                    );
+                    break;
+                case "get_loinc_code_details":
+                    result = await this.getLOINCCodeDetails(
+                        toolCall.input as { loincCode: string },
+                        traceId,
+                    );
+                    break;
+                case "match_biomarker_to_loinc":
+                    result = await this.matchBiomarkerToLOINC(
+                        toolCall.input as { biomarkerName: string; unit?: string },
                         traceId,
                     );
                     break;
@@ -958,6 +1035,116 @@ class PatientDataToolsHelper {
         });
 
         return result;
+    }
+
+    private async searchLOINCCodes(
+        input: { query: string; limit?: number; component_filter?: string; system_filter?: string },
+        traceId?: string,
+    ): Promise<string> {
+        const result = await loincHelper.searchLOINCCodes(
+            {
+                query: input.query,
+                limit: input.limit || 10,
+                component_filter: input.component_filter,
+                system_filter: input.system_filter,
+                include_details: true,
+            },
+            traceId,
+        );
+
+        if (!result.results || result.results.length === 0) {
+            return `No LOINC codes found for query: "${input.query}"`;
+        }
+
+        let output = `LOINC CODE SEARCH RESULTS (${result.count} total, showing ${result.results.length}):\n\n`;
+        result.results.forEach((code) => {
+            output += `Code: ${code.LOINC_NUM || "N/A"}\n`;
+            output += `Long Name: ${code.LONG_COMMON_NAME || "N/A"}\n`;
+            if (code.COMPONENT) {
+                output += `Component: ${code.COMPONENT}\n`;
+            }
+            if (code.PROPERTY) {
+                output += `Property: ${code.PROPERTY}\n`;
+            }
+            if (code.SYSTEM) {
+                output += `System: ${code.SYSTEM}\n`;
+            }
+            if (code.SCALE) {
+                output += `Scale: ${code.SCALE}\n`;
+            }
+            output += `\n`;
+        });
+
+        return output;
+    }
+
+    private async getLOINCCodeDetails(
+        input: { loincCode: string },
+        traceId?: string,
+    ): Promise<string> {
+        const code = await loincHelper.getLOINCDetails(input.loincCode, traceId);
+
+        if (!code) {
+            return `LOINC code "${input.loincCode}" not found or error retrieving details.`;
+        }
+
+        let output = `LOINC CODE DETAILS:\n\n`;
+        output += `Code: ${code.loinc_code}\n`;
+        if (code.details) {
+            const details = code.details;
+            output += `Long Name: ${details.LONG_COMMON_NAME || "N/A"}\n`;
+            if (details.COMPONENT) {
+                output += `Component: ${details.COMPONENT}\n`;
+            }
+            if (details.PROPERTY) {
+                output += `Property: ${details.PROPERTY}\n`;
+            }
+            if (details.SYSTEM) {
+                output += `System: ${details.SYSTEM}\n`;
+            }
+            if (details.METHOD) {
+                output += `Method: ${details.METHOD}\n`;
+            }
+            if (details.CLASS) {
+                output += `Class: ${details.CLASS}\n`;
+            }
+            if (details.SCALE) {
+                output += `Scale: ${details.SCALE}\n`;
+            }
+            if (details.TIME_ASPCT) {
+                output += `Time: ${details.TIME_ASPCT}\n`;
+            }
+        }
+        if (code.answer_list) {
+            output += `\nAnswer List: Available\n`;
+        }
+
+        return output;
+    }
+
+    private async matchBiomarkerToLOINC(
+        input: { biomarkerName: string; unit?: string },
+        traceId?: string,
+    ): Promise<string> {
+        const match = await loincHelper.matchBiomarkerToLOINC(
+            input.biomarkerName,
+            input.unit,
+            traceId,
+        );
+
+        if (!match) {
+            return `No matching LOINC code found for biomarker: "${input.biomarkerName}"${input.unit ? ` with unit: "${input.unit}"` : ""}`;
+        }
+
+        let output = `MATCHED LOINC CODE:\n\n`;
+        output += `Biomarker: ${input.biomarkerName}\n`;
+        output += `LOINC Code: ${match.code}\n`;
+        output += `Long Name: ${match.longName}\n`;
+        if (match.component) {
+            output += `Component: ${match.component}\n`;
+        }
+
+        return output;
     }
 }
 

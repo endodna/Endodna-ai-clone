@@ -6,6 +6,7 @@ import { TaskType, RequestType } from "@prisma/client";
 export const MODEL_ID = {
     TEXT_EMBEDDING: "amazon.titan-embed-text-v1",
     CHAT_COMPLETION: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    CLAUDE_CHAT_COMPLETION: "claude-sonnet-4-5-20250929",
 } as const;
 
 export interface RecordTokenUsageParams {
@@ -50,6 +51,10 @@ class TokenUsageHelper {
             outputCostPerMillionTokens: 0,
         },
         [MODEL_ID.CHAT_COMPLETION]: {
+            inputCostPerMillionTokens: 3,
+            outputCostPerMillionTokens: 15,
+        },
+        [MODEL_ID.CLAUDE_CHAT_COMPLETION]: {
             inputCostPerMillionTokens: 3,
             outputCostPerMillionTokens: 15,
         }

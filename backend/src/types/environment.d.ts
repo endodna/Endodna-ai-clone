@@ -31,6 +31,8 @@ declare global {
       DEFAULT_ORG_SLUG: string;
       TRANSFER_CODE_ENCRYPTION_KEY: string;
       ADMIN_TOKEN: string;
+      ANTHROPIC_API_KEY?: string;
+      USE_CLAUDE_FOR_CHAT?: string;
     }
   }
 }

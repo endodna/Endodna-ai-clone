@@ -3,7 +3,7 @@ import { TaskType, ChatType, ChatMessageRole } from "@prisma/client";
 import { buildOrganizationUserFilter } from "../organization-user.helper";
 import { BaseChatHelper, BaseMessage } from "./base-chat.helper";
 import patientDataToolsHelper from "./tools/patient-data-tools.helper";
-import { bedrockHelper } from "../aws/bedrock.helper";
+import llmProviderHelper from "./llm-provider.helper";
 import { logger } from "../logger.helper";
 
 export interface ChatMessage {
@@ -376,10 +376,10 @@ class PatientChatHelper extends BaseChatHelper {
 
                 // Only add assistant message if it has content (text or tool calls)
                 if (assistantContent.length > 0) {
-                messages.push({
-                    role: "assistant",
-                    content: assistantContent,
-                });
+                    messages.push({
+                        role: "assistant",
+                        content: assistantContent,
+                    });
                 }
 
                 if (!result.toolCalls || result.toolCalls.length === 0) {
@@ -581,7 +581,7 @@ class PatientChatHelper extends BaseChatHelper {
             const maxToolIterations = 5;
 
             for (let iteration = 0; iteration < maxToolIterations; iteration++) {
-                for await (const chunk of bedrockHelper.generateChatCompletionStream({
+                for await (const chunk of llmProviderHelper.generateChatCompletionStream({
                     systemPrompt,
                     messages: filteredMessages,
                     tools,

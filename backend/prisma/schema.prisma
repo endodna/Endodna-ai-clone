@@ -411,6 +411,7 @@ model PatientMedicalRecord {
   deletedAt              DateTime?
   createdAt              DateTime                    @default(now())
   updatedAt              DateTime                    @updatedAt
+  patientLabResults      PatientLabResult[]
 
   @@index([patientId, organizationId])
 }
@@ -500,25 +501,31 @@ model PatientDNAResultActivity {
 }
 
 model PatientLabResult {
-  id             Int          @id @unique @default(autoincrement())
-  uuid           String       @unique @default(uuid())
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  patientId      String
-  patient        User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  bioMarkerName  String
-  value          String
-  unit           String?
-  referenceRange String?
-  status         Status?
-  collectionDate DateTime?
-  reportName     String?
-  reportData     Json?
-  sourceUrl      String?
-  isProcessed    Boolean      @default(false)
-  deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              Int                   @id @unique @default(autoincrement())
+  uuid            String                @unique @default(uuid())
+  organizationId  Int
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patientId       String
+  patient         User                  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bioMarkerName   String
+  loincCode       String?
+  loincLongName   String?
+  value           String
+  unit            String?
+  referenceRange  String?
+  status          String?
+  collectionDate  DateTime?
+  reportName      String?
+  reportData      Json?
+  sourceUrl       String?
+  isProcessed     Boolean               @default(false)
+  deletedAt       DateTime?
+  medicalRecordId Int?
+  medicalRecord   PatientMedicalRecord? @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([loincCode])
 }
 
 model UserLogin {
