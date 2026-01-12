@@ -239,6 +239,50 @@ class TempusService {
 
             await Promise.all(updatePromises);
 
+            if (dnaResultKit.organizationId !== null && dnaResultKit.patientId !== null && parsedFile) {
+                try {
+                    const patient = await prisma.user.findUnique({
+                        where: { id: dnaResultKit.patientId },
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            middleName: true,
+                        },
+                    });
+
+                    const patientName = patient
+                        ? `${patient.firstName}${patient.middleName ? ` ${patient.middleName}` : ""} ${patient.lastName}`.trim()
+                        : "Unknown Patient";
+
+                    const emailMessage = `DNA Kit Data Delivered\n\nPatient: ${patientName}\nSample ID: ${parsedFile.sampleId}\nBarcode: ${dnaResultKit.barcode || "N/A"}\nOrganization ID: ${dnaResultKit.organizationId}\nTotal SNPs Processed: ${parsedFile.totalRows}\nProcessing Date: ${parsedFile.header.processingDate || "N/A"}\nGSGT Version: ${parsedFile.header.gsgtVersion || "N/A"}\nDelivery Timestamp: ${new Date().toISOString()}\n\nThe DNA test results have been successfully processed and delivered.`;
+
+                    emailHelper.sendNotificationEmail(
+                        emailHelper.adminEmails,
+                        "DNA Kit Data Delivered",
+                        emailMessage,
+                        undefined,
+                        undefined,
+                        traceId,
+                    ).catch((error) => {
+                        logger.error("Failed to send DATA_DELIVERED notification email to admins", {
+                            traceId,
+                            sampleId: parsedFile ? parsedFile.sampleId : "unknown",
+                            dnaResultKitId: dnaResultKit.id,
+                            error: error,
+                            method: "TempusService.processDNAFile",
+                        });
+                    });
+                } catch (error) {
+                    logger.error("Error preparing DATA_DELIVERED email notification", {
+                        traceId,
+                        sampleId: parsedFile ? parsedFile.sampleId : "unknown",
+                        dnaResultKitId: dnaResultKit.id,
+                        error: error,
+                        method: "TempusService.processDNAFile",
+                    });
+                }
+            }
+
             logger.info("DNA file processing completed successfully", {
                 traceId,
                 dnaResultKitId: dnaResultKit.id,
