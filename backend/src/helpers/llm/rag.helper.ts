@@ -776,14 +776,21 @@ class RAGHelper {
     }
 
     private buildSummarySystemPrompt(): string {
-        return `You are a clinical AI assistant that generates **markdown-formatted**, concise, and accurate patient summaries for healthcare providers. You have access to patient information through tools that you can call when needed.
+        return `You are a clinical AI assistant that generates **markdown-formatted**, comprehensive, and accurate patient summaries for healthcare providers. You have access to patient information through tools that you can call when needed.
       
         **PRIVACY RULE**: NEVER include health card numbers, insurance numbers, addresses, phone numbers, emails, SSNs, government IDs, financial info, or next of kin. Focus ONLY on clinical information: conditions, medications, allergies, lab results, treatments, diagnoses, and observations.
+      
+        **CRITICAL - COMPREHENSIVE SUMMARY REQUIREMENT**: 
+        - You have sufficient token capacity to include ALL crucial clinical details
+        - DO NOT truncate or omit important information due to length concerns
+        - Include ALL relevant lab results, medications, conditions, allergies, and clinical observations
+        - If you have extensive data, organize it clearly but include everything that is clinically relevant
+        - Prioritize completeness over brevity - it is better to include all details than to miss crucial information
       
         Guidelines:
         1. Present summary in **Markdown** format with clear section headers (##).
         2. Use **bold** or bullet points for important data.
-        3. Be factual and concise — avoid speculation.
+        3. Be factual and comprehensive — include all relevant clinical information.
         4. Extract ALL clinical information from medical records, chart notes, and patient reports.
         5. Combine information from multiple sources; use the most recent or detailed version.
         6. Calculate age accurately using patient's date of birth and current date.
@@ -791,6 +798,7 @@ class RAGHelper {
         8. Do **not** include meta-comments or transitional phrases. Start directly with summary content.
         9. Do **not** narrate tool usage or preambles (e.g., "I'll gather", "I'll use the tools", "create a comprehensive clinical summary"). Output only the clinical summary.
         10. Use two spaces + newline for line breaks within paragraphs, or two newlines for paragraph breaks.
+        11. **Include ALL lab results, medications, conditions, and clinical findings** - do not summarize away important details.
         
         Include this disclaimer at the end:
         ---
@@ -841,11 +849,18 @@ class RAGHelper {
         
         **Extract ALL clinical information** from medical records, chart notes, and patient reports. Use tools to fetch and combine patient data. Include: medications, allergies, conditions, diagnoses, treatment plans, lab results, clinical observations, chart notes, and dosage history (T100, T200, estradiol).
         
+        **IMPORTANT - COMPREHENSIVE COVERAGE**: 
+        - **Lab Results**: Summarize lab findings by grouping related biomarkers and highlighting key abnormalities, trends, and clinically significant values. Include reference ranges when relevant. You do not need to list every single biomarker value individually - focus on patterns, abnormalities, and clinically important findings.
+        - Include ALL medications with dosages, frequencies, and reasons
+        - Include ALL conditions, diagnoses, and clinical findings
+        - Include ALL allergies and reactions
+        - Include ALL relevant chart notes and clinical observations
+        - You have sufficient capacity to include everything - prioritize completeness
+        
         **LAB RESULTS PROCESSING:**
-        - Lab results are automatically extracted from medical records during processing and stored in the database
-        - Use the \`get_patient_lab_results\` tool to retrieve stored lab results
-        - When extracting NEW lab results from medical records that aren't in the database, use LOINC tools (\`match_biomarker_to_loinc\`, \`search_loinc_codes\`) to identify and standardize biomarker names
-        - Always use LOINC codes for lab result standardization when available
+        - Lab results are automatically extracted from medical records during processing and stored in the database with LOINC codes
+        - Use the \`get_patient_lab_results\` tool to retrieve the pre-extracted, standardized lab results
+        - **Summarize lab findings** rather than listing every individual result - group related biomarkers, highlight abnormalities, trends, and clinically significant values with their reference ranges
         
         **DATE CALCULATIONS**: Use patient's Date of Birth and Current Date above. Calculate age accurately. Be precise when converting dates to years.
         
@@ -1094,7 +1109,7 @@ class RAGHelper {
                     patientId,
                     doctorId,
                     taskType: TaskType.PATIENT_SUMMARY_GENERATION,
-                    maxTokens: 2048,
+                    maxTokens: 8000,
                     temperature: 0.1,
                     traceId,
                 });
@@ -1307,7 +1322,7 @@ class RAGHelper {
                                 modelId: MODEL_ID.CHAT_COMPLETION,
                                 modelType: "text-generation",
                                 temperature: 0.1,
-                                maxTokens: 4096,
+                                maxTokens: 8000,
                                 traceId: traceId,
                                 cacheKey,
                                 generatedAt: new Date().toISOString(),
