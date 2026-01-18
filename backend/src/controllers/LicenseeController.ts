@@ -12,6 +12,7 @@ import {
     UpdateLicenseeOrganizationSchema,
     CreateLicenseeOrganizationAdminSchema,
     CreateLicenseeOrganizationDoctorSchema,
+    CreateLicenseeSchema,
 } from "../schemas";
 
 class LicenseeController {
@@ -439,6 +440,83 @@ class LicenseeController {
                     status: StatusCode.INTERNAL_SERVER_ERROR,
                     error: err,
                     message: "Failed to create organization doctor",
+                },
+                req,
+            );
+        }
+    }
+
+    public static async createLicensee(
+        req: AuthenticatedRequest,
+        res: Response,
+    ) {
+        try {
+            const { userId, organizationId } = req.user!;
+            const {
+                email,
+                password,
+                firstName,
+                lastName,
+                middleName,
+            } = req.body as CreateLicenseeSchema;
+
+            const result = await UserService.createUser({
+                email,
+                password,
+                firstName,
+                lastName,
+                middleName,
+                userType: PrismaUserType.LICENSEE,
+                organizationId: organizationId!,
+                userId: userId!,
+                status: Status.PENDING,
+                traceId: req.traceId,
+            });
+
+            await UserService.createUserAuditLog({
+                userId: userId!,
+                description: "Licensee create attempt",
+                metadata: {
+                    email,
+                    firstName,
+                    lastName,
+                    organizationId: organizationId!,
+                    createdByLicenseeUserId: userId!,
+                },
+                priority: Priority.HIGH,
+            });
+
+            if (!result.success) {
+                return sendResponse(res, {
+                    status: StatusCode.BAD_REQUEST,
+                    error: true,
+                    message: result.error,
+                });
+            }
+
+            sendResponse(res, {
+                status: StatusCode.OK,
+                data: {
+                    email,
+                    firstName,
+                    lastName,
+                    middleName,
+                    id: result.userId,
+                },
+                message: "Licensee created successfully",
+            });
+        } catch (err) {
+            logger.error("Create licensee failed", {
+                traceId: req.traceId,
+                method: "createLicensee",
+                error: err,
+            });
+            sendResponse(
+                res,
+                {
+                    status: StatusCode.INTERNAL_SERVER_ERROR,
+                    error: err,
+                    message: "Failed to create licensee",
                 },
                 req,
             );

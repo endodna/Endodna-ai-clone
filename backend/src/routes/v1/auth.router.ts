@@ -29,6 +29,7 @@ authRouter.post(
 authRouter.post("/logout", Authentication, AuthController.signOut);
 authRouter.get("/profile", Authentication, AuthController.getProfile);
 authRouter.get("/organization", Authentication, AuthController.getOrganization);
+authRouter.get("/all-roles", Authentication, AuthController.getRoles);
 authRouter.post("/transfer-code",
   rateLimiter.transfer_code_rate_limiter,
   Authentication,

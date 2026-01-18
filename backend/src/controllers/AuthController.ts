@@ -29,6 +29,7 @@ import {
 } from "../helpers/transfer-code.helper";
 import OrganizationCustomizationHelper from "../helpers/organization-customization.helper";
 import s3Helper from "../helpers/aws/s3.helper";
+import { getAllRolePermissions } from "../helpers/rbac.helper";
 
 class AuthController {
   public static async login(req: AuthenticatedRequest, res: Response) {
@@ -834,6 +835,32 @@ class AuthController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to exchange transfer code",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async getRoles(req: AuthenticatedRequest, res: Response) {
+    try {
+      const permissions = getAllRolePermissions();
+      return sendResponse(res, {
+        status: StatusCode.OK,
+        data: permissions,
+        message: "Role permissions retrieved successfully",
+      });
+    } catch (err) {
+      logger.error("Get roles failed", {
+        traceId: req.traceId,
+        method: "getRoles",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to get role permissions",
         },
         req,
       );

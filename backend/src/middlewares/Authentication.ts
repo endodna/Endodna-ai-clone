@@ -75,29 +75,29 @@ export const Authentication = async (
         });
       }
 
-      const adminToken = req.get("X-ADMIN-TOKEN");
-      const isAdminOverride = adminToken && process.env.ADMIN_TOKEN && adminToken === process.env.ADMIN_TOKEN;
+      // const adminToken = req.get("X-ADMIN-TOKEN");
+      // const isAdminOverride = adminToken && process.env.ADMIN_TOKEN && adminToken === process.env.ADMIN_TOKEN;
 
-      if (!req.path.includes("transfer-code") && !sessionData.transferCompleted && !isAdminOverride) {
-        logger.warn("Access denied: Transfer not completed", {
-          traceId: req.traceId,
-          userId: sessionData.userId,
-          path: req.path,
-          sessionData,
-        });
-        return sendResponse(res, {
-          status: StatusCode.FORBIDDEN,
-          error: true,
-          message: "AuthenticationNotCompleted401",
-        });
-      }
+      // if (!req.path.includes("transfer-code") && !sessionData.transferCompleted && !isAdminOverride) {
+      //   logger.warn("Access denied: Transfer not completed", {
+      //     traceId: req.traceId,
+      //     userId: sessionData.userId,
+      //     path: req.path,
+      //     sessionData,
+      //   });
+      //   return sendResponse(res, {
+      //     status: StatusCode.FORBIDDEN,
+      //     error: true,
+      //     message: "AuthenticationNotCompleted401",
+      //   });
+      // }
 
-      if (isAdminOverride) {
-        logger.info("Admin token override: Transfer check bypassed", {
-          traceId: req.traceId,
-          userId: sessionData.userId,
-        });
-      }
+      // if (isAdminOverride) {
+      //   logger.info("Admin token override: Transfer check bypassed", {
+      //     traceId: req.traceId,
+      //     userId: sessionData.userId,
+      //   });
+      // }
 
       if (claims?.claims?.exp) {
         const ttl = claims.claims.exp - Math.floor(Date.now() / 1000);

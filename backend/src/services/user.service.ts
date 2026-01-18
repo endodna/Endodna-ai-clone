@@ -368,9 +368,20 @@ export class UserService {
       },
     });
 
-    const organizationSlug = user.organizationUsers[0]?.organization?.slug || DEFAULT_ORG_SLUG;
     const organizationId = user.organizationUsers[0]?.organization.id;
     const userOrganizationId = user.organizationUsers[0]?.organizationId;
+    const parentOrganizationId = user.organizationUsers[0]?.organization?.parentOrganizationId;
+
+    let organizationSlug = user.organizationUsers[0]?.organization?.slug || DEFAULT_ORG_SLUG;
+    if (parentOrganizationId) {
+      const parentOrganization = await prisma.organization.findUnique({
+        where: { id: parentOrganizationId },
+        select: { slug: true },
+      });
+      if (parentOrganization?.slug) {
+        organizationSlug = parentOrganization.slug;
+      }
+    }
 
     if (checkSession) {
       user.organizationUsers = [];
