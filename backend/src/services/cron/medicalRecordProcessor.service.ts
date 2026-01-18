@@ -3,7 +3,7 @@ import { logger } from "../../helpers/logger.helper";
 import s3Helper from "../../helpers/aws/s3.helper";
 import bedrockHelper from "../../helpers/aws/bedrock.helper";
 import emailHelper from "../../helpers/email.helper";
-import { PatientMedicalRecord } from "@prisma/client";
+import { PatientMedicalRecord, MedicalRecordType } from "@prisma/client";
 import { TaskType } from "@prisma/client";
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
@@ -139,6 +139,7 @@ class MedicalRecordProcessorService {
                 record.patientId,
                 record.organizationId,
                 textContent,
+                record.type,
                 traceId,
             );
 
@@ -773,36 +774,51 @@ class MedicalRecordProcessorService {
         patientId: string,
         organizationId: number,
         textContent: string,
+        recordType: MedicalRecordType | null,
         traceId?: string,
     ): Promise<void> {
         try {
+            const isLabResultRecord = recordType === MedicalRecordType.LAB_RESULT;
+
             logger.info("Extracting lab results and prefilledData from medical record", {
                 traceId,
                 recordId,
                 patientId,
                 organizationId,
+                recordType,
+                isLabResultRecord,
                 textLength: textContent.length,
             });
 
-            const systemPrompt = `You are a medical data extraction assistant. Extract lab results and clinical data from medical records.
-
+            const labResultsExtractionSection = isLabResultRecord ? `
 **LAB RESULTS EXTRACTION:**
-- Identify ALL lab results in the text (biomarker names, values, units, reference ranges, dates)
+- This is a LAB_RESULT type medical record - extract ALL lab results from the text
+- Identify ALL lab results (biomarker names, values, units, reference ranges, dates)
 - For each lab result found, use the match_biomarker_to_loinc tool to get the standardized LOINC code
 - Extract: biomarker name, value, unit, reference range, collection date, status (if available)
-- IMPORTANT: You MUST call match_biomarker_to_loinc for each lab result to get the LOINC code
+- IMPORTANT: You MUST call match_biomarker_to_loinc for each lab result to get the LOINC code` : `
+**LAB RESULTS EXTRACTION:**
+- This is NOT a LAB_RESULT type medical record (type: ${recordType || 'null'})
+- DO NOT extract lab results from this record - only extract prefilledData
+- Lab results should only be extracted from records with type LAB_RESULT`;
+
+            const systemPrompt = `You are a medical data extraction assistant. Extract lab results and clinical data from medical records.
+
+${labResultsExtractionSection}
 
 **PREFILLED DATA EXTRACTION:**
 - Extract clinical data fields that match the prefilledDataFields structure
 - Include: weight, height, age, blood type, BMI, and other clinical measurements
-- Use LOINC tools to standardize biomarker names where applicable
+- Extract prefilledData from ALL medical record types
 
 **CRITICAL OUTPUT REQUIREMENT:**
-You MUST return ONLY a valid JSON object in a code block. Use this EXACT format:
+You MUST return ONLY a valid JSON object in a code block. ${isLabResultRecord ? 'For LAB_RESULT records, include lab results in the "labResults" array. ' : 'For non-LAB_RESULT records, "labResults" must be an empty array []. '}Always include "prefilledData" with extracted clinical measurements.
+
+Use this EXACT format:
 
 \`\`\`json
 {
-  "labResults": [
+  "labResults": ${isLabResultRecord ? `[
     {
       "bioMarkerName": "Glucose",
       "value": "95",
@@ -812,7 +828,7 @@ You MUST return ONLY a valid JSON object in a code block. Use this EXACT format:
       "loincCode": "2339-0",
       "loincLongName": "Glucose [Mass/volume] in Blood"
     }
-  ],
+  ]` : '[]'},
   "prefilledData": {
     "weight": 180,
     "height": 175,
@@ -949,7 +965,7 @@ Do NOT include any text before or after the JSON code block. Return ONLY the JSO
                 });
             }
 
-            if (extractionResult?.labResults && Array.isArray(extractionResult.labResults)) {
+            if (isLabResultRecord && extractionResult?.labResults && Array.isArray(extractionResult.labResults)) {
                 logger.info("Processing lab results for storage", {
                     traceId,
                     recordId,
@@ -1015,14 +1031,21 @@ Do NOT include any text before or after the JSON code block. Return ONLY the JSO
                     stored: storedCount,
                     errors: errorCount,
                 });
-            } else {
-                logger.warn("No lab results found in extraction result", {
+            } else if (isLabResultRecord) {
+                logger.warn("No lab results found in extraction result for LAB_RESULT record", {
                     traceId,
                     recordId,
                     patientId,
                     extractionResult: extractionResult ? Object.keys(extractionResult) : null,
                     hasLabResults: !!extractionResult?.labResults,
                     isArray: Array.isArray(extractionResult?.labResults),
+                });
+            } else {
+                logger.debug("Skipping lab results extraction for non-LAB_RESULT record type", {
+                    traceId,
+                    recordId,
+                    patientId,
+                    recordType,
                 });
             }
 

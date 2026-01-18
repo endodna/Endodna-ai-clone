@@ -8,6 +8,7 @@ import {
   createSuperAdminSchema,
   provisionOrganizationSchema,
   triggerCronActionSchema,
+  createLicenseeBySAdminSchema,
 } from "../../schemas";
 
 const sAdminRouter = Router().use("/", Authentication, SAdminAuthorization);
@@ -31,6 +32,11 @@ sAdminRouter.post(
   "/organization/admin",
   validate(createOrganizationAdminSchema),
   SAdminController.createOrganizationAdmin,
+);
+sAdminRouter.post(
+  "/organization/licensee",
+  validate(createLicenseeBySAdminSchema),
+  SAdminController.createLicensee,
 );
 sAdminRouter.get("/organization/list", SAdminController.getOrganizations);
 

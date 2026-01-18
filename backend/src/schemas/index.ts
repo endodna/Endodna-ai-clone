@@ -64,6 +64,23 @@ export type CreateOrganizationAdminSchema = z.infer<
   typeof createOrganizationAdminSchema
 >;
 
+export const createLicenseeBySAdminSchema = z
+  .object({
+    email: z.string().email("Invalid email format").toLowerCase().trim(),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .optional(),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    middleName: z.string().optional(),
+    organizationId: z.string().uuid("Invalid organization ID"),
+  })
+  .strict();
+export type CreateLicenseeBySAdminSchema = z.infer<
+  typeof createLicenseeBySAdminSchema
+>;
+
 export const createAdminSchema = z
   .object({
     email: z.string().email("Invalid email format").toLowerCase().trim(),
@@ -673,3 +690,15 @@ export const createLicenseeOrganizationDoctorSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
 }).strict();
 export type CreateLicenseeOrganizationDoctorSchema = z.infer<typeof createLicenseeOrganizationDoctorSchema>;
+
+export const createLicenseeSchema = z.object({
+  email: z.string().email("Invalid email format").toLowerCase().trim(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  middleName: z.string().optional(),
+}).strict();
+export type CreateLicenseeSchema = z.infer<typeof createLicenseeSchema>;

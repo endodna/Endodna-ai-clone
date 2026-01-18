@@ -9,6 +9,7 @@ import {
     updateLicenseeOrganizationSchema,
     createLicenseeOrganizationAdminSchema,
     createLicenseeOrganizationDoctorSchema,
+    createLicenseeSchema,
 } from "../../schemas";
 
 const licenseeRouter = Router().use("/", Authentication, LicenseeAuthorization);
@@ -38,6 +39,12 @@ licenseeRouter.post(
     "/organization/doctor",
     validate(createLicenseeOrganizationDoctorSchema),
     LicenseeController.createOrganizationDoctor,
+);
+
+licenseeRouter.post(
+    "/licensee",
+    validate(createLicenseeSchema),
+    LicenseeController.createLicensee,
 );
 
 export default licenseeRouter;

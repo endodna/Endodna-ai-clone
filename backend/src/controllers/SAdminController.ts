@@ -20,6 +20,7 @@ import {
   LoginSchema,
   ProvisionOrganizationSchema,
   TriggerCronActionSchema,
+  CreateLicenseeBySAdminSchema,
 } from "../schemas";
 import cronService from "../services/cron/cron.service";
 import { UserResponse } from "@supabase/supabase-js";
@@ -246,6 +247,9 @@ class SAdminController {
           email: admin.email,
           password: admin.password,
           email_confirm: true,
+          user_metadata: {
+            userType: isLicensee ? PrismaUserType.LICENSEE.toString().toLowerCase() : PrismaUserType.ADMIN.toString().toLowerCase(),
+          },
         });
       } else {
         const idDomainUrl = process.env.ID_DOMAIN_URL || "https://id.bios.med";
@@ -256,7 +260,7 @@ class SAdminController {
           {
             redirectTo: inviteUrl,
             data: {
-              userType: PrismaUserType.ADMIN.toString().toLowerCase(),
+              userType: isLicensee ? PrismaUserType.LICENSEE.toString().toLowerCase() : PrismaUserType.ADMIN.toString().toLowerCase(),
               firstName: admin.firstName,
               lastName: admin.lastName,
               middleName: admin.middleName,
@@ -425,6 +429,94 @@ class SAdminController {
           status: StatusCode.INTERNAL_SERVER_ERROR,
           error: err,
           message: "Failed to create organization admin",
+        },
+        req,
+      );
+    }
+  }
+
+  public static async createLicensee(
+    req: AuthenticatedRequest,
+    res: Response,
+  ) {
+    try {
+      const { userId } = req.user!;
+      const {
+        email,
+        password,
+        organizationId,
+        firstName,
+        lastName,
+        middleName,
+      } = req.body as CreateLicenseeBySAdminSchema;
+
+      const organization = await prisma.organization.findFirst({
+        where: {
+          uuid: organizationId,
+        },
+      });
+      if (!organization) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: "Invalid organization",
+        });
+      }
+
+      const result = await UserService.createUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        middleName,
+        userType: PrismaUserType.LICENSEE,
+        organizationId: organization.id!,
+        userId,
+        status: Status.PENDING,
+        traceId: req.traceId,
+      });
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminId: userId,
+          description: "Licensee create attempt",
+          metadata: {
+            body: req.body,
+            organizationId: organization.id,
+            organizationUuid: organization.uuid,
+          },
+          priority: Priority.HIGH,
+        },
+      });
+
+      if (!result.success) {
+        return sendResponse(res, {
+          status: StatusCode.BAD_REQUEST,
+          error: true,
+          message: result.error,
+        });
+      }
+
+      sendResponse(res, {
+        status: StatusCode.OK,
+        data: {
+          ...req.body,
+          password: undefined,
+        },
+        message: "Licensee created successfully",
+      });
+    } catch (err) {
+      logger.error("Create licensee failed", {
+        traceId: req.traceId,
+        method: "createLicensee",
+        error: err,
+      });
+      sendResponse(
+        res,
+        {
+          status: StatusCode.INTERNAL_SERVER_ERROR,
+          error: err,
+          message: "Failed to create licensee",
         },
         req,
       );
