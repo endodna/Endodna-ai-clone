@@ -159,6 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         clearUserConfigFromStorage();
       }
+      setLoading(false);
     });
 
     const {
